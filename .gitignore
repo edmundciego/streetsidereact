@@ -7,7 +7,8 @@
 
 # testing
 /coverage
-
+.env.development
+.env.production
 # next.js
 /.next/
 /out/
@@ -18,6 +19,7 @@
 # misc
 .DS_Store
 *.pem
+*.zip
 
 # debug
 npm-debug.log*

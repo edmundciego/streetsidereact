@@ -1,5 +1,6 @@
 import "../src/styles/globals.css";
 import "../src/styles/nprogress.css";
+import { Analytics } from "@vercel/analytics/next";
 import { CacheProvider } from "@emotion/react";
 import { Provider as ReduxProvider } from "react-redux";
 import createEmotionCache from "../src/utils/create-emotion-cache";
@@ -91,6 +92,7 @@ function MyApp(props) {
           <ReactQueryDevtools initialIsOpen={false} position="bottom-right" />
         </QueryClientProvider>
       </CacheProvider>
+      <Analytics />
     </>
   );
 }
