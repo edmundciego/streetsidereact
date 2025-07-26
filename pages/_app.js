@@ -1,6 +1,7 @@
 import "../src/styles/globals.css";
 import "../src/styles/nprogress.css";
 import { Analytics } from "@vercel/analytics/next";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import { CacheProvider } from "@emotion/react";
 import { Provider as ReduxProvider } from "react-redux";
 import createEmotionCache from "../src/utils/create-emotion-cache";
@@ -93,6 +94,7 @@ function MyApp(props) {
         </QueryClientProvider>
       </CacheProvider>
       <Analytics />
+      <SpeedInsights />
     </>
   );
 }
