@@ -354,12 +354,12 @@ const BasicInformationForm = ({
                 style: {
                   height: "45px", // Set your desired height value here
                 },
+                readOnly: true,
               }}
               id="outlined-basic"
               variant="outlined"
               name="name"
               value={profileFormik.values.name}
-              onChange={profileFormik.handleChange}
               label={t("User Name")}
               required
               error={
