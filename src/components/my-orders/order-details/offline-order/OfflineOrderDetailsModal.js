@@ -9,6 +9,8 @@ import {
   useTheme,
 } from "@mui/material";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import ErrorIcon from "@mui/icons-material/Error";
+import CancelIcon from "@mui/icons-material/Cancel";
 import { t } from "i18next";
 
 import { CustomStackFullWidth } from "../../../../styled-components/CustomStyles.style";
@@ -33,15 +35,38 @@ const OfflineOrderDetailsModal = ({
       alignItems="center"
       gap="20px"
     >
-      <CheckCircleIcon
-        sx={{
-          height: "45px",
-          width: "45px",
-          color: theme.palette.primary.main,
-        }}
-      />
+      {/* Conditional Icon based on payment status */}
+      {page === "my-orders?flag=cancel" ? (
+        <CancelIcon
+          sx={{
+            height: "45px",
+            width: "45px",
+            color: theme.palette.error.main,
+          }}
+        />
+      ) : page === "my-orders?flag=fail" ? (
+        <ErrorIcon
+          sx={{
+            height: "45px",
+            width: "45px",
+            color: theme.palette.error.main,
+          }}
+        />
+      ) : (
+        <CheckCircleIcon
+          sx={{
+            height: "45px",
+            width: "45px",
+            color: theme.palette.primary.main,
+          }}
+        />
+      )}
+      
+      {/* Conditional Title based on payment status */}
       <Typography fontSize="16px" fontWeight="700" textAlign="center">
-        {`${t("Order Placed Successfully")} !`}
+        {page === "my-orders?flag=cancel" || page === "my-orders?flag=fail"
+          ? `${t("Payment Failed")} !`
+          : `${t("Order Placed Successfully")} !`}
       </Typography>
       <CustomStackFullWidth
         padding={{ xs: "0px 20px", md: "0px 145px" }}
@@ -58,30 +83,54 @@ const OfflineOrderDetailsModal = ({
         ) : (
           <Typography fontSize="14px" fontWeight="400">
             {page === "my-orders?flag=cancel" ? (
-              <Typography color={theme.palette.error.main}>
-                {t("Your payment has been cancel, and your order ")}
-              </Typography>
+              <>
+                <Typography component="span" color={theme.palette.error.main}>
+                  {t("Your payment has been cancelled for order ")}
+                </Typography>
+                <Typography
+                  component="span"
+                  fontWeight="600"
+                  sx={{ color: theme.palette.primary.main }}
+                >
+                  #{trackData?.id}
+                </Typography>
+                <Typography component="span" fontWeight="400">
+                  {` ${t("has been placed. You can still complete your purchase with Cash on Delivery.")} !`}
+                </Typography>
+              </>
             ) : page === "my-orders?flag=fail" ? (
-              <Typography color={theme.palette.error.main}>
-                {t("Your payment has failed, and your order ")}
-              </Typography>
+              <>
+                <Typography component="span" color={theme.palette.error.main}>
+                  {t("Your payment has failed for order ")}
+                </Typography>
+                <Typography
+                  component="span"
+                  fontWeight="600"
+                  sx={{ color: theme.palette.primary.main }}
+                >
+                  #{trackData?.id}
+                </Typography>
+                <Typography component="span" fontWeight="400">
+                  {` ${t("has been placed. You can still complete your purchase with Cash on Delivery.")} !`}
+                </Typography>
+              </>
             ) : (
-              `${t(
-                "Your payment has been successfully processed, and your order "
-              )} !`
+              <>
+                <Typography component="span">
+                  {`${t("Your payment has been successfully processed, and your order ")} `}
+                </Typography>
+                <Typography
+                  component="span"
+                  fontWeight="600"
+                  sx={{ color: theme.palette.primary.main }}
+                >
+                  #{trackData?.id}
+                </Typography>
+                <Typography component="span" fontWeight="400">
+                  {` ${t("has been placed.")} !`}
+                </Typography>
+              </>
             )}
-
-            <Typography
-              component="span"
-              fontWeight="600"
-              sx={{ color: theme.palette.primary.main }}
-            >
-              {" "}
-              #{trackData?.id}{" "}
-            </Typography>
-            <Typography component="span" fontWeight="400">{`${t(
-              "has been placed."
-            )} !`}</Typography>
           </Typography>
         )}
       </CustomStackFullWidth>
