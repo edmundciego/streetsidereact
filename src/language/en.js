@@ -1381,4 +1381,9 @@ export const english = {
 	"Forgot your password":"Forgot your password",
 	"Please enter the registered":"Please enter the registered",
 	"where you want to sent your password recovery OTP.":"where you want to sent your password recovery OTP.",
+	"Keep Order": "Keep Order",
+	"Order in Progress": "Order in Progress",
+	"Payment Processing": "Payment Processing",
+	"Please select a reason for cancelling your order. This action will cancel your order - not request a refund.": "Please select a reason for cancelling your order. This action will cancel your order - not request a refund.",
+	"You cannot cancel this order as it has already been confirmed or is being processed": "You cannot cancel this order as it has already been confirmed or is being processed",
 };

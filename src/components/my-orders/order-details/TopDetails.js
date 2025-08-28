@@ -413,6 +413,13 @@ const TopDetails = (props) => {
         >
           {isSmall ? t("Switch to COD") : t("Switch to cash on delivery")}
         </OrderStatusButton>
+      ) : trackData?.payment_status === "unpaid" && trackData?.order_status !== "failed" ? (
+        <OrderStatusButton
+          background={theme.palette.warning.main}
+          // color={theme.palette.whiteContainer}
+        >
+          {t("Payment Processing")}
+        </OrderStatusButton>
       ) : (
         <>
           {trackData && trackData?.order_status === "failed" ? (
@@ -424,7 +431,7 @@ const TopDetails = (props) => {
               isSmall={isSmall}
             />
           ) : (
-            trackData?.order_status === "pending" && (
+            (trackData?.order_status === "pending" || trackData?.order_status === "confirmed") && (
               <OrderStatusButton
                 background={theme.palette.error.deepLight}
                 onClick={() => setCancelOpenModal(true)}
@@ -435,6 +442,17 @@ const TopDetails = (props) => {
               </OrderStatusButton>
             )
           )}
+          {trackData?.order_status === "processing" || 
+           trackData?.order_status === "handover" || 
+           trackData?.order_status === "picked_up" || 
+           trackData?.order_status === "accepted" ? (
+            <OrderStatusButton
+              background={theme.palette.warning.main}
+              // color={theme.palette.whiteContainer}
+            >
+              {t("Order in Progress")}
+            </OrderStatusButton>
+          ) : null}
         </>
       )}
       <CustomModal
