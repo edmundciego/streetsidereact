@@ -5,6 +5,7 @@ import { setSelectedModule } from "redux/slices/utils";
 import CustomImageContainer from "../CustomImageContainer";
 import { useSelector } from "react-redux";
 import { useRouter } from "next/router";
+import {setFeaturedCategories, setRecommendedStores} from "redux/slices/storedData";
 
 const Container = styled(Stack)(({ theme }) => ({
   position: "fixed",
@@ -73,6 +74,8 @@ const ModuleSelect = ({
   );
 
   const handleModuleSelect = (item) => {
+    dispatch(setFeaturedCategories([]));
+    dispatch(setRecommendedStores([]))
     dispatch(setSelectedModule(item));
     moduleSelectHandler(item);
     const isModuleExist = existingModuleId?.includes(item?.id);
@@ -100,6 +103,7 @@ const ModuleSelect = ({
                   item?.module_type === selectedModule?.module_type &&
                   item?.id === selectedModule?.id
                 }
+                id={item?.id}
                 onClick={() => handleModuleSelect(item)}
               >
                 <CustomImageContainer

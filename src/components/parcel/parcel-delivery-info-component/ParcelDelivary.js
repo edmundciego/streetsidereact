@@ -17,6 +17,7 @@ import ReceiverInfoFrom from "./ReceiverInfoFrom";
 import SenderInfoForm from "./SenderInfoForm";
 import ValidationSchema from "./ValidationSchema";
 import dynamic from "next/dynamic";
+import { formatPhoneNumber } from "utils/CustomFunctions";
 const AuthModal = dynamic(() => import("components/auth/AuthModal"));
 const PercelDelivery = ({ configData }) => {
   const router = useRouter();
@@ -32,7 +33,7 @@ const PercelDelivery = ({ configData }) => {
   const [receiverLocation, setReceiverLocation] = useState(
     parcelInfo ? parcelInfo?.receiverLocations : {}
   );
-  const [receiverFormattedAddress, setReceiverFormattedAddress] = useState("");
+  const [receiverFormattedAddress, setReceiverFormattedAddress] = useState(parcelInfo? parcelInfo?.receiverAddress : "");
   const [open, setOpen] = useState(false);
   const [sideDrawerOpen, setSideDrawerOpen] = useState(false);
   let token = getToken();
@@ -57,14 +58,14 @@ const PercelDelivery = ({ configData }) => {
         : "",
       senderPhone: token
         ? profileInfo?.phone
-          ? profileInfo?.phone
+          ? formatPhoneNumber(profileInfo?.phone)
           : ""
         : parcelInfo?.senderPhone
-        ? parcelInfo?.senderPhone
+        ? formatPhoneNumber(parcelInfo?.senderPhone)
         : "",
       senderEmail: profileInfo? profileInfo?.email:parcelInfo?.senderEmail ? parcelInfo?.senderEmail : "",
       receiverName: parcelInfo?.receiverName ? parcelInfo?.receiverName : "",
-      receiverPhone: parcelInfo?.receiverPhone ? parcelInfo?.receiverPhone : "",
+      receiverPhone: parcelInfo?.receiverPhone ? formatPhoneNumber(parcelInfo?.receiverPhone) : "",
       receiverEmail: parcelInfo?.receiverEmail ? parcelInfo?.receiverEmail : "",
       senderRoad: parcelInfo?.senderRoad ? parcelInfo?.senderRoad : "",
       senderHouse: parcelInfo?.senderHouse ? parcelInfo?.senderHouse : "",
@@ -86,11 +87,10 @@ const PercelDelivery = ({ configData }) => {
     setSenderLocation(currentLocationLatLng);
     setSenderFormattedAddress(currentLocation);
   }, []);
-
   useEffect(() => {
     addAddressFormik.setFieldValue(
       "senderPhone",
-      profileInfo?.phone ? profileInfo?.phone : parcelInfo?.senderPhone
+      profileInfo?.phone ? formatPhoneNumber(profileInfo?.phone) : formatPhoneNumber(parcelInfo?.senderPhone)
     );
   }, [profileInfo?.phone]);
 

@@ -13,10 +13,8 @@ import { useRouter } from "next/router";
 
 const PharmacyStaticBanners = () => {
   const router = useRouter();
-  const { data, refetch, isFetched } = useGetBasicCampaigns();
-  useEffect(() => {
-    refetch()
-  }, []);
+  const { data, refetch, isFetched,isLoading } = useGetBasicCampaigns();
+
   const handleBannerClick = (banner) => {
     router.push(
       {
@@ -25,7 +23,12 @@ const PharmacyStaticBanners = () => {
       },
       undefined,
       { shallow: true }
-    );
+    ).then(() => {
+      // Add slight delay to ensure new page is mounted
+      setTimeout(() => {
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }, 100); // delay helps after DOM updates
+    });
   };
 
   const settings = {
@@ -50,7 +53,7 @@ const PharmacyStaticBanners = () => {
 
   return (
     <>
-      {!isFetched ? (
+      {isLoading ? (
           <CustomStackFullWidth
               sx={{
                 mt: "10px",

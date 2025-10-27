@@ -20,6 +20,7 @@
 .DS_Store
 *.pem
 *.zip
+*.md
 
 # debug
 npm-debug.log*
@@ -39,3 +40,8 @@ next-env.d.ts
 .yarn
 .zip
 .idea
+
+# VS Code settings and Copilot configuration
+.vscode/
+.copilotignore
+.copilot

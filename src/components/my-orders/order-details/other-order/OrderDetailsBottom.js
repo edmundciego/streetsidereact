@@ -102,7 +102,10 @@ const OrderDetailsBottom = ({
               </Grid>
             )}
           {trackData &&
-          trackData?.payment_method === "digital_payment" &&
+          (trackData?.payment_method === "digital_payment" || 
+           trackData?.payment_method === "placetoPay" ||
+           trackData?.payment_method === "digiWallet" ||
+           trackData?.payment_method === "oneLink") &&
           trackData?.payment_status === "unpaid" &&
           zoneData?.data?.zone_data?.[0]?.cash_on_delivery ? (
             <Grid item xs={12} sm={6} md={6}>
@@ -153,10 +156,10 @@ const OrderDetailsBottom = ({
       >
         <DigitalPaymentManage
           setModalOpenForPayment={setModalOpenForPayment}
-          setModalOpen={setOpenModal}
           refetchOrderDetails={refetchOrderDetails}
           refetchTrackData={refetchTrackData}
           id={trackData?.id}
+          onRequestCancel={() => setOpenModal(true)}
         />
       </CustomModal>
     </>

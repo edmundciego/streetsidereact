@@ -21,18 +21,17 @@ const PaymentMethod = ({
   setSwitchToWallet,
   isZoneDigital,
   getParcelPayment,
-                         handlePartialPayment,
-                         walletBalance,
-                         removePartialPayment,
-                         switchToWallet,
-                         customerData,
-                         payableAmount
+  handlePartialPayment,
+  walletBalance,
+  removePartialPayment,
+  switchToWallet,
+  customerData,
+  payableAmount,
+  changeAmount,
+  setChangeAmount,
 }) => {
   return (
-    <CustomStackFullWidth
-      spacing={2}
-
-    >
+    <CustomStackFullWidth spacing={2}>
       {parcel === "true" ? (
         <ParcelPaymentMethod
           setPaymentMethod={setPaymentMethod}
@@ -50,6 +49,8 @@ const PaymentMethod = ({
         />
       ) : (
         <OtherModulePayment
+          changeAmount={changeAmount}
+          setChangeAmount={setChangeAmount}
           setPaymentMethod={setPaymentMethod}
           paymentMethod={paymentMethod}
           zoneData={zoneData}

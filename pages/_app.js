@@ -1,7 +1,5 @@
 import "../src/styles/globals.css";
 import "../src/styles/nprogress.css";
-import { Analytics } from "@vercel/analytics/next";
-import { SpeedInsights } from "@vercel/speed-insights/next";
 import { CacheProvider } from "@emotion/react";
 import { Provider as ReduxProvider } from "react-redux";
 import createEmotionCache from "../src/utils/create-emotion-cache";
@@ -21,50 +19,51 @@ import nProgress from "nprogress";
 import Router from "next/router";
 import { persistStore } from "redux-persist";
 import { useTranslation } from "react-i18next";
+import useScrollToTop from "../src/api-manage/hooks/custom-hooks/useScrollToTop";
 import { useEffect } from "react";
-import useScrollRestoration from "api-manage/hooks/custom-hooks/useSCrollRestoration";
 
 Router.events.on("routeChangeStart", nProgress.start);
 Router.events.on("routeChangeError", nProgress.done);
 Router.events.on("routeChangeComplete", nProgress.done);
+
 export const currentVersion = process.env.NEXT_PUBLIC_SITE_VERSION;
 const clientSideEmotionCache = createEmotionCache();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      cacheTime: 1000 * 60 * 5, // 5 minutes
+      staleTime: 1000 * 60 * 2, // 2 minutes
+    },
+  },
+});
 
 function MyApp(props) {
   const {
     Component,
     emotionCache = clientSideEmotionCache,
     pageProps,
-    configData,
   } = props;
   const getLayout = Component.getLayout ?? ((page) => page);
   const { t } = useTranslation();
-  const queryClient = new QueryClient({
-    defaultOptions: {
-      queries: {
-        cacheTime: 1000 * 60 * 5, // 5 minutes
-        staleTime: 1000 * 60 * 2, // 2 minutes
-      },
-    },
-  });
-  //storing persisted data
+
+  // Persist store
   let persistor = persistStore(store);
 
+  // Version check
   useEffect(() => {
     const storedVersion = localStorage.getItem("appVersion");
-
     if (storedVersion !== currentVersion) {
-      localStorage.clear(); // Clear local storage
-      localStorage.setItem("appVersion", currentVersion); // Update stored version
+      localStorage.clear();
+      localStorage.setItem("appVersion", currentVersion);
     }
   }, [currentVersion]);
-  useScrollRestoration();
+
   return (
     <>
+      {useScrollToTop()}
       <CacheProvider value={emotionCache}>
         <QueryClientProvider client={queryClient}>
           <ReduxProvider store={store}>
-            {/*<PersistGate loading={null} persistor={persistor}>*/}
             <SettingsProvider>
               <SettingsConsumer>
                 {(value) => (
@@ -78,23 +77,16 @@ function MyApp(props) {
                     <RTL direction={value?.settings?.direction}>
                       <CssBaseline />
                       <Toaster position="top-center" />
-                      {/* <DynamicFavicon configData={configData}/> */}
-                      {/* <Head>
-                                                <title>{t('Loading...')}</title>
-                                            </Head> */}
                       {getLayout(<Component {...pageProps} />)}
                     </RTL>
                   </ThemeProvider>
                 )}
               </SettingsConsumer>
             </SettingsProvider>
-            {/*</PersistGate>*/}
           </ReduxProvider>
           <ReactQueryDevtools initialIsOpen={false} position="bottom-right" />
         </QueryClientProvider>
       </CacheProvider>
-      <Analytics />
-      <SpeedInsights />
     </>
   );
 }

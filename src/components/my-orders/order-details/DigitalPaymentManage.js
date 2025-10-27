@@ -23,7 +23,7 @@ const DigitalPaymentManage = ({
   refetchOrderDetails,
   refetchTrackData,
   id,
-  setModalOpen,
+  onRequestCancel,
 }) => {
   const { mutate: paymentMethodUpdateMutation, isLoading: orderLoading } =
     useMutation(
@@ -49,7 +49,7 @@ const DigitalPaymentManage = ({
   };
   const handleClose = () => {
     setModalOpenForPayment(false);
-    setModalOpen(true);
+    onRequestCancel?.();
   };
   return (
     <>

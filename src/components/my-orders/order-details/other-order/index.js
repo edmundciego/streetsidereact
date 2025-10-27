@@ -53,6 +53,19 @@ const OtherOrder = (props) => {
     refetchTrackOrder();
   }, []);
 
+  useEffect(() => {
+    let interval;
+
+    if (trackOrderData?.delivery_man && currentTab === "track-order") {
+      refetchTrackOrder(); // run immediately once
+      interval = setInterval(() => {
+        refetchTrackOrder();
+      }, 10000); // repeat every 10 seconds
+    }
+
+    return () => clearInterval(interval); // cleanup on unmount or dependency change
+  }, [trackOrderData, currentTab]);
+
   const { mutate, isLoading: refundIsLoading } = useStoreRefundRequest();
   const formSubmitHandler = (values) => {
     const tempValue = { ...values, id };
@@ -233,7 +246,7 @@ const OtherOrder = (props) => {
         onClose={() => setOpenModal(false)}
         // reasons={reasonsData?.refund_reasons}
         formSubmit={formSubmitHandler}
-        // refundIsLoading={refundIsLoading}
+        refundIsLoading={refundIsLoading}
       />
       {sideDrawerOpen && trackOrderData && (
         <TrackParcelOrderDrawer

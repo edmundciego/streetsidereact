@@ -214,7 +214,9 @@ const VisitAgainCard = (props) => {
 					width: "100%",
 					img:{
 						width:"100%",
-						height: "100%",}
+						height: "100%",
+						objectFit:"cover",
+					}
 
 				}}
 			>
@@ -223,7 +225,7 @@ const VisitAgainCard = (props) => {
 					alt={item?.name}
 					height={isSmall ? 100 : 132}
 					width={261}
-					obejctfit="contain"
+					obejctFit="cover"
 					borderRadius="10px"
 				/>
 				{getCurrentModuleType() !== ModuleTypes.FOOD && (
@@ -234,24 +236,24 @@ const VisitAgainCard = (props) => {
 					</Box>
 				)}
 
-				{isWishlisted && (
-					<Stack
-						alignItems="center"
-						justifyContent="center"
-						sx={{
-							position: "absolute",
-							top: 10,
-							right: 10,
-							backgroundColor: (theme) => theme.palette.neutral[100],
-							height: "30px",
-							width: "30px",
-							borderRadius: "4px",
-							color: "primary.main",
-						}}
-					>
-						<FavoriteIcon fontSize="small" />
-					</Stack>
-				)}
+				{/*{isWishlisted && (*/}
+				{/*	<Stack*/}
+				{/*		alignItems="center"*/}
+				{/*		justifyContent="center"*/}
+				{/*		sx={{*/}
+				{/*			position: "absolute",*/}
+				{/*			top: 10,*/}
+				{/*			right: 10,*/}
+				{/*			backgroundColor: (theme) => theme.palette.neutral[100],*/}
+				{/*			height: "30px",*/}
+				{/*			width: "30px",*/}
+				{/*			borderRadius: "4px",*/}
+				{/*			color: "primary.main",*/}
+				{/*		}}*/}
+				{/*	>*/}
+				{/*		<FavoriteIcon fontSize="small" />*/}
+				{/*	</Stack>*/}
+				{/*)}*/}
 
 				<CustomOverLay hover={isHover}>
 					<QuickView

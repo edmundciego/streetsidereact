@@ -15,7 +15,7 @@ import { getStoresOrRestaurants } from "helper-functions/getStoresOrRestaurants"
 import { getGuestId, getToken } from "helper-functions/getToken";
 import moment from "moment/moment";
 import Router from "next/router";
-import React, { useEffect, useReducer, useState,useRef } from "react";
+import React, { useEffect, useReducer, useState, useRef } from "react";
 import { toast } from "react-hot-toast";
 import { useTranslation } from "react-i18next";
 import { useMutation, useQuery } from "react-query";
@@ -85,8 +85,10 @@ import thunderstorm from "../assets/thunderstorm.svg";
 import { useFormik } from "formik";
 
 import * as Yup from "yup";
-import {useGetTax} from "api-manage/hooks/react-query/order-place/useGetTax";
-export const deepEqual=(obj1, obj2)=> {
+import { useGetTax } from "api-manage/hooks/react-query/order-place/useGetTax";
+import DigiWalletApi from "api-manage/api-call-functions/digiWalletApi";
+import { hydrateFromQuery } from "redux/slices/digiWalletSlice";
+export const deepEqual = (obj1, obj2) => {
   if (obj1 === obj2) return true;
 
   if (
@@ -109,8 +111,7 @@ export const deepEqual=(obj1, obj2)=> {
   }
 
   return true;
-}
-
+};
 
 const ItemCheckout = (props) => {
   const { configData, router, page, cartList, campaignItemList, totalAmount } =
@@ -147,11 +148,12 @@ const ItemCheckout = (props) => {
   const [isPackaging, setIsPackaging] = useState(false);
   const [packagingCharge, setPackagingCharge] = useState(0);
   const [paymentMethodImage, setPaymentMethodImage] = useState("");
+  const [changeAmount, setChangeAmount] = useState();
   const [state, customDispatch] = useReducer(scheduleReducer, INITIAL_STATE);
   const { profileInfo } = useSelector((state) => state.profileInfo);
   const { guestUserInfo } = useSelector((state) => state.guestUserInfo);
   const { offlinePaymentInfo } = useSelector((state) => state.offlinePayment);
-
+  const [dDistance, setDDistance] = useState(null);
   const token = getToken();
   const dispatch = useDispatch();
   const { t } = useTranslation();
@@ -172,6 +174,68 @@ const ItemCheckout = (props) => {
     }),
   });
 
+  const initiateDigiWalletPayment = async ({
+    orderId,
+    userId,
+    callBackUrl,
+    paymentPlatform,
+    contactNumber,
+    amountToPay,
+  }) => {
+    try {
+      const params = {
+        order_id: orderId,
+        customer_id: userId,
+        payment_platform: paymentPlatform,
+        callback: callBackUrl,
+        payment_method: "digiWallet",
+      };
+      const { data } = await DigiWalletApi.initiate(params);
+      const paymentId = data?.payment_id;
+      const requestId = data?.request_id ?? data?.transaction_id ?? null;
+
+      if (!paymentId) {
+        throw new Error(
+          data?.message || t("Unable to initiate DigiWallet payment")
+        );
+      }
+
+      dispatch(
+        hydrateFromQuery({
+          paymentId,
+          orderId,
+          requestId,
+          amount: amountToPay,
+          phone: contactNumber,
+          status: (data?.status || "otp_sent").toLowerCase(),
+          message: data?.message,
+        })
+      );
+
+      localStorage.setItem("totalAmount", amountToPay);
+      dispatch(setGuestUserInfo(null));
+      dispatch(setClearCart());
+
+      Router.push({
+        pathname: "/digiwallet-payment",
+        query: {
+          payment_id: paymentId,
+          order_id: orderId,
+          request_id: requestId ?? undefined,
+          amount: amountToPay,
+          phone: contactNumber,
+        },
+      });
+    } catch (err) {
+      const errorMessage =
+        err?.response?.data?.message ||
+        err?.response?.data?.errors?.[0]?.message ||
+        err?.message ||
+        t("Unable to initiate DigiWallet payment");
+      toast.error(errorMessage);
+    }
+  };
+
   const currentModuleType = getCurrentModuleType();
   const storeId =
     page === "campaign"
@@ -186,7 +250,7 @@ const ItemCheckout = (props) => {
     refetch: refetchOfflinePaymentOptions,
     isLoading: offlineIsLoading,
   } = useGetOfflinePaymentOptions();
-  const {mutate:taxMutate,data}=useGetTax()
+  const { mutate: taxMutate, data } = useGetTax();
 
   const passwordHandler = (value) => {
     formik.setFieldValue("password", value);
@@ -199,7 +263,6 @@ const ItemCheckout = (props) => {
     refetchOfflinePaymentOptions();
   }, []);
   useEffect(() => {
-
     if (storeId) {
       refetch();
     }
@@ -221,18 +284,22 @@ const ItemCheckout = (props) => {
     refetch: refetchDistance,
     isLoading,
   } = useQuery(
-    ["get-distance", storeData, address],
+    ["get-distancesss", storeData, address, orderType],
     () => GoogleApi.distanceApi(storeData, address),
     {
-      enabled: false,
+      enabled: true,
       onError: onErrorResponse,
     }
   );
+
   const tempDistance = handleDistance(
     distanceData?.data,
     { latitude: storeData?.latitude, longitude: storeData?.longitude },
     address
   );
+  useEffect(() => {
+    setDDistance(Number(distanceData?.data?.distanceMeters) / 1000);
+  }, [distanceData]);
 
   const {
     data: extraCharge,
@@ -274,9 +341,6 @@ const ItemCheckout = (props) => {
     });
     refetch();
   }, []);
-  useEffect(() => {
-    storeData && address && refetchDistance();
-  }, [storeData, address?.lat, address?.lng]);
 
   useEffect(() => {
     const taxAmount = getTaxableTotalPrice(
@@ -309,8 +373,6 @@ const ItemCheckout = (props) => {
     offlineMutate(offlinePaymentData);
   };
 
-  //orderId
-  //offlinePaymentInfo
   useEffect(() => {
     if (offlineCheck) {
       handleOffineOrder();
@@ -404,11 +466,7 @@ const ItemCheckout = (props) => {
       formData.append("discount_amount", getProductDiscount(productList));
       formData.append(
         "distance",
-        handleDistance(
-          distanceData?.data,
-          originData,
-          address
-        )
+        handleDistance(distanceData?.data, originData, address)
       );
       formData.append("order_amount", totalAmount);
       formData.append("dm_tips", deliveryTip);
@@ -466,16 +524,12 @@ const ItemCheckout = (props) => {
         // order_time: scheduleAt,
         payment_method: isDigital,
         order_type: orderType === "schedule_order" ? "delivery" : orderType,
-        store_id: storeData?.id,
+        store_id: storeId,
         coupon_code: couponDiscount?.code,
         coupon_discount_amount: couponDiscount?.discount,
         coupon_discount_title: couponDiscount?.title,
         discount_amount: getProductDiscount(productList),
-        distance: handleDistance(
-          distanceData?.data,
-          originData,
-          address
-        ),
+        distance: dDistance || tempDistance,
         order_amount: totalAmount,
         dm_tips: deliveryTip,
         cutlery: cutlery,
@@ -502,16 +556,16 @@ const ItemCheckout = (props) => {
         create_new_user: check ? 1 : 0,
         password: formik.values.password,
         is_guest: token ? 0 : 1,
+        bring_change_amount: changeAmount,
       };
     }
   };
-
 
   const prevCartRef = useRef(null);
   const prevCouponRef = useRef(null);
 
   useEffect(() => {
-    if (!cartList || !storeData) return;
+    if ((!cartList || !storeData) && !storeId) return;
 
     const cartChanged = !deepEqual(prevCartRef.current, cartList);
     const couponChanged = !deepEqual(prevCouponRef.current, couponDiscount);
@@ -524,9 +578,8 @@ const ItemCheckout = (props) => {
       const totalQty = 0;
       const carts = handleProductList(productList, totalQty);
       const orderObject = handleOrderMutationObject(carts, productList);
-
       taxMutate(orderObject, {
-        onError: onErrorResponse,
+        // onError: onErrorResponse,
       });
     }
   }, [cartList, campaignItemList, couponDiscount, storeData]);
@@ -554,21 +607,51 @@ const ItemCheckout = (props) => {
               if (token) {
                 dispatch(setOrderDetailsModal(true));
               }
-              if (paymentMethod === "digital_payment") {
+              if (
+                paymentMethod === "digital_payment" ||
+                configData?.active_payment_method_list?.some(
+                  (gateway) => gateway.gateway === paymentMethod
+                )
+              ) {
                 toast.success(response?.data?.message);
                 const newBaseUrl = baseUrl;
                 const page = "my-orders";
                 const callBackUrl = token
                   ? `${window.location.origin}/profile?page=${page}`
                   : `${window.location.origin}/order?order_id=${response?.data?.order_id}&total=${response?.data?.total_ammount}`;
-                const url = `${newBaseUrl}/payment-mobile?order_id=${
+                const paymentPlatform = "web";
+                const customerId = customerData?.data?.id ?? guest_id;
+                const contactNumber =
+                  customerData?.data?.phone ??
+                  profileInfo?.phone ??
+                  address?.contact_person_number ??
+                  "";
+
+                if (paymentMethod === "digiWallet") {
+                  initiateDigiWalletPayment({
+                    orderId: response?.data?.order_id,
+                    userId: customerId,
+                    callBackUrl,
+                    paymentPlatform,
+                    contactNumber,
+                    amountToPay: totalAmount,
+                  });
+                  return;
+                }
+
+                const sanitizedBaseUrl = newBaseUrl?.endsWith("/")
+                  ? newBaseUrl.slice(0, -1)
+                  : newBaseUrl;
+                const url = `${sanitizedBaseUrl}/payment-mobile?order_id=${
                   response?.data?.order_id
-                }&customer_id=${
-                  customerData?.data?.id ?? guest_id
-                }&callback=${callBackUrl},`;
+                }&customer_id=${customerId}&callback=${callBackUrl}&payment_method=${paymentMethod}&payment_platform=${paymentPlatform}`;
                 localStorage.setItem("totalAmount", totalAmount);
                 dispatch(setClearCart());
-                Router.push(url);
+                if (typeof window !== "undefined") {
+                  window.location.href = url;
+                } else {
+                  Router.push(url);
+                }
               } else if (paymentMethod === "wallet") {
                 toast.success(response?.data?.message);
                 setOrderId(response?.data?.order_id);
@@ -626,17 +709,40 @@ const ItemCheckout = (props) => {
               const callBackUrl = token
                 ? `${window.location.origin}/profile?page=${page}`
                 : `${window.location.origin}/home`;
-              const url = `${baseUrl}/payment-mobile?order_id=${
-                response?.data?.order_id
-              }&customer_id=${
-                customerData?.data?.id ?? response?.data?.user_id
-                  ? response?.data?.user_id
-                  : guest_id
-              }&payment_platform=${payment_platform}&callback=${callBackUrl}&payment_method=${paymentMethod}`;
-              localStorage.setItem("totalAmount", totalAmount);
-              dispatch(setGuestUserInfo(null));
-              //dispatch(setClearCart());
-              Router.push(url, undefined, { shallow: true });
+              const resolvedCustomerId =
+                customerData?.data?.id ??
+                (response?.data?.user_id ? response?.data?.user_id : guest_id);
+              const contactNumber =
+                customerData?.data?.phone ??
+                profileInfo?.phone ??
+                address?.contact_person_number ??
+                "";
+
+              if (paymentMethod === "digiWallet") {
+                initiateDigiWalletPayment({
+                  orderId: response?.data?.order_id,
+                  userId: resolvedCustomerId,
+                  callBackUrl,
+                  paymentPlatform: payment_platform,
+                  contactNumber,
+                  amountToPay: totalAmount,
+                });
+                return;
+              } else {
+                const sanitizedBaseUrl = baseUrl?.endsWith("/")
+                  ? baseUrl.slice(0, -1)
+                  : baseUrl;
+                const url = `${sanitizedBaseUrl}/payment-mobile?order_id=${
+                  response?.data?.order_id
+                }&customer_id=${resolvedCustomerId}&payment_platform=${payment_platform}&callback=${callBackUrl}&payment_method=${paymentMethod}`;
+                localStorage.setItem("totalAmount", totalAmount);
+                dispatch(setGuestUserInfo(null));
+                if (typeof window !== "undefined") {
+                  window.location.href = url;
+                } else {
+                  Router.push(url);
+                }
+              }
             } else if (paymentMethod === "offline_payment") {
               setOrderId(response?.data?.order_id);
               dispatch(setOrderInformation(response?.data));
@@ -968,6 +1074,12 @@ const ItemCheckout = (props) => {
     hasOnlyPaymentMethod();
   }, [configData, isZoneDigital]);
 
+  useEffect(() => {
+    if(isZoneDigital?.cash_on_delivery &&
+      configData?.cash_on_delivery){
+      setPaymentMethod("cash_on_delivery")
+    }
+  }, [isZoneDigital,configData?.cash_on_delivery]);
   return (
     <>
       {method === "offline" ? (
@@ -1029,6 +1141,8 @@ const ItemCheckout = (props) => {
                   switchToWallet={switchToWallet}
                   customerData={customerData}
                   payableAmount={payableAmount}
+                  changeAmount={changeAmount}
+                  setChangeAmount={setChangeAmount}
                 />
               )}
 
@@ -1125,26 +1239,10 @@ const ItemCheckout = (props) => {
                       setSwitchToWallet={setSwitchToWallet}
                       walletBalance={customerData?.data?.wallet_balance}
                       payableAmount={payableAmount}
+                      min_order_amount={storeData?.minimum_order}
                     />
                   )}
-                  {/*{configData?.customer_wallet_status === 1 &&*/}
-                  {/*  customerData?.data?.wallet_balance > 0 &&*/}
-                  {/*  configData?.partial_payment_status === 1 && (*/}
-                  {/*    <Grid item md={12} xs={12}>*/}
-                  {/*      <PartialPayment*/}
-                  {/*        remainingBalance={*/}
-                  {/*          customerData?.data?.wallet_balance - payableAmount*/}
-                  {/*        }*/}
-                  {/*        handlePartialPayment={handlePartialPayment}*/}
-                  {/*        usePartialPayment={usePartialPayment}*/}
-                  {/*        walletBalance={customerData?.data?.wallet_balance}*/}
-                  {/*        paymentMethod={paymentMethod}*/}
-                  {/*        switchToWallet={switchToWallet}*/}
-                  {/*        removePartialPayment={removePartialPayment}*/}
-                  {/*        payableAmount={payableAmount}*/}
-                  {/*      />*/}
-                  {/*    </Grid>*/}
-                  {/*  )}*/}
+
                   {getCurrentModuleType() === "food" && storeData?.cutlery && (
                     <Cutlery isChecked={cutlery} handleChange={handleCutlery} />
                   )}
@@ -1193,6 +1291,7 @@ const ItemCheckout = (props) => {
                     customerData={customerData}
                     initVauleEx={storeData?.extra_packaging_amount}
                     isLoading={isLoading}
+                    scheduleAt={scheduleAt}
                   />
 
                   <PlaceOrder
@@ -1204,6 +1303,7 @@ const ItemCheckout = (props) => {
                     storeCloseToast={storeCloseToast}
                     page={page}
                     isLoading={isLoading}
+                    totalAmount={totalAmount}
                   />
                 </Stack>
               </CustomPaperBigCard>
