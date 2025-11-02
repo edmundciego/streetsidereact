@@ -21,6 +21,7 @@ import { persistStore } from "redux-persist";
 import { useTranslation } from "react-i18next";
 import useScrollToTop from "../src/api-manage/hooks/custom-hooks/useScrollToTop";
 import { useEffect } from "react";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 
 Router.events.on("routeChangeStart", nProgress.start);
 Router.events.on("routeChangeError", nProgress.done);
@@ -87,6 +88,7 @@ function MyApp(props) {
           <ReactQueryDevtools initialIsOpen={false} position="bottom-right" />
         </QueryClientProvider>
       </CacheProvider>
+      <SpeedInsights />
     </>
   );
 }
