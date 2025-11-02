@@ -17,14 +17,25 @@ import {
 } from "../../../styled-components/CustomButtons.style";
 import { OrderApi } from "../../../api-manage/another-formated-api/orderApi";
 import { onErrorResponse } from "../../../api-manage/api-error-response/ErrorResponses";
+import DigiWalletApi from "../../../api-manage/api-call-functions/digiWalletApi";
+import PaymentApi from "../../../api-manage/api-call-functions/paymentApi";
+import Router from "next/router";
+import { useDispatch, useSelector } from "react-redux";
+import { hydrateFromQuery } from "redux/slices/digiWalletSlice";
 
 const DigitalPaymentManage = ({
   setModalOpenForPayment,
   refetchOrderDetails,
   refetchTrackData,
   id,
+  trackData,
+  canRetry,
+  message,
+  setPaymentModalMessage,
   onRequestCancel,
 }) => {
+  const dispatch = useDispatch();
+  const { profileInfo } = useSelector((state) => state.profileInfo);
   const { mutate: paymentMethodUpdateMutation, isLoading: orderLoading } =
     useMutation(
       "order-payment-method-update",
@@ -37,6 +48,7 @@ const DigitalPaymentManage = ({
       refetchOrderDetails();
       refetchTrackData();
       setModalOpenForPayment(false);
+      setPaymentModalMessage?.(null);
     };
     const formData = {
       order_id: id,
@@ -47,10 +59,161 @@ const DigitalPaymentManage = ({
       onError: onErrorResponse,
     });
   };
+
+  const resolveCustomerId = () =>
+    trackData?.user_id ??
+    trackData?.customer_id ??
+    trackData?.guest_id ??
+    profileInfo?.id ??
+    null;
+
+  const resolveContactNumber = () => {
+    const address = trackData?.delivery_address;
+    if (address) {
+      if (typeof address === "string") {
+        try {
+          const parsed = JSON.parse(address);
+          if (parsed?.contact_person_number) {
+            return parsed.contact_person_number;
+          }
+        } catch (error) {
+          // ignore parse error
+        }
+      } else if (address?.contact_person_number) {
+        return address.contact_person_number;
+      }
+    }
+
+    return profileInfo?.phone ?? "";
+  };
+
+  const buildCallbackUrl = () => {
+    if (typeof window === "undefined") return undefined;
+    const baseOrigin = window.location.origin;
+    if (!baseOrigin) return undefined;
+
+    if (trackData?.is_guest || !profileInfo?.id) {
+      return `${baseOrigin}/order?order_id=${id}&total=${
+        trackData?.order_amount ?? ""
+      }`;
+    }
+    return `${baseOrigin}/profile?page=my-orders&orderId=${id}`;
+  };
+
+  const handleRetry = async () => {
+    if (!trackData) {
+      toast.error(t("Unable to retry payment"));
+      return;
+    }
+
+    const paymentMethod = trackData?.payment_method;
+    const customerId = resolveCustomerId();
+    if (!customerId) {
+      toast.error(t("Unable to identify customer for retry"));
+      return;
+    }
+
+    const payloadBase = {
+      order_id: id,
+      customer_id: customerId,
+      payment_method: paymentMethod,
+      payment_platform: trackData?.payment_platform ?? "web",
+    };
+    const callbackUrl = buildCallbackUrl();
+    if (callbackUrl) {
+      payloadBase.callback = callbackUrl;
+    }
+
+    setModalOpenForPayment(false);
+    setPaymentModalMessage?.(null);
+
+    try {
+      if (paymentMethod === "digiWallet") {
+        const { data } = await DigiWalletApi.initiate({
+          ...payloadBase,
+          payment_method: "digiWallet",
+        });
+        const redirectUrl = data?.redirect_url;
+        let paymentId = data?.payment_id ?? null;
+        let requestId = data?.request_id ?? data?.transaction_id ?? null;
+        let status = data?.status ?? "otp_sent";
+        let message = data?.message;
+
+        if (!paymentId && typeof redirectUrl === "string") {
+          const match = redirectUrl.match(/[?&]payment_id=([^&]+)/);
+          if (match) {
+            paymentId = decodeURIComponent(match[1]);
+          }
+        }
+
+        if (!paymentId) {
+          throw new Error(t("Unable to initiate DigiWallet payment"));
+        }
+
+        if (redirectUrl) {
+          const payResponse = await DigiWalletApi.triggerPay(redirectUrl);
+          const payData = payResponse?.data ?? {};
+          requestId =
+            payData?.request_id ?? payData?.transaction_id ?? requestId ?? null;
+          status = payData?.status ?? status;
+          message = payData?.message ?? message;
+        }
+
+        const amountToPay = Number(trackData?.order_amount ?? 0);
+        const contactNumber = resolveContactNumber();
+
+        dispatch(
+          hydrateFromQuery({
+            paymentId,
+            orderId: id,
+            requestId,
+            amount: amountToPay,
+            phone: contactNumber,
+            status: (status || "otp_sent").toLowerCase(),
+            message,
+          })
+        );
+
+        Router.push({
+          pathname: "/digiwallet-payment",
+          query: {
+            payment_id: paymentId,
+            order_id: id,
+            request_id: requestId ?? undefined,
+            amount: amountToPay,
+            phone: contactNumber,
+          },
+        });
+      } else {
+        const { data } = await PaymentApi.initiate(payloadBase);
+        const redirectUrl = data?.redirect_url;
+        if (!redirectUrl) {
+          throw new Error(
+            data?.message ?? t("Unable to initiate payment session")
+          );
+        }
+        if (typeof window !== "undefined") {
+          window.location.href = redirectUrl;
+        } else {
+          Router.push(redirectUrl);
+        }
+      }
+    } catch (error) {
+      const errorMessage =
+        error?.response?.data?.message ||
+        error?.response?.data?.errors?.[0]?.message ||
+        error?.message ||
+        t("Unable to retry payment");
+      toast.error(errorMessage);
+    }
+  };
+
   const handleClose = () => {
     setModalOpenForPayment(false);
+    setPaymentModalMessage?.(null);
     onRequestCancel?.();
   };
+
   return (
     <>
       <WrapperForCustomDialogConfirm width="23rem">
@@ -59,6 +222,17 @@ const DigitalPaymentManage = ({
             {t("Switch Your payment method ")}
           </Typography>
         </DialogTitle>
+        {message && (
+          <Typography
+            variant="body2"
+            color="error"
+            textAlign="center"
+            px={3}
+            pb={1}
+          >
+            {message}
+          </Typography>
+        )}
         <DialogActions>
           <Stack
             alignItems="center"
@@ -74,6 +248,16 @@ const DigitalPaymentManage = ({
             >
               {t("Switch to Cash on Delivery")}
             </CustomButtonSuccess>
+            {canRetry && (
+              <CustomButtonSuccess
+                variant="contained"
+                color="info"
+                onClick={handleRetry}
+                width="14rem"
+              >
+                {t("Retry Payment")}
+              </CustomButtonSuccess>
+            )}
             <CustomButtonCancel
               width="14.5rem"
               variant="contained"

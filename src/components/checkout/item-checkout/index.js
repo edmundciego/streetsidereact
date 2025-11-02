@@ -1,13 +1,13 @@
 import { useTheme } from "@emotion/react";
 import { alpha, Grid, Typography, useMediaQuery } from "@mui/material";
 import { Stack } from "@mui/system";
-import { baseUrl } from "api-manage/MainApi";
 import { OrderApi } from "api-manage/another-formated-api/orderApi";
 import { ProfileApi } from "api-manage/another-formated-api/profileApi";
 import {
   onErrorResponse,
   onSingleErrorResponse,
 } from "api-manage/api-error-response/ErrorResponses";
+import PaymentApi from "api-manage/api-call-functions/paymentApi";
 import { GoogleApi } from "api-manage/hooks/react-query/googleApi";
 import { useOfflinePayment } from "api-manage/hooks/react-query/offlinePayment/useOfflinePayment";
 import { getCurrentModuleType } from "helper-functions/getCurrentModuleType";
@@ -191,13 +191,36 @@ const ItemCheckout = (props) => {
         payment_method: "digiWallet",
       };
       const { data } = await DigiWalletApi.initiate(params);
-      const paymentId = data?.payment_id;
-      const requestId = data?.request_id ?? data?.transaction_id ?? null;
+      const redirectUrl = data?.redirect_url;
+      let paymentId = data?.payment_id ?? null;
+      let requestId = data?.request_id ?? data?.transaction_id ?? null;
+      let status = data?.status ?? "otp_sent";
+      let message = data?.message;
+
+      if (!paymentId && typeof redirectUrl === "string") {
+        const match = redirectUrl.match(/[?&]payment_id=([^&]+)/);
+        if (match) {
+          paymentId = decodeURIComponent(match[1]);
+        }
+      }
 
       if (!paymentId) {
         throw new Error(
           data?.message || t("Unable to initiate DigiWallet payment")
         );
+      }
+
+      // Follow the pay URL to trigger OTP handshake and retrieve request ID
+      if (redirectUrl) {
+        const payResponse = await DigiWalletApi.triggerPay(redirectUrl);
+        const payData = payResponse?.data ?? {};
+        requestId =
+          payData?.request_id ??
+          payData?.transaction_id ??
+          requestId ??
+          null;
+        status = payData?.status ?? status;
+        message = payData?.message ?? message;
       }
 
       dispatch(
@@ -207,8 +230,8 @@ const ItemCheckout = (props) => {
           requestId,
           amount: amountToPay,
           phone: contactNumber,
-          status: (data?.status || "otp_sent").toLowerCase(),
-          message: data?.message,
+          status: (status || "otp_sent").toLowerCase(),
+          message,
         })
       );
 
@@ -602,7 +625,7 @@ const ItemCheckout = (props) => {
         } else {
           let totalQty = 0;
           let carts = handleProductList(productList, totalQty);
-          const handleSuccessSecond = (response) => {
+          const handleSuccessSecond = async (response) => {
             if (response?.data) {
               if (token) {
                 dispatch(setOrderDetailsModal(true));
@@ -614,7 +637,6 @@ const ItemCheckout = (props) => {
                 )
               ) {
                 toast.success(response?.data?.message);
-                const newBaseUrl = baseUrl;
                 const page = "my-orders";
                 const callBackUrl = token
                   ? `${window.location.origin}/profile?page=${page}`
@@ -628,7 +650,7 @@ const ItemCheckout = (props) => {
                   "";
 
                 if (paymentMethod === "digiWallet") {
-                  initiateDigiWalletPayment({
+                  await initiateDigiWalletPayment({
                     orderId: response?.data?.order_id,
                     userId: customerId,
                     callBackUrl,
@@ -639,18 +661,35 @@ const ItemCheckout = (props) => {
                   return;
                 }
 
-                const sanitizedBaseUrl = newBaseUrl?.endsWith("/")
-                  ? newBaseUrl.slice(0, -1)
-                  : newBaseUrl;
-                const url = `${sanitizedBaseUrl}/payment-mobile?order_id=${
-                  response?.data?.order_id
-                }&customer_id=${customerId}&callback=${callBackUrl}&payment_method=${paymentMethod}&payment_platform=${paymentPlatform}`;
-                localStorage.setItem("totalAmount", totalAmount);
-                dispatch(setClearCart());
-                if (typeof window !== "undefined") {
-                  window.location.href = url;
-                } else {
-                  Router.push(url);
+                try {
+                  const { data: paymentInit } = await PaymentApi.initiate({
+                    order_id: response?.data?.order_id,
+                    customer_id: customerId,
+                    payment_method: paymentMethod,
+                    payment_platform: paymentPlatform,
+                    callback: callBackUrl,
+                  });
+                  const redirectUrl = paymentInit?.redirect_url;
+                  if (!redirectUrl) {
+                    throw new Error(
+                      paymentInit?.message ??
+                        t("Unable to initiate payment session")
+                    );
+                  }
+                  localStorage.setItem("totalAmount", totalAmount);
+                  dispatch(setClearCart());
+                  if (typeof window !== "undefined") {
+                    window.location.href = redirectUrl;
+                  } else {
+                    Router.push(redirectUrl);
+                  }
+                } catch (paymentError) {
+                  const message =
+                    paymentError?.response?.data?.message ||
+                    paymentError?.response?.data?.errors?.[0]?.message ||
+                    paymentError?.message ||
+                    t("Unable to initiate payment session");
+                  toast.error(message);
                 }
               } else if (paymentMethod === "wallet") {
                 toast.success(response?.data?.message);
@@ -681,7 +720,7 @@ const ItemCheckout = (props) => {
       } else {
         let totalQty = 0;
         let carts = handleProductList(productList, totalQty);
-        const handleSuccess = (response) => {
+        const handleSuccess = async (response) => {
           if (response?.data) {
             if (token) {
               dispatch(setOrderDetailsModal(true));
@@ -719,7 +758,7 @@ const ItemCheckout = (props) => {
                 "";
 
               if (paymentMethod === "digiWallet") {
-                initiateDigiWalletPayment({
+                await initiateDigiWalletPayment({
                   orderId: response?.data?.order_id,
                   userId: resolvedCustomerId,
                   callBackUrl,
@@ -729,18 +768,35 @@ const ItemCheckout = (props) => {
                 });
                 return;
               } else {
-                const sanitizedBaseUrl = baseUrl?.endsWith("/")
-                  ? baseUrl.slice(0, -1)
-                  : baseUrl;
-                const url = `${sanitizedBaseUrl}/payment-mobile?order_id=${
-                  response?.data?.order_id
-                }&customer_id=${resolvedCustomerId}&payment_platform=${payment_platform}&callback=${callBackUrl}&payment_method=${paymentMethod}`;
-                localStorage.setItem("totalAmount", totalAmount);
-                dispatch(setGuestUserInfo(null));
-                if (typeof window !== "undefined") {
-                  window.location.href = url;
-                } else {
-                  Router.push(url);
+                try {
+                  const { data: paymentInit } = await PaymentApi.initiate({
+                    order_id: response?.data?.order_id,
+                    customer_id: resolvedCustomerId,
+                    payment_method: paymentMethod,
+                    payment_platform,
+                    callback: callBackUrl,
+                  });
+                  const redirectUrl = paymentInit?.redirect_url;
+                  if (!redirectUrl) {
+                    throw new Error(
+                      paymentInit?.message ??
+                        t("Unable to initiate payment session")
+                    );
+                  }
+                  localStorage.setItem("totalAmount", totalAmount);
+                  dispatch(setGuestUserInfo(null));
+                  if (typeof window !== "undefined") {
+                    window.location.href = redirectUrl;
+                  } else {
+                    Router.push(redirectUrl);
+                  }
+                } catch (paymentError) {
+                  const message =
+                    paymentError?.response?.data?.message ||
+                    paymentError?.response?.data?.errors?.[0]?.message ||
+                    paymentError?.message ||
+                    t("Unable to initiate payment session");
+                  toast.error(message);
                 }
               }
             } else if (paymentMethod === "offline_payment") {

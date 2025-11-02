@@ -16,7 +16,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { useOrderPlace } from "api-manage/hooks/react-query/order-place/useOrderPlace";
 import toast from "react-hot-toast";
 import { t } from "i18next";
-import { baseUrl } from "api-manage/MainApi";
+import PaymentApi from "api-manage/api-call-functions/paymentApi";
 import Router, { useRouter } from "next/router";
 import useGetZoneId from "../../../api-manage/hooks/react-query/google-api/useGetZone";
 import {
@@ -320,13 +320,31 @@ const ParcelCheckout = () => {
         payment_method: "digiWallet",
       };
       const { data } = await DigiWalletApi.initiate(params);
-      const paymentId = data?.payment_id;
-      const requestId = data?.request_id ?? data?.transaction_id ?? null;
+      const redirectUrl = data?.redirect_url;
+      let paymentId = data?.payment_id ?? null;
+      let requestId = data?.request_id ?? data?.transaction_id ?? null;
+      let status = data?.status ?? "otp_sent";
+      let message = data?.message;
+
+      if (!paymentId && typeof redirectUrl === "string") {
+        const match = redirectUrl.match(/[?&]payment_id=([^&]+)/);
+        if (match) {
+          paymentId = decodeURIComponent(match[1]);
+        }
+      }
 
       if (!paymentId) {
         throw new Error(
           data?.message || t("Unable to initiate DigiWallet payment")
         );
+      }
+
+      if (redirectUrl) {
+        const payResponse = await DigiWalletApi.triggerPay(redirectUrl);
+        const payData = payResponse?.data ?? {};
+        requestId = payData?.request_id ?? payData?.transaction_id ?? requestId;
+        status = payData?.status ?? status;
+        message = payData?.message ?? message;
       }
 
       dispatch(
@@ -336,8 +354,8 @@ const ParcelCheckout = () => {
           requestId,
           amount: amountToPay,
           phone: contactNumber,
-          status: (data?.status || "otp_sent").toLowerCase(),
-          message: data?.message,
+          status: (status || "otp_sent").toLowerCase(),
+          message,
         })
       );
 
@@ -364,7 +382,7 @@ const ParcelCheckout = () => {
   };
   const orderPlace = () => {
     if (paidBy === "sender") {
-      const handleSuccess = (res) => {
+      const handleSuccess = async (res) => {
         if (res) {
           if (token) {
             dispatch(setOrderDetailsModal(true));
@@ -394,7 +412,7 @@ const ParcelCheckout = () => {
               parcelInfo?.receiverPhone ??
               "";
             if (paymentMethod === "digiWallet") {
-              initiateParcelDigiWallet({
+              await initiateParcelDigiWallet({
                 orderId: res?.order_id,
                 userId: customerId,
                 callBackUrl,
@@ -404,16 +422,33 @@ const ParcelCheckout = () => {
               });
               return;
             } else {
-              const sanitizedBaseUrl = baseUrl?.endsWith("/")
-                ? baseUrl.slice(0, -1)
-                : baseUrl;
-              const url = `${sanitizedBaseUrl}/payment-mobile?order_id=${
-                res?.order_id
-              }&customer_id=${customerId}&payment_platform=${payment_platform}&callback=${callBackUrl}&payment_method=${paymentMethod}`;
-              if (typeof window !== "undefined") {
-                window.location.href = url;
-              } else {
-                router.push(url);
+              try {
+                const { data: paymentInit } = await PaymentApi.initiate({
+                  order_id: res?.order_id,
+                  customer_id: customerId,
+                  payment_method: paymentMethod,
+                  payment_platform,
+                  callback: callBackUrl,
+                });
+                const redirectUrl = paymentInit?.redirect_url;
+                if (!redirectUrl) {
+                  throw new Error(
+                    paymentInit?.message ??
+                      t("Unable to initiate payment session")
+                  );
+                }
+                if (typeof window !== "undefined") {
+                  window.location.href = redirectUrl;
+                } else {
+                  router.push(redirectUrl);
+                }
+              } catch (paymentError) {
+                const message =
+                  paymentError?.response?.data?.message ||
+                  paymentError?.response?.data?.errors?.[0]?.message ||
+                  paymentError?.message ||
+                  t("Unable to initiate payment session");
+                toast.error(message);
               }
             }
           } else if (paymentMethod === "wallet") {

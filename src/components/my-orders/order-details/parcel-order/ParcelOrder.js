@@ -1,8 +1,10 @@
 import { useTheme } from "@emotion/react";
 import { Grid, Skeleton, Typography } from "@mui/material";
 import { Box, Stack } from "@mui/system";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useRouter } from "next/router";
+import { toast } from "react-hot-toast";
 import { getAmountWithSign } from "../../../../helper-functions/CardHelpers";
 import {
   CustomPaperBigCard,
@@ -23,6 +25,28 @@ const ParcelOrder = (props) => {
   const { t } = useTranslation();
   const theme = useTheme();
   const [openModal, setOpenModal] = useState(false);
+  const [paymentModalOpen, setPaymentModalOpen] = useState(false);
+  const [paymentModalMessage, setPaymentModalMessage] = useState(null);
+  const router = useRouter();
+
+  useEffect(() => {
+    if (router.query?.status === "fail") {
+      toast.error(t("Payment failed. You can retry the payment or switch to cash on delivery."));
+      setPaymentModalMessage(
+        t("Payment failed. Please retry the payment or switch to cash on delivery.")
+      );
+      setPaymentModalOpen(true);
+      const { status, ...rest } = router.query;
+      router.replace(
+        {
+          pathname: router.pathname,
+          query: { ...rest },
+        },
+        undefined,
+        { shallow: true }
+      );
+    }
+  }, [router, t]);
 
   return (
     <CustomStackFullWidth
@@ -235,6 +259,10 @@ const ParcelOrder = (props) => {
               refetchOrderDetails={refetch}
               refetchTrackData={refetchTrackOrder}
               trackData={trackOrderData}
+              paymentModalOpen={paymentModalOpen}
+              setPaymentModalOpen={setPaymentModalOpen}
+              paymentModalMessage={paymentModalMessage}
+              setPaymentModalMessage={setPaymentModalMessage}
             />
           </Box>
         )}

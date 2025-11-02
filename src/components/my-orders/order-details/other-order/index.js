@@ -34,6 +34,8 @@ const OtherOrder = (props) => {
   const [openModal, setOpenModal] = useState(false);
   const [currentTab, setCurrentTab] = useState(orderDetailsMenuData[0]?.name);
   const [sideDrawerOpen, setSideDrawerOpen] = useState(false);
+  const [paymentModalOpen, setPaymentModalOpen] = useState(false);
+  const [paymentModalMessage, setPaymentModalMessage] = useState(null);
   const router = useRouter();
   const { tab } = router.query;
   const { t } = useTranslation();
@@ -52,6 +54,25 @@ const OtherOrder = (props) => {
   useEffect(() => {
     refetchTrackOrder();
   }, []);
+
+  useEffect(() => {
+    if (router.query?.status === "fail") {
+      toast.error(t("Payment failed. You can retry the payment or switch to cash on delivery."));
+      setPaymentModalMessage(
+        t("Payment failed. Please retry the payment or switch to cash on delivery.")
+      );
+      setPaymentModalOpen(true);
+      const { status, ...rest } = router.query;
+      router.replace(
+        {
+          pathname: router.pathname,
+          query: { ...rest },
+        },
+        undefined,
+        { shallow: true }
+      );
+    }
+  }, [router, t]);
 
   useEffect(() => {
     let interval;
@@ -182,6 +203,10 @@ const OtherOrder = (props) => {
             refetchTrackData={refetchTrackOrder}
             dataIsLoading={dataIsLoading}
             page={page}
+            paymentModalOpen={paymentModalOpen}
+            setPaymentModalOpen={setPaymentModalOpen}
+            paymentModalMessage={paymentModalMessage}
+            setPaymentModalMessage={setPaymentModalMessage}
           />
           <CustomDivider border="1px" />
           {trackDataIsLoading ? null : (
@@ -219,6 +244,10 @@ const OtherOrder = (props) => {
             refetchTrackData={refetchTrackOrder}
             dataIsLoading={dataIsLoading}
             page={page}
+            paymentModalOpen={paymentModalOpen}
+            setPaymentModalOpen={setPaymentModalOpen}
+            paymentModalMessage={paymentModalMessage}
+            setPaymentModalMessage={setPaymentModalMessage}
           />
           <CustomDivider />
           {trackDataIsLoading ? null : (

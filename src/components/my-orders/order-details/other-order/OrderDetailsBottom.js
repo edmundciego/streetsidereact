@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 
 import { Button, Grid } from "@mui/material";
 import Typography from "@mui/material/Typography";
@@ -22,14 +22,29 @@ const OrderDetailsBottom = ({
   refetchOrderDetails,
   refetchTrackData,
   trackData,
+  paymentModalOpen,
+  setPaymentModalOpen,
+  paymentModalMessage,
+  setPaymentModalMessage,
 }) => {
   const [openModal, setOpenModal] = useState(false);
-  const [openModalForPayment, setModalOpenForPayment] = useState();
+  const isPaymentModalControlled =
+    typeof paymentModalOpen === "boolean" &&
+    typeof setPaymentModalOpen === "function";
+  const [internalPaymentModalOpen, setInternalPaymentModalOpen] = useState(false);
+  const openModalForPayment = isPaymentModalControlled
+    ? paymentModalOpen
+    : internalPaymentModalOpen;
+  const setModalOpenForPayment = isPaymentModalControlled
+    ? setPaymentModalOpen
+    : setInternalPaymentModalOpen;
   const [cancelReason, setCancelReason] = useState(null);
   const { t } = useTranslation();
   const theme = useTheme();
   const currentLatLng = JSON.parse(
-    window.localStorage.getItem("currentLatLng")
+    typeof window !== "undefined"
+      ? window.localStorage.getItem("currentLatLng")
+      : null
   );
   const { data: zoneData } = useQuery(
     ["zoneId", location],
@@ -38,6 +53,12 @@ const OrderDetailsBottom = ({
       retry: 1,
     }
   );
+
+  useEffect(() => {
+    if (paymentModalMessage) {
+      setModalOpenForPayment(true);
+    }
+  }, [paymentModalMessage, setModalOpenForPayment]);
 
   const { data: cancelReasonsData, refetch } = useGetOrderCancelReason();
   useEffect(() => {
@@ -49,6 +70,61 @@ const OrderDetailsBottom = ({
   const handleTrackOrderClick = () => {
     Router.push(`/track-order/${id}`, undefined, { shallow: true });
   };
+
+  const hasFailedPaymentAttempt = useMemo(() => {
+    if (!trackData) return false;
+
+    const paymentStatus =
+      typeof trackData?.payment_status === "string"
+        ? trackData.payment_status.toLowerCase()
+        : "";
+    if (paymentStatus === "failed") {
+      return true;
+    }
+
+    const orderStatus =
+      typeof trackData?.order_status === "string"
+        ? trackData.order_status.toLowerCase()
+        : "";
+    if (orderStatus === "failed") {
+      return true;
+    }
+
+    const payments = Array.isArray(trackData?.payments)
+      ? trackData.payments
+      : [];
+    return payments.some((payment) => {
+      const status = payment?.payment_status ?? payment?.status;
+      return (
+        typeof status === "string" && status.toLowerCase() === "failed"
+      );
+    });
+  }, [trackData]);
+
+  const RETRYABLE_METHODS = useMemo(
+    () => ["digital_payment", "placetoPay", "digiWallet", "oneLink"],
+    []
+  );
+
+  const canSwitchToCOD =
+    trackData &&
+    RETRYABLE_METHODS.includes(trackData?.payment_method) &&
+    trackData?.payment_status === "unpaid" &&
+    zoneData?.data?.zone_data?.[0]?.cash_on_delivery;
+
+  const canRetryPayment =
+    hasFailedPaymentAttempt &&
+    trackData &&
+    RETRYABLE_METHODS.includes(trackData?.payment_method) &&
+    trackData?.payment_status === "unpaid";
+
+  const showPaymentProcessingStatus =
+    !hasFailedPaymentAttempt &&
+    !canSwitchToCOD &&
+    RETRYABLE_METHODS.includes(trackData?.payment_method) &&
+    trackData?.payment_status === "unpaid" &&
+    trackData?.order_status !== "failed";
+
   const handleOnSuccess = () => {
     if (!cancelReason) {
       toast.error("Please select a cancellation reason");
@@ -101,36 +177,42 @@ const OrderDetailsBottom = ({
                 </Button>
               </Grid>
             )}
-          {trackData &&
-          (trackData?.payment_method === "digital_payment" || 
-           trackData?.payment_method === "placetoPay" ||
-           trackData?.payment_method === "digiWallet" ||
-           trackData?.payment_method === "oneLink") &&
-          trackData?.payment_status === "unpaid" &&
-          zoneData?.data?.zone_data?.[0]?.cash_on_delivery ? (
+
+          {canSwitchToCOD && (
             <Grid item xs={12} sm={6} md={6}>
               <Button
                 variant="contained"
                 fullWidth
-                onClick={() => setModalOpenForPayment(true)}
+                onClick={() => {
+                  setPaymentModalMessage?.(null);
+                  setModalOpenForPayment(true);
+                }}
               >
                 <Typography variant="h6">
                   {t("Switch to Cash on Delivery")}
                 </Typography>
               </Button>
             </Grid>
-          ) : (
-            trackData?.order_status === "pending" && (
-              <Grid item xs={12} sm={6} md={6}>
-                <Button
-                  variant="contained"
-                  fullWidth
-                  onClick={() => setOpenModal(true)}
-                >
-                  <Typography variant="h6">{t("Cancel Order")}</Typography>
-                </Button>
-              </Grid>
-            )
+          )}
+
+          {showPaymentProcessingStatus && (
+            <Grid item xs={12} sm={6} md={6}>
+              <Button variant="contained" fullWidth disabled>
+                <Typography variant="h6">{t("Payment Processing")}</Typography>
+              </Button>
+            </Grid>
+          )}
+
+          {trackData?.order_status === "pending" && (
+            <Grid item xs={12} sm={6} md={6}>
+              <Button
+                variant="contained"
+                fullWidth
+                onClick={() => setOpenModal(true)}
+              >
+                <Typography variant="h6">{t("Cancel Order")}</Typography>
+              </Button>
+            </Grid>
           )}
         </Grid>
       </CustomPaperBigCard>
@@ -152,13 +234,20 @@ const OrderDetailsBottom = ({
       <CustomModal
         openModal={openModalForPayment}
         setModalOpen={setModalOpenForPayment}
-        handleClose={() => setModalOpenForPayment(false)}
+        handleClose={() => {
+          setModalOpenForPayment(false);
+          setPaymentModalMessage?.(null);
+        }}
       >
         <DigitalPaymentManage
           setModalOpenForPayment={setModalOpenForPayment}
           refetchOrderDetails={refetchOrderDetails}
           refetchTrackData={refetchTrackData}
           id={trackData?.id}
+          trackData={trackData}
+          canRetry={canRetryPayment}
+          message={paymentModalMessage}
+          setPaymentModalMessage={setPaymentModalMessage}
           onRequestCancel={() => setOpenModal(true)}
         />
       </CustomModal>

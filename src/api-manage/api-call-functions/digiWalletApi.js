@@ -1,15 +1,13 @@
-import MainApi from "api-manage/MainApi";
+import MainApi, { baseUrl } from "api-manage/MainApi";
+import axios from "axios";
+import PaymentApi from "./paymentApi";
 
 const JSON_HEADERS = {
   Accept: "application/json",
 };
 
 export const DigiWalletApi = {
-  initiate: (params) =>
-    MainApi.get("/payment-mobile", {
-      params,
-      headers: JSON_HEADERS,
-    }),
+  initiate: (payload) => PaymentApi.initiate(payload),
   confirmOtp: (payload) =>
     MainApi.post("/payment/digiwallet/webhook", payload, {
       headers: JSON_HEADERS,
@@ -22,6 +20,22 @@ export const DigiWalletApi = {
     MainApi.get(`/api/payment/digiwallet/status/${paymentId}`, {
       headers: JSON_HEADERS,
     }),
+  triggerPay: async (redirectUrl) => {
+    if (!redirectUrl) {
+      throw new Error("Missing redirect URL for DigiWallet payment");
+    }
+
+    let resolvedUrl = redirectUrl;
+    if (baseUrl && redirectUrl.startsWith(baseUrl)) {
+      resolvedUrl = redirectUrl.slice(baseUrl.length);
+      if (!resolvedUrl.startsWith("/")) {
+        resolvedUrl = `/${resolvedUrl}`;
+      }
+      return MainApi.get(resolvedUrl, { headers: JSON_HEADERS });
+    }
+
+    return axios.get(redirectUrl, { headers: JSON_HEADERS });
+  },
 };
 
 export default DigiWalletApi;
