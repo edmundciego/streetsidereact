@@ -23,6 +23,7 @@ import {
   formatPhoneNumber,
   getDeliveryFeeByBadWeather,
   handleDistance,
+  normalizePhoneNumber,
 } from "utils/CustomFunctions";
 import useGetVehicleCharge from "../../../api-manage/hooks/react-query/order-place/useGetVehicleCharge";
 import CustomModal from "../../modal";
@@ -88,6 +89,9 @@ const ParcelCheckout = () => {
     lat: parcelInfo?.senderLocations?.lat,
     lng: parcelInfo?.senderLocations?.lng,
   };
+  const parcelDigiWalletPhone = normalizePhoneNumber(
+    parcelInfo?.senderPhone ?? profileInfo?.phone ?? ""
+  );
   const { data: zoneData } = useGetZoneId(receiverLoacation, zoneIdEnabled);
   const { data, refetch } = useGetDistance(
     parcelInfo?.senderLocations,
@@ -311,6 +315,13 @@ const ParcelCheckout = () => {
     amountToPay,
     contactNumber,
   }) => {
+    if (
+      !contactNumber ||
+      contactNumber.replace(/[^\d]/g, "").length === 0
+    ) {
+      toast.error(t("Add your phone number to enable DigiWallet payments."));
+      return;
+    }
     try {
       const params = {
         order_id: orderId,
@@ -347,13 +358,14 @@ const ParcelCheckout = () => {
         message = payData?.message ?? message;
       }
 
+      const normalizedPhone = contactNumber.replace(/[^\d]/g, "");
       dispatch(
         hydrateFromQuery({
           paymentId,
           orderId,
           requestId,
           amount: amountToPay,
-          phone: contactNumber,
+          phone: normalizedPhone,
           status: (status || "otp_sent").toLowerCase(),
           message,
         })
@@ -368,7 +380,7 @@ const ParcelCheckout = () => {
           order_id: orderId,
           request_id: requestId ?? undefined,
           amount: amountToPay,
-          phone: contactNumber,
+          phone: normalizedPhone,
         },
       });
     } catch (err) {
@@ -412,6 +424,12 @@ const ParcelCheckout = () => {
               parcelInfo?.receiverPhone ??
               "";
             if (paymentMethod === "digiWallet") {
+              if (!parcelDigiWalletPhone) {
+                toast.error(
+                  t("Add your phone number to enable DigiWallet payments.")
+                );
+                return;
+              }
               await initiateParcelDigiWallet({
                 orderId: res?.order_id,
                 userId: customerId,
@@ -807,6 +825,7 @@ const ParcelCheckout = () => {
                       parcel="true"
                       offlinePaymentOptions={offlinePaymentOptions}
                       getParcelPayment={getParcelPayment}
+                      digiWalletEligible={parcelDigiWalletPhone.length > 0}
                     />
                   </CustomPaperBigCard>
                 )}

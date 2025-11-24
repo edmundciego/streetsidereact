@@ -15,7 +15,7 @@ import { getStoresOrRestaurants } from "helper-functions/getStoresOrRestaurants"
 import { getGuestId, getToken } from "helper-functions/getToken";
 import moment from "moment/moment";
 import Router from "next/router";
-import React, { useEffect, useReducer, useState, useRef } from "react";
+import React, { useEffect, useReducer, useState, useRef, useMemo } from "react";
 import { toast } from "react-hot-toast";
 import { useTranslation } from "react-i18next";
 import { useMutation, useQuery } from "react-query";
@@ -44,6 +44,8 @@ import {
   handleDistance,
   isAvailable,
   isFoodAvailableBySchedule,
+  normalizePhoneNumber,
+  hasValidPhoneNumber,
 } from "utils/CustomFunctions";
 import { today, tomorrow } from "utils/formatedDays";
 import { cod_exceeds_message } from "utils/toasterMessages";
@@ -174,6 +176,32 @@ const ItemCheckout = (props) => {
     }),
   });
 
+  const digiWalletPhoneValue = useMemo(
+    () =>
+      normalizePhoneNumber(
+        customerData?.data?.phone ??
+          profileInfo?.phone ??
+          address?.contact_person_number ??
+          guestUserInfo?.contact_person_number ??
+          ""
+      ),
+    [
+      customerData?.data?.phone,
+      profileInfo?.phone,
+      address?.contact_person_number,
+      guestUserInfo?.contact_person_number,
+    ]
+  );
+  const isDigiWalletEligible = digiWalletPhoneValue.length > 0;
+
+  const requireDigiWalletPhone = (phone) => {
+    if (hasValidPhoneNumber(phone)) {
+      return true;
+    }
+    toast.error(t("Add your phone number to use DigiWallet."));
+    return false;
+  };
+
   const initiateDigiWalletPayment = async ({
     orderId,
     userId,
@@ -182,6 +210,9 @@ const ItemCheckout = (props) => {
     contactNumber,
     amountToPay,
   }) => {
+    if (!requireDigiWalletPhone(contactNumber)) {
+      return;
+    }
     try {
       const params = {
         order_id: orderId,
@@ -223,13 +254,14 @@ const ItemCheckout = (props) => {
         message = payData?.message ?? message;
       }
 
+      const normalizedPhone = normalizePhoneNumber(contactNumber);
       dispatch(
         hydrateFromQuery({
           paymentId,
           orderId,
           requestId,
           amount: amountToPay,
-          phone: contactNumber,
+          phone: normalizedPhone,
           status: (status || "otp_sent").toLowerCase(),
           message,
         })
@@ -246,7 +278,7 @@ const ItemCheckout = (props) => {
           order_id: orderId,
           request_id: requestId ?? undefined,
           amount: amountToPay,
-          phone: contactNumber,
+          phone: normalizedPhone,
         },
       });
     } catch (err) {
@@ -647,9 +679,13 @@ const ItemCheckout = (props) => {
                   customerData?.data?.phone ??
                   profileInfo?.phone ??
                   address?.contact_person_number ??
+                  guestUserInfo?.contact_person_number ??
                   "";
 
                 if (paymentMethod === "digiWallet") {
+                  if (!requireDigiWalletPhone(contactNumber)) {
+                    return;
+                  }
                   await initiateDigiWalletPayment({
                     orderId: response?.data?.order_id,
                     userId: customerId,
@@ -755,9 +791,13 @@ const ItemCheckout = (props) => {
                 customerData?.data?.phone ??
                 profileInfo?.phone ??
                 address?.contact_person_number ??
+                guestUserInfo?.contact_person_number ??
                 "";
 
               if (paymentMethod === "digiWallet") {
+                if (!requireDigiWalletPhone(contactNumber)) {
+                  return;
+                }
                 await initiateDigiWalletPayment({
                   orderId: response?.data?.order_id,
                   userId: resolvedCustomerId,
@@ -1199,6 +1239,7 @@ const ItemCheckout = (props) => {
                   payableAmount={payableAmount}
                   changeAmount={changeAmount}
                   setChangeAmount={setChangeAmount}
+                  digiWalletEligible={isDigiWalletEligible}
                 />
               )}
 

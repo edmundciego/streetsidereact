@@ -4,6 +4,7 @@ import PaymentApi from "./paymentApi";
 
 const JSON_HEADERS = {
   Accept: "application/json",
+  "X-Requested-With": "XMLHttpRequest",
 };
 
 export const DigiWalletApi = {
@@ -31,10 +32,17 @@ export const DigiWalletApi = {
       if (!resolvedUrl.startsWith("/")) {
         resolvedUrl = `/${resolvedUrl}`;
       }
-      return MainApi.get(resolvedUrl, { headers: JSON_HEADERS });
+      return MainApi.get(resolvedUrl, {
+        headers: JSON_HEADERS,
+        withCredentials: true,
+      });
     }
 
-    return axios.get(redirectUrl, { headers: JSON_HEADERS });
+    return axios.get(redirectUrl, {
+      headers: JSON_HEADERS,
+      withCredentials: true,
+      withXSRFToken: true,
+    });
   },
 };
 

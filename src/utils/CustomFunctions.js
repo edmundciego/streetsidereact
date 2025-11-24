@@ -8,6 +8,17 @@ import {
 import { store } from "redux/store";
 import { getDiscountedAmount } from "helper-functions/CardHelpers";
 
+export const normalizePhoneNumber = (value) => {
+  if (value === undefined || value === null) {
+    return "";
+  }
+  const stringValue = typeof value === "string" ? value : `${value}`;
+  return stringValue.replace(/[^\d]/g, "");
+};
+
+export const hasValidPhoneNumber = (value) =>
+  normalizePhoneNumber(value).length > 0;
+
 export const getNumberWithConvertedDecimalPoint = (
   amount,
   digitAfterDecimalPoint

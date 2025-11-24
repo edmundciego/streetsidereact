@@ -288,6 +288,14 @@ const DigiWalletPayment = () => {
       <Card sx={{ maxWidth: 520, width: "100%" }}>
         <CardContent>
           <Stack spacing={3}>
+            <Box display="flex" justifyContent="center">
+              <Box
+                component="img"
+                src="/digiwallet-logo.png"
+                alt="DigiWallet"
+                sx={{ height: 40, objectFit: "contain" }}
+              />
+            </Box>
             <Stack spacing={0.5}>
               <Typography variant="h6">{t("DigiWallet Payment")}</Typography>
               <Typography variant="body2" color="text.secondary">

@@ -22,6 +22,7 @@ import PaymentApi from "../../../api-manage/api-call-functions/paymentApi";
 import Router from "next/router";
 import { useDispatch, useSelector } from "react-redux";
 import { hydrateFromQuery } from "redux/slices/digiWalletSlice";
+import { hasValidPhoneNumber, normalizePhoneNumber } from "utils/CustomFunctions";
 
 const DigitalPaymentManage = ({
   setModalOpenForPayment,
@@ -36,6 +37,7 @@ const DigitalPaymentManage = ({
 }) => {
   const dispatch = useDispatch();
   const { profileInfo } = useSelector((state) => state.profileInfo);
+  const { guestUserInfo } = useSelector((state) => state.guestUserInfo);
   const { mutate: paymentMethodUpdateMutation, isLoading: orderLoading } =
     useMutation(
       "order-payment-method-update",
@@ -84,7 +86,20 @@ const DigitalPaymentManage = ({
       }
     }
 
-    return profileInfo?.phone ?? "";
+    return (
+      profileInfo?.phone ??
+      trackData?.contact_person_number ??
+      guestUserInfo?.contact_person_number ??
+      ""
+    );
+  };
+
+  const requireDigiWalletPhone = (phone) => {
+    if (hasValidPhoneNumber(phone)) {
+      return true;
+    }
+    toast.error(t("Add your phone number to enable DigiWallet payments."));
+    return false;
   };
 
   const buildCallbackUrl = () => {
@@ -161,6 +176,11 @@ const DigitalPaymentManage = ({
 
         const amountToPay = Number(trackData?.order_amount ?? 0);
         const contactNumber = resolveContactNumber();
+        const normalizedPhone = normalizePhoneNumber(contactNumber);
+
+        if (!requireDigiWalletPhone(contactNumber)) {
+          return;
+        }
 
         dispatch(
           hydrateFromQuery({
@@ -168,7 +188,7 @@ const DigitalPaymentManage = ({
             orderId: id,
             requestId,
             amount: amountToPay,
-            phone: contactNumber,
+            phone: normalizedPhone,
             status: (status || "otp_sent").toLowerCase(),
             message,
           })

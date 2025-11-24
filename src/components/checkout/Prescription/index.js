@@ -20,6 +20,7 @@ import PrescriptionUpload from "../../Prescription/PrescriptionUpload";
 import {
   getDigitalMethodFromZone,
   handleDistance,
+  normalizePhoneNumber,
 } from "utils/CustomFunctions";
 import { OrderApi } from "api-manage/another-formated-api/orderApi";
 import { toast } from "react-hot-toast";
@@ -52,6 +53,7 @@ const PrescriptionCheckout = ({ storeId ,page}) => {
   const [note, setNote] = useState("");
   const [paymentMethodImage, setPaymentMethodImage] = useState("");
   const { configData } = useSelector((state) => state.configData);
+  const { profileInfo } = useSelector((state) => state.profileInfo);
   const { data: storeData, refetch } = useGetStoreDetails(storeId);
   const { guestUserInfo } = useSelector((state) => state.guestUserInfo);
   const guestId = getGuestId();
@@ -232,6 +234,7 @@ const PrescriptionCheckout = ({ storeId ,page}) => {
               setPaymentMethodImage={setPaymentMethodImage}
               paymentMethodImage={paymentMethodImage}
               payableAmount={payableAmount}
+              digiWalletEligible={digiWalletPhoneValue.length > 0}
             />
           )}
           <PrescriptionUpload
@@ -316,3 +319,6 @@ const PrescriptionCheckout = ({ storeId ,page}) => {
 };
 
 export default PrescriptionCheckout;
+  const digiWalletPhoneValue = normalizePhoneNumber(
+    profileInfo?.phone ?? guestUserInfo?.contact_person_number ?? ""
+  );

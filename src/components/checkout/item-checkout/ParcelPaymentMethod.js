@@ -18,7 +18,7 @@ import CustomImageContainer from "components/CustomImageContainer";
 import { getToken } from "helper-functions/getToken";
 import { t } from "i18next";
 import { useRouter } from "next/router";
-import { useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import {
   setOfflineInfoStep,
@@ -68,6 +68,7 @@ const ParcelPaymentMethod = (props) => {
     offlinePaymentOptions,
     setPaymentMethodImage,
     getParcelPayment,
+    digiWalletEligible = true,
   } = props;
   const token = getToken();
   const router = useRouter();
@@ -81,6 +82,22 @@ const ParcelPaymentMethod = (props) => {
     offlineMethod !== "" ? true : false
   );
   const [openOfflineOptions, setOpenOfflineOptions] = useState(false);
+  const digiWalletConfigured = configData?.active_payment_method_list?.some(
+    (item) => item.gateway === "digiWallet"
+  );
+  const filteredDigitalMethods = useMemo(
+    () =>
+      (configData?.active_payment_method_list ?? []).filter(
+        (item) => item.gateway !== "digiWallet" || digiWalletEligible
+      ),
+    [configData?.active_payment_method_list, digiWalletEligible]
+  );
+
+  useEffect(() => {
+    if (!digiWalletEligible && paymentMethod === "digiWallet") {
+      setPaymentMethod(null);
+    }
+  }, [digiWalletEligible, paymentMethod, setPaymentMethod]);
 
   const handleClickOffline = () => {
     setOpenOfflineOptions(!openOfflineOptions);
@@ -250,7 +267,7 @@ const ParcelPaymentMethod = (props) => {
                   configData?.digital_payment_info?.digital_payment &&
                   getParcelPayment()[0]?.digital_payment && (
                     <>
-                      {configData?.active_payment_method_list?.map(
+                      {filteredDigitalMethods?.map(
                         (item, index) => {
                           return (
                             <PaymentMethodCard
@@ -273,6 +290,17 @@ const ParcelPaymentMethod = (props) => {
                             />
                           );
                         }
+                      )}
+                      {!digiWalletEligible && digiWalletConfigured && (
+                        <Typography
+                          fontSize="11px"
+                          color={(theme) => theme.palette.error.main}
+                          mt={1}
+                        >
+                          {t(
+                            "Add your phone number to enable DigiWallet payments."
+                          )}
+                        </Typography>
                       )}
                     </>
                   )}
