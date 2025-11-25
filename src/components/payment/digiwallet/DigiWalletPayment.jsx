@@ -60,7 +60,11 @@ const DigiWalletPayment = () => {
 
   const buildErrorPayload = (err, fallbackMessage) => {
     const data = err?.response?.data;
+    console.log('DigiWallet Error Response:', data); // Debug logging
+    console.log('DigiWallet Raw Error:', err); // Debug logging
+
     const errorDetails = getDigiWalletError(data);
+    console.log('DigiWallet Mapped Error:', errorDetails); // Debug logging
 
     return {
       status: errorDetails.status,
@@ -136,7 +140,9 @@ const DigiWalletPayment = () => {
     try {
       const { data } = await DigiWalletApi.getStatus(paymentId);
       const payload = data?.digiwallet_status ?? data;
+      const additionalData = data?.additional_data;
       const normalizedStatus = String(payload?.status ?? "").toUpperCase();
+
       if (normalizedStatus === "SUCCESS") {
         dispatch(
           setStatus({
@@ -148,13 +154,33 @@ const DigiWalletPayment = () => {
         );
         toast.success(t("Payment confirmed"));
       } else if (normalizedStatus === "ERROR") {
+        // Use detailed error from additional_data if available
+        const errorSource = additionalData?.error_status ? {
+          status: additionalData.error_status,
+          message: additionalData.error_message,
+          code: additionalData.error_code
+        } : payload;
+
+        const errorDetails = buildResponsePayload(errorSource, t("Payment failed"));
+
+        // Add remaining attempts if available in additional_data
+        if (additionalData?.otp_attempts && errorDetails.status === 'INVALID_OTP') {
+          const attempts = parseInt(additionalData.otp_attempts);
+          const remaining = MAX_OTP_ATTEMPTS - attempts;
+          if (remaining > 0) {
+            errorDetails.action = `${errorDetails.action} (${remaining} attempts remaining)`;
+          } else {
+            errorDetails.action = "Maximum attempts reached. Please request a new code.";
+          }
+        }
+
         dispatch(
           setStatus({
             status: "error",
-            message: payload?.message ?? t("Payment failed"),
+            message: errorDetails.message,
           })
         );
-        dispatch(setError(payload?.message ?? t("Payment failed")));
+        dispatch(setError(errorDetails));
       } else {
         dispatch(
           setStatus({
@@ -164,7 +190,8 @@ const DigiWalletPayment = () => {
         );
       }
     } catch (err) {
-      dispatch(setError(err?.response?.data?.message ?? err.message));
+      const errorDetails = buildErrorPayload(err, t("Payment failed"));
+      dispatch(setError(errorDetails));
     }
   }, [dispatch, paymentId, t]);
 
