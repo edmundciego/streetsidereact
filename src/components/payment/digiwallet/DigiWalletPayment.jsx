@@ -10,6 +10,7 @@ import {
   Typography,
 } from "@mui/material";
 import DigiWalletOtp from "./DigiWalletOTP";
+import DigiWalletErrorAlert from "./DigiWalletErrorAlert";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useTranslation } from "react-i18next";
@@ -24,6 +25,7 @@ import {
   setStatus,
 } from "redux/slices/digiWalletSlice";
 import { getAmountWithSign } from "helper-functions/CardHelpers";
+import { getDigiWalletError } from "utils/digiwalletErrors";
 
 const STATUS_LABELS = {
   otp_sent: "OTP Sent",
@@ -47,30 +49,40 @@ const DigiWalletPayment = () => {
     status,
     message,
     loading,
-  error,
-  transactionId,
-} = useSelector((state) => state.digiWallet);
+    error,
+    transactionId,
+  } = useSelector((state) => state.digiWallet);
   const [otp, setOtp] = useState("");
   const [remainingSeconds, setRemainingSeconds] = useState(300);
   const [isResendCooling, setIsResendCooling] = useState(false);
+  const [otpAttempts, setOtpAttempts] = useState(0);
+  const MAX_OTP_ATTEMPTS = 3;
 
   const buildErrorPayload = (err, fallbackMessage) => {
     const data = err?.response?.data;
-    const status = String(data?.status ?? "").toUpperCase();
-    const message =
-      data?.message ||
-      data?.errors?.[0]?.message ||
-      err?.message ||
-      fallbackMessage;
-    const hint = data?.hint;
-    return { status, message, hint };
+    const errorDetails = getDigiWalletError(data);
+
+    return {
+      status: errorDetails.status,
+      message: errorDetails.message,
+      action: errorDetails.action,
+      title: errorDetails.title,
+      allowRetry: errorDetails.allowRetry,
+      icon: errorDetails.icon,
+    };
   };
 
   const buildResponsePayload = (data, fallbackMessage) => {
-    const status = String(data?.status ?? "").toUpperCase();
-    const message = data?.message ?? fallbackMessage;
-    const hint = data?.hint;
-    return { status, message, hint };
+    const errorDetails = getDigiWalletError(data);
+
+    return {
+      status: errorDetails.status,
+      message: data?.message || errorDetails.message,
+      action: errorDetails.action,
+      title: errorDetails.title,
+      allowRetry: errorDetails.allowRetry,
+      icon: errorDetails.icon,
+    };
   };
 
   const displayStatus = STATUS_LABELS[status] ?? status;
@@ -169,16 +181,25 @@ const DigiWalletPayment = () => {
       toast.error(t("Please enter the 6 digit OTP"));
       return;
     }
+
+    if (otpAttempts >= MAX_OTP_ATTEMPTS) {
+      toast.error(t("Too many attempts. Please request a new code."));
+      return;
+    }
+
     dispatch(setLoading(true));
     dispatch(setError(null));
+
     try {
       const { data } = await DigiWalletApi.confirmOtp({
         request_id: requestId,
         otp,
       });
-      const { status: normalizedStatus, message: respMessage, hint } =
+      const { status: normalizedStatus, message: respMessage, ...errorDetails } =
         buildResponsePayload(data, t("Payment confirmed"));
+
       if (normalizedStatus === "SUCCESS") {
+        setOtpAttempts(0); // Reset on success
         dispatch(
           setStatus({
             status: "success",
@@ -188,6 +209,7 @@ const DigiWalletPayment = () => {
         );
         toast.success(respMessage);
       } else if (normalizedStatus === "PENDING") {
+        setOtpAttempts(0); // Reset on pending
         dispatch(
           setStatus({
             status: "processing",
@@ -197,30 +219,38 @@ const DigiWalletPayment = () => {
         );
         toast(t("Payment is processing, we will update you shortly"));
       } else {
+        setOtpAttempts(prev => prev + 1); // Increment on failure
+
+        // Add remaining attempts info for INVALID_OTP errors
+        if (normalizedStatus === "INVALID_OTP") {
+          const remaining = MAX_OTP_ATTEMPTS - (otpAttempts + 1);
+          if (remaining > 0) {
+            errorDetails.action = `${errorDetails.action} (${remaining} attempts remaining)`;
+          } else {
+            errorDetails.action = "Maximum attempts reached. Please request a new code.";
+          }
+        }
+
         dispatch(
           setStatus({
             status: "error",
             message: respMessage ?? t("Payment failed"),
           })
         );
-        const userMessage = hint ? `${respMessage} (${hint})` : respMessage;
-        dispatch(setError(userMessage));
-        toast.error(userMessage);
+        dispatch(setError(errorDetails));
+        toast.error(respMessage);
       }
     } catch (err) {
-      const { message: userMessage, hint } = buildErrorPayload(
-        err,
-        t("Payment failed")
-      );
-      const display = hint ? `${userMessage} (${hint})` : userMessage;
-      dispatch(setError(display));
+      setOtpAttempts(prev => prev + 1); // Increment on exception
+      const errorDetails = buildErrorPayload(err, t("Payment failed"));
+      dispatch(setError(errorDetails));
       dispatch(
         setStatus({
           status: "error",
-          message: display,
+          message: errorDetails.message,
         })
       );
-      toast.error(display);
+      toast.error(errorDetails.message);
     } finally {
       dispatch(setLoading(false));
     }
@@ -236,6 +266,7 @@ const DigiWalletPayment = () => {
         payment_id: paymentId,
       });
       if (String(data?.status ?? "").toUpperCase() === "OTP_SENT") {
+        setOtpAttempts(0); // Reset attempts on new OTP
         dispatch(
           setStatus({
             status: "otp_sent",
@@ -247,24 +278,14 @@ const DigiWalletPayment = () => {
         setOtp("");
         setRemainingSeconds(300);
       } else {
-        const { status: normalizedStatus, message: respMessage, hint } =
-          buildResponsePayload(data, t("Unable to resend OTP"));
-        const userMessage = hint ? `${respMessage} (${hint})` : respMessage;
-        dispatch(setError(userMessage));
-        if (normalizedStatus === "INSUFFICIENT_FUNDS") {
-          toast.error(userMessage);
-        } else {
-          toast.error(userMessage);
-        }
+        const errorDetails = buildResponsePayload(data, t("Unable to resend OTP"));
+        dispatch(setError(errorDetails));
+        toast.error(errorDetails.message);
       }
     } catch (err) {
-      const { message: userMessage, hint } = buildErrorPayload(
-        err,
-        t("Unable to resend OTP")
-      );
-      const display = hint ? `${userMessage} (${hint})` : userMessage;
-      dispatch(setError(display));
-      toast.error(display);
+      const errorDetails = buildErrorPayload(err, t("Unable to resend OTP"));
+      dispatch(setError(errorDetails));
+      toast.error(errorDetails.message);
     } finally {
       dispatch(setLoading(false));
       setTimeout(() => setIsResendCooling(false), 5000);
@@ -382,9 +403,16 @@ const DigiWalletPayment = () => {
                   </Button>
                 </Stack>
                 {error && (
-                  <Typography variant="body2" color="error">
-                    {error}
-                  </Typography>
+                  <DigiWalletErrorAlert
+                    error={error}
+                    onRetry={() => {
+                      setOtp('');
+                      dispatch(setError(null));
+                    }}
+                    onChangePayment={() => {
+                      router.push('/checkout');
+                    }}
+                  />
                 )}
               </Stack>
             )}
