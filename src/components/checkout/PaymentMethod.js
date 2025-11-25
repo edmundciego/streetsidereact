@@ -29,7 +29,6 @@ const PaymentMethod = ({
   payableAmount,
   changeAmount,
   setChangeAmount,
-  digiWalletEligible = true,
 }) => {
   return (
     <CustomStackFullWidth spacing={2}>
@@ -47,7 +46,6 @@ const PaymentMethod = ({
           offlinePaymentOptions={offlinePaymentOptions}
           setPaymentMethodImage={setPaymentMethodImage}
           getParcelPayment={getParcelPayment}
-          digiWalletEligible={digiWalletEligible}
         />
       ) : (
         <OtherModulePayment
@@ -71,7 +69,6 @@ const PaymentMethod = ({
           switchToWallet={switchToWallet}
           customerData={customerData}
           payableAmount={payableAmount}
-          digiWalletEligible={digiWalletEligible}
         />
       )}
     </CustomStackFullWidth>

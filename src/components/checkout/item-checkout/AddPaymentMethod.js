@@ -53,7 +53,6 @@ const AddPaymentMethod = (props) => {
     payableAmount,
     changeAmount,
     setChangeAmount,
-    digiWalletEligible = true,
   } = props;
   const [openModal, setOpenModel] = useState(false);
   const { offlineMethod } = useSelector((state) => state.offlinePayment);
@@ -104,16 +103,7 @@ const AddPaymentMethod = (props) => {
                     alt="Payment Method Image"
                     objectfit="contain"
                   />
-     )}
-      {!digiWalletEligible && (
-        <Typography
-          fontSize="12px"
-          color={(theme) => theme.palette.error.main}
-          sx={{ mt: -1 }}
-        >
-          {t("Add your phone number to enable DigiWallet payments.")}
-        </Typography>
-      )}
+                )}
               </>
             )}
             <Typography
@@ -231,7 +221,6 @@ const AddPaymentMethod = (props) => {
             payableAmount={payableAmount}
             changeAmount={changeAmount}
             setChangeAmount={setChangeAmount}
-            digiWalletEligible={digiWalletEligible}
           />
         </CustomModal>
       )}

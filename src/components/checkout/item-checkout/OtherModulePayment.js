@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   alpha,
   Button,
@@ -202,7 +202,6 @@ const OtherModulePayment = (props) => {
     payableAmount,
     changeAmount,
     setChangeAmount,
-    digiWalletEligible = true,
   } = props;
 
   const theme = useTheme();
@@ -214,16 +213,6 @@ const OtherModulePayment = (props) => {
   const { offlineMethod } = useSelector((state) => state.offlinePayment);
   const [isCheckedOffline, setIsCheckedOffline] = useState(
     offlineMethod !== ""
-  );
-  const digiWalletConfigured = configData?.active_payment_method_list?.some(
-    (item) => item.gateway === "digiWallet"
-  );
-  const filteredDigitalMethods = useMemo(
-    () =>
-      (configData?.active_payment_method_list ?? []).filter(
-        (item) => item.gateway !== "digiWallet" || digiWalletEligible
-      ),
-    [configData?.active_payment_method_list, digiWalletEligible]
   );
 
   const handleClickOffline = () => {
@@ -247,11 +236,6 @@ const OtherModulePayment = (props) => {
       setExpanded(true);
     }
   }, [paymentMethod]);
-  useEffect(() => {
-    if (!digiWalletEligible && paymentMethod === "digiWallet") {
-      setPaymentMethod(null);
-    }
-  }, [digiWalletEligible, paymentMethod, setPaymentMethod]);
   return (
     <CustomStackFullWidth spacing={1}>
       <CustomStackFullWidth
@@ -489,12 +473,16 @@ const OtherModulePayment = (props) => {
                 </Typography>
                 <CustomStackFullWidth spacing={1}>
                   <Grid container>
-                    {filteredDigitalMethods?.map(
+                    {configData?.active_payment_method_list?.map(
                       (item, index) => {
                         return (
                           <Grid
                             item
-                            xs={filteredDigitalMethods?.length > 1 ? 6 : 12}
+                            xs={
+                              configData?.active_payment_method_list?.length > 1
+                                ? 6
+                                : 12
+                            }
                             key={index}
                           >
                             <PaymentMethodCard
@@ -522,14 +510,6 @@ const OtherModulePayment = (props) => {
                       }
                     )}
                   </Grid>
-                  {!digiWalletEligible && digiWalletConfigured && (
-                    <Typography
-                      fontSize="11px"
-                      color={(theme) => theme.palette.error.main}
-                    >
-                      {t("Add your phone number to enable DigiWallet payments.")}
-                    </Typography>
-                  )}
                 </CustomStackFullWidth>
               </CustomStackFullWidth>
             )}
