@@ -47,12 +47,31 @@ const DigiWalletPayment = () => {
     status,
     message,
     loading,
-    error,
-    transactionId,
-  } = useSelector((state) => state.digiWallet);
+  error,
+  transactionId,
+} = useSelector((state) => state.digiWallet);
   const [otp, setOtp] = useState("");
   const [remainingSeconds, setRemainingSeconds] = useState(300);
   const [isResendCooling, setIsResendCooling] = useState(false);
+
+  const buildErrorPayload = (err, fallbackMessage) => {
+    const data = err?.response?.data;
+    const status = String(data?.status ?? "").toUpperCase();
+    const message =
+      data?.message ||
+      data?.errors?.[0]?.message ||
+      err?.message ||
+      fallbackMessage;
+    const hint = data?.hint;
+    return { status, message, hint };
+  };
+
+  const buildResponsePayload = (data, fallbackMessage) => {
+    const status = String(data?.status ?? "").toUpperCase();
+    const message = data?.message ?? fallbackMessage;
+    const hint = data?.hint;
+    return { status, message, hint };
+  };
 
   const displayStatus = STATUS_LABELS[status] ?? status;
   const formattedAmount = useMemo(() => {
@@ -157,21 +176,22 @@ const DigiWalletPayment = () => {
         request_id: requestId,
         otp,
       });
-      const normalizedStatus = String(data?.status ?? "").toUpperCase();
+      const { status: normalizedStatus, message: respMessage, hint } =
+        buildResponsePayload(data, t("Payment confirmed"));
       if (normalizedStatus === "SUCCESS") {
         dispatch(
           setStatus({
             status: "success",
-            message: data?.message ?? t("Payment confirmed"),
+            message: respMessage,
             transactionId: data?.transaction_id,
           })
         );
-        toast.success(t("Payment confirmed"));
+        toast.success(respMessage);
       } else if (normalizedStatus === "PENDING") {
         dispatch(
           setStatus({
             status: "processing",
-            message: data?.message ?? t("Payment is processing"),
+            message: respMessage ?? t("Payment is processing"),
             transactionId: data?.transaction_id,
           })
         );
@@ -180,25 +200,27 @@ const DigiWalletPayment = () => {
         dispatch(
           setStatus({
             status: "error",
-            message: data?.message ?? t("Payment failed"),
+            message: respMessage ?? t("Payment failed"),
           })
         );
-        dispatch(setError(data?.message ?? t("Payment failed")));
-        toast.error(data?.message ?? t("Payment failed"));
+        const userMessage = hint ? `${respMessage} (${hint})` : respMessage;
+        dispatch(setError(userMessage));
+        toast.error(userMessage);
       }
     } catch (err) {
-      const message =
-        err?.response?.data?.message ||
-        err?.response?.data?.errors?.[0]?.message ||
-        err.message;
-      dispatch(setError(message));
+      const { message: userMessage, hint } = buildErrorPayload(
+        err,
+        t("Payment failed")
+      );
+      const display = hint ? `${userMessage} (${hint})` : userMessage;
+      dispatch(setError(display));
       dispatch(
         setStatus({
           status: "error",
-          message,
+          message: display,
         })
       );
-      toast.error(message);
+      toast.error(display);
     } finally {
       dispatch(setLoading(false));
     }
@@ -225,17 +247,24 @@ const DigiWalletPayment = () => {
         setOtp("");
         setRemainingSeconds(300);
       } else {
-        const msg = data?.message ?? t("Unable to resend OTP");
-        dispatch(setError(msg));
-        toast.error(msg);
+        const { status: normalizedStatus, message: respMessage, hint } =
+          buildResponsePayload(data, t("Unable to resend OTP"));
+        const userMessage = hint ? `${respMessage} (${hint})` : respMessage;
+        dispatch(setError(userMessage));
+        if (normalizedStatus === "INSUFFICIENT_FUNDS") {
+          toast.error(userMessage);
+        } else {
+          toast.error(userMessage);
+        }
       }
     } catch (err) {
-      const msg =
-        err?.response?.data?.message ||
-        err?.response?.data?.errors?.[0]?.message ||
-        err.message;
-      dispatch(setError(msg));
-      toast.error(msg);
+      const { message: userMessage, hint } = buildErrorPayload(
+        err,
+        t("Unable to resend OTP")
+      );
+      const display = hint ? `${userMessage} (${hint})` : userMessage;
+      dispatch(setError(display));
+      toast.error(display);
     } finally {
       dispatch(setLoading(false));
       setTimeout(() => setIsResendCooling(false), 5000);
