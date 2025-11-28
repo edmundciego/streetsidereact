@@ -288,3 +288,22 @@ export const CustomButtonStack = styled(Stack)(({ theme }) => ({
 		zIndex: "9999",
 	},
 }));
+export const PayButton = styled(Stack)(({ theme, value, paymentMethod }) => ({
+	padding: "10px 10px",
+	width: "100%",
+	gap: "5px",
+	border: "1px solid",
+	borderColor: alpha(theme.palette.neutral[400], 0.4),
+	borderRadius: "10px",
+	flexDirection: "row",
+	justifyContent: "space-between",
+	alignItems: "center",
+	color: theme.palette.neutral[1000],
+	cursor: "pointer",
+	height: "100%",
+	// background: value === paymentMethod && theme.palette.primary.main,
+	// "&:hover": {
+	//   // color: theme.palette.neutral[1000],
+	//   background: value === paymentMethod && theme.palette.primary.main,
+	// },
+}));

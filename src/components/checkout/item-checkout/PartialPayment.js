@@ -8,7 +8,7 @@ import { t } from "i18next";
 import { useTheme } from "@emotion/react";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import { getAmountWithSign } from "../../../helper-functions/CardHelpers";
-import {PayButton} from "components/checkout/item-checkout/OtherModulePayment";
+import { PayButton } from "../CheckOut.style";
 
 const PartialPayment = ({
   handlePartialPayment,

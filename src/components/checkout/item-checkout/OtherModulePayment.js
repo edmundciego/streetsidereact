@@ -25,7 +25,7 @@ import PaymentMethodCard from "../PaymentMethodCard";
 import InfoIcon from "@mui/icons-material/Info";
 import { useTheme } from "@emotion/react";
 import { useDispatch, useSelector } from "react-redux";
-import { DeliveryCaption } from "../CheckOut.style";
+import { DeliveryCaption, PayButton } from "../CheckOut.style";
 import { setOfflineMethod } from "../../../redux/slices/offlinePaymentData";
 import { getToken } from "../../../helper-functions/getToken";
 import wallet from "../assets/wallet.png";
@@ -34,26 +34,6 @@ import OfflinePaymentIcon from "../assets/OfflinePaymentIcon";
 import { getAmountWithSign } from "helper-functions/CardHelpers";
 import CloseIcon from "@mui/icons-material/Close";
 import PartialPayment from "components/checkout/item-checkout/PartialPayment";
-
-export const PayButton = styled(Stack)(({ theme, value, paymentMethod }) => ({
-  padding: "10px 10px",
-  width: "100%",
-  gap: "5px",
-  border: "1px solid",
-  borderColor: alpha(theme.palette.neutral[400], 0.4),
-  borderRadius: "10px",
-  flexDirection: "row",
-  justifyContent: "space-between",
-  alignItems: "center",
-  color: theme.palette.neutral[1000],
-  cursor: "pointer",
-  height: "100%",
-  // background: value === paymentMethod && theme.palette.primary.main,
-  // "&:hover": {
-  //   // color: theme.palette.neutral[1000],
-  //   background: value === paymentMethod && theme.palette.primary.main,
-  // },
-}));
 
 const OfflineButton = styled(Button)(({ theme, value, paymentMethod }) => ({
   padding: "13px 20px",

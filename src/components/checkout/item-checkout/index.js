@@ -176,6 +176,101 @@ const ItemCheckout = (props) => {
     }),
   });
 
+
+
+  const currentModuleType = getCurrentModuleType();
+  const storeId =
+    page === "campaign"
+      ? campaignItemList?.[0]?.store_id
+      : cartList?.[0]?.store_id;
+  const { data: storeData, refetch } = useGetStoreDetails(storeId);
+  const { data: tripsData } = useGetMostTrips();
+  const { mutate: offlineMutate, isLoading: offlinePaymentLoading } =
+    useOfflinePayment();
+  const {
+    data: offlinePaymentOptions,
+    refetch: refetchOfflinePaymentOptions,
+    isLoading: offlineIsLoading,
+  } = useGetOfflinePaymentOptions();
+  const { mutate: taxMutate, data } = useGetTax();
+
+  const passwordHandler = (value) => {
+    formik.setFieldValue("password", value);
+  };
+  const confirmPasswordHandler = (value) => {
+    formik.setFieldValue("confirm_password", value);
+  };
+
+  useEffect(() => {
+    refetchOfflinePaymentOptions();
+  }, []);
+  useEffect(() => {
+    if (storeId) {
+      refetch();
+    }
+  }, [storeId]);
+
+  const currentLatLng = JSON.parse(
+    window.localStorage.getItem("currentLatLng")
+  );
+  const { data: zoneData } = useQuery(
+    ["zoneId", location],
+    async () => GoogleApi.getZoneId(currentLatLng),
+    {
+      retry: 1,
+    }
+  );
+
+  const {
+    data: distanceData,
+    refetch: refetchDistance,
+    isLoading,
+  } = useQuery(
+    ["get-distancesss", storeData, address, orderType],
+    () => GoogleApi.distanceApi(storeData, address),
+    {
+      enabled: true,
+      onError: onErrorResponse,
+    }
+  );
+
+  const tempDistance = handleDistance(
+    distanceData?.data,
+    { latitude: storeData?.latitude, longitude: storeData?.longitude },
+    address
+  );
+  useEffect(() => {
+    setDDistance(Number(distanceData?.data?.distanceMeters) / 1000);
+  }, [distanceData]);
+
+  const {
+    data: extraCharge,
+    isLoading: extraChargeLoading,
+    refetch: extraChargeRefetch,
+  } = useGetVehicleCharge({ tempDistance });
+  useEffect(() => {
+    if (distanceData) {
+      extraChargeRefetch();
+    }
+  }, [distanceData]);
+  const handleChange = (event) => {
+    setDayNumber(event.target.value);
+  };
+  //order post api
+  const { mutate: orderMutation, isLoading: orderLoading } = useMutation(
+    "order-place",
+    OrderApi.placeOrder
+  );
+  const userOnSuccessHandler = (res) => {};
+  const { isLoading: customerLoading, data: customerData } = useQuery(
+    ["profile-info"],
+    ProfileApi.profileInfo,
+    {
+      onSuccess: userOnSuccessHandler,
+      onError: onSingleErrorResponse,
+    }
+  );
+
   const digiWalletPhoneValue = useMemo(
     () =>
       normalizePhoneNumber(
@@ -290,99 +385,6 @@ const ItemCheckout = (props) => {
       toast.error(errorMessage);
     }
   };
-
-  const currentModuleType = getCurrentModuleType();
-  const storeId =
-    page === "campaign"
-      ? campaignItemList?.[0]?.store_id
-      : cartList?.[0]?.store_id;
-  const { data: storeData, refetch } = useGetStoreDetails(storeId);
-  const { data: tripsData } = useGetMostTrips();
-  const { mutate: offlineMutate, isLoading: offlinePaymentLoading } =
-    useOfflinePayment();
-  const {
-    data: offlinePaymentOptions,
-    refetch: refetchOfflinePaymentOptions,
-    isLoading: offlineIsLoading,
-  } = useGetOfflinePaymentOptions();
-  const { mutate: taxMutate, data } = useGetTax();
-
-  const passwordHandler = (value) => {
-    formik.setFieldValue("password", value);
-  };
-  const confirmPasswordHandler = (value) => {
-    formik.setFieldValue("confirm_password", value);
-  };
-
-  useEffect(() => {
-    refetchOfflinePaymentOptions();
-  }, []);
-  useEffect(() => {
-    if (storeId) {
-      refetch();
-    }
-  }, [storeId]);
-
-  const currentLatLng = JSON.parse(
-    window.localStorage.getItem("currentLatLng")
-  );
-  const { data: zoneData } = useQuery(
-    ["zoneId", location],
-    async () => GoogleApi.getZoneId(currentLatLng),
-    {
-      retry: 1,
-    }
-  );
-
-  const {
-    data: distanceData,
-    refetch: refetchDistance,
-    isLoading,
-  } = useQuery(
-    ["get-distancesss", storeData, address, orderType],
-    () => GoogleApi.distanceApi(storeData, address),
-    {
-      enabled: true,
-      onError: onErrorResponse,
-    }
-  );
-
-  const tempDistance = handleDistance(
-    distanceData?.data,
-    { latitude: storeData?.latitude, longitude: storeData?.longitude },
-    address
-  );
-  useEffect(() => {
-    setDDistance(Number(distanceData?.data?.distanceMeters) / 1000);
-  }, [distanceData]);
-
-  const {
-    data: extraCharge,
-    isLoading: extraChargeLoading,
-    refetch: extraChargeRefetch,
-  } = useGetVehicleCharge({ tempDistance });
-  useEffect(() => {
-    if (distanceData) {
-      extraChargeRefetch();
-    }
-  }, [distanceData]);
-  const handleChange = (event) => {
-    setDayNumber(event.target.value);
-  };
-  //order post api
-  const { mutate: orderMutation, isLoading: orderLoading } = useMutation(
-    "order-place",
-    OrderApi.placeOrder
-  );
-  const userOnSuccessHandler = (res) => {};
-  const { isLoading: customerLoading, data: customerData } = useQuery(
-    ["profile-info"],
-    ProfileApi.profileInfo,
-    {
-      onSuccess: userOnSuccessHandler,
-      onError: onSingleErrorResponse,
-    }
-  );
 
   useEffect(() => {
     const currentLatLng = JSON.parse(localStorage.getItem("currentLatLng"));
