@@ -5,6 +5,7 @@ import { Provider as ReduxProvider } from "react-redux";
 import createEmotionCache from "../src/utils/create-emotion-cache";
 import { store } from "redux/store";
 import { ThemeProvider } from "@mui/material/styles";
+import { ThemeProvider as EmotionThemeProvider } from "@emotion/react";
 import { createTheme } from "theme";
 
 import CssBaseline from "@mui/material/CssBaseline";
@@ -67,21 +68,24 @@ function MyApp(props) {
           <ReduxProvider store={store}>
             <SettingsProvider>
               <SettingsConsumer>
-                {(value) => (
-                  <ThemeProvider
-                    theme={createTheme({
-                      direction: value?.settings?.direction,
-                      responsiveFontSizes: value?.settings?.responsiveFontSizes,
-                      mode: value?.settings?.theme,
-                    })}
-                  >
-                    <RTL direction={value?.settings?.direction}>
-                      <CssBaseline />
-                      <Toaster position="top-center" />
-                      {getLayout(<Component {...pageProps} />)}
-                    </RTL>
-                  </ThemeProvider>
-                )}
+                {(value) => {
+                  const theme = createTheme({
+                    direction: value?.settings?.direction,
+                    responsiveFontSizes: value?.settings?.responsiveFontSizes,
+                    mode: value?.settings?.theme,
+                  });
+                  return (
+                    <EmotionThemeProvider theme={theme}>
+                      <ThemeProvider theme={theme}>
+                        <RTL direction={value?.settings?.direction}>
+                          <CssBaseline />
+                          <Toaster position="top-center" />
+                          {getLayout(<Component {...pageProps} />)}
+                        </RTL>
+                      </ThemeProvider>
+                    </EmotionThemeProvider>
+                  );
+                }}
               </SettingsConsumer>
             </SettingsProvider>
           </ReduxProvider>
