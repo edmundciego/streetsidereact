@@ -19,6 +19,7 @@ import { useRouter } from "next/router";
 import { useTranslation } from "react-i18next";
 import jwt from "base-64";
 import CheckoutFailed from "../checkout/CheckoutFailed";
+import AccessTimeIcon from "@mui/icons-material/AccessTime";
 
 const OrderDetailsModal = ({ orderDetailsModalOpen }) => {
   const dispatch = useDispatch();
@@ -34,6 +35,8 @@ const OrderDetailsModal = ({ orderDetailsModalOpen }) => {
     (state) => state.guestUserInfo
   );
   const { orderInformation } = useSelector((state) => state.utilsData);
+  const resolvedStatus = String(status ?? orderInformation?.status ?? "").toLowerCase();
+  const isPaymentPending = flag === "pending" || resolvedStatus === "pending";
   const handleOrderDetailsClose = () => {
     dispatch(setOrderDetailsModalOpen(false));
   };
@@ -113,31 +116,51 @@ const OrderDetailsModal = ({ orderDetailsModalOpen }) => {
           alignItems="center"
           gap="20px"
         >
-          <CheckCircleOutlineOutlinedIcon
-            sx={{
-              height: "46px",
-              width: "46px",
-              color: alpha(theme.palette.primary.main, 0.7),
-            }}
-          />
+          {isPaymentPending ? (
+            <AccessTimeIcon
+              sx={{
+                height: "46px",
+                width: "46px",
+                color: alpha(theme.palette.warning.main, 0.9),
+              }}
+            />
+          ) : (
+            <CheckCircleOutlineOutlinedIcon
+              sx={{
+                height: "46px",
+                width: "46px",
+                color: alpha(theme.palette.primary.main, 0.7),
+              }}
+            />
+          )}
           <Typography fontSize="16px" fontWeight="700">
-            {`${t("Order Placed Successfully")} !`}
+            {isPaymentPending
+              ? `${t("Payment Pending")} !`
+              : `${t("Order Placed Successfully")} !`}
           </Typography>
           <CustomStackFullWidth
             padding={{ xs: "0px 20px", md: "0px 38px" }}
             textAlign="center"
           >
-            <Typography fontWeight="400">
-              {`${t("Make sure to remember your ")}`}
-              <Typography component="span" fontWeight={500}>{`${t(
-                "order ID and phone number"
-              )}`}</Typography>
-              <Typography component="span">
-                {`${t(
-                  " that is used in this order as you have ordered as guest user. Other wise you won’t be able to track your order in future."
-                )}`}
+            {isPaymentPending ? (
+              <Typography fontWeight="400">
+                {t(
+                  "Your order is placed, but the payment is still pending. We will update the status as soon as we receive confirmation."
+                )}
               </Typography>
-            </Typography>
+            ) : (
+              <Typography fontWeight="400">
+                {`${t("Make sure to remember your ")}`}
+                <Typography component="span" fontWeight={500}>{`${t(
+                  "order ID and phone number"
+                )}`}</Typography>
+                <Typography component="span">
+                  {`${t(
+                    " that is used in this order as you have ordered as guest user. Other wise you won’t be able to track your order in future."
+                  )}`}
+                </Typography>
+              </Typography>
+            )}
           </CustomStackFullWidth>
           <CustomStackFullWidth
             padding="20px 10px 20px 10px"

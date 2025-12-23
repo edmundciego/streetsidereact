@@ -12,6 +12,7 @@ import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import ErrorIcon from "@mui/icons-material/Error";
 import CancelIcon from "@mui/icons-material/Cancel";
 import { t } from "i18next";
+import AccessTimeIcon from "@mui/icons-material/AccessTime";
 
 import { CustomStackFullWidth } from "../../../../styled-components/CustomStyles.style";
 import DotSpin from "../../../DotSpin";
@@ -29,6 +30,11 @@ const OfflineOrderDetailsModal = ({
   page,
 }) => {
   const theme = useTheme();
+  const isFailure = page === "my-orders?flag=cancel" || page === "my-orders?flag=fail";
+  const offlineStatus = String(trackData?.offline_payment?.data?.status ?? "").toLowerCase();
+  const isPaymentPending =
+    !isFailure &&
+    (offlineStatus === "pending" || trackData?.order_status === "pending");
   return (
     <CustomStackFullWidth
       padding={{ xs: "30px 15px", md: "60px 45px 40px" }}
@@ -52,6 +58,14 @@ const OfflineOrderDetailsModal = ({
             color: theme.palette.error.main,
           }}
         />
+      ) : isPaymentPending ? (
+        <AccessTimeIcon
+          sx={{
+            height: "45px",
+            width: "45px",
+            color: theme.palette.warning.main,
+          }}
+        />
       ) : (
         <CheckCircleIcon
           sx={{
@@ -64,8 +78,10 @@ const OfflineOrderDetailsModal = ({
       
       {/* Conditional Title based on payment status */}
       <Typography fontSize="16px" fontWeight="700" textAlign="center">
-        {page === "my-orders?flag=cancel" || page === "my-orders?flag=fail"
+        {isFailure
           ? `${t("Payment Failed")} !`
+          : isPaymentPending
+          ? `${t("Payment Pending")} !`
           : `${t("Order Placed Successfully")} !`}
       </Typography>
       <CustomStackFullWidth
@@ -112,6 +128,22 @@ const OfflineOrderDetailsModal = ({
                 </Typography>
                 <Typography component="span" fontWeight="400">
                   {` ${t("has been placed. You can still complete your purchase with Cash on Delivery.")} !`}
+                </Typography>
+              </>
+            ) : isPaymentPending ? (
+              <>
+                <Typography component="span">
+                  {`${t("Your order ")} `}
+                </Typography>
+                <Typography
+                  component="span"
+                  fontWeight="600"
+                  sx={{ color: theme.palette.primary.main }}
+                >
+                  #{trackData?.id}
+                </Typography>
+                <Typography component="span" fontWeight="400">
+                  {` ${t("has been placed, but the payment is still pending.")} `}
                 </Typography>
               </>
             ) : (

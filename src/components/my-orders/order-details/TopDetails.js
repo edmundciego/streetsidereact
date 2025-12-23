@@ -288,6 +288,9 @@ const TopDetails = (props) => {
     RETRYABLE_METHODS.includes(trackData?.payment_method) &&
     trackData?.payment_status === "unpaid" &&
     trackData?.order_status !== "failed";
+  const isPlaceToPayPolling =
+    String(trackData?.payment_method ?? "").toLowerCase() === "placetopay" &&
+    trackData?.payment_status === "unpaid";
 
   useEffect(() => {
     const method = String(trackData?.payment_method ?? "").toLowerCase();
@@ -724,9 +727,16 @@ const TopDetails = (props) => {
       )}
 
       {showPaymentProcessingStatus && (
-        <OrderStatusButton background={theme.palette.warning.main}>
-          {t("Payment Processing")}
-        </OrderStatusButton>
+        <Stack alignItems="center" spacing={0.5}>
+          <OrderStatusButton background={theme.palette.warning.main}>
+            {t("Payment Processing")}
+          </OrderStatusButton>
+          {isPlaceToPayPolling && (
+            <Typography variant="body2" color="text.secondary">
+              {t("Checking payment status...")}
+            </Typography>
+          )}
+        </Stack>
       )}
 
       {!hasFailedPaymentAttempt &&
