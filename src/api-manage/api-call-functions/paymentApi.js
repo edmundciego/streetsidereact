@@ -13,6 +13,10 @@ const PaymentApi = {
     MainApi.get(`/api/payment/status/${paymentId}`, {
       headers: JSON_HEADERS,
     }),
+  getLatestForOrder: (orderId) =>
+    MainApi.get(`/api/payment/order/${orderId}/latest`, {
+      headers: JSON_HEADERS,
+    }),
 };
 
 export default PaymentApi;

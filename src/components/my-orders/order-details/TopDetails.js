@@ -86,6 +86,7 @@ const TopDetails = (props) => {
   const [openModalOffline, setOpenModelOffline] = useState(orderDetailsModal);
   const [parcelReceiveModal, setParcelReceiveModal] = useState(false);
   const [openReviewModal, setOpenReviewModal] = useState(false);
+  const [paymentRequestId, setPaymentRequestId] = useState(null);
   const dispatch = useDispatch();
   const { mutate: postParcelReturnMutation, isLoading: postParcelReturnLoading } = usePostParcelReturn();
 
@@ -97,6 +98,10 @@ const TopDetails = (props) => {
 
   const resolvePaymentRequestId = () => {
     if (!trackData) return null;
+
+    if (isUuid(paymentRequestId)) {
+      return paymentRequestId;
+    }
 
     const directId = trackData?.payment_request_id ?? trackData?.payment_id;
     if (isUuid(directId)) {
@@ -338,10 +343,48 @@ const TopDetails = (props) => {
   }, [
     trackData?.payment_method,
     trackData?.payment_status,
+    paymentRequestId,
     id,
     refetchTrackData,
     refetchOrderDetails,
   ]);
+
+  useEffect(() => {
+    const method = String(trackData?.payment_method ?? "").toLowerCase();
+    if (method !== "placetopay") {
+      return undefined;
+    }
+
+    if (resolvePaymentRequestId()) {
+      return undefined;
+    }
+
+    if (!id) {
+      return undefined;
+    }
+
+    let isActive = true;
+
+    const fetchPaymentId = async () => {
+      try {
+        const { data } = await PaymentApi.getLatestForOrder(id);
+        if (!isActive || !data?.success) {
+          return;
+        }
+        if (isUuid(data?.payment_id)) {
+          setPaymentRequestId(data.payment_id);
+        }
+      } catch (error) {
+        // Keep silent; polling will retry after order refreshes.
+      }
+    };
+
+    fetchPaymentId();
+
+    return () => {
+      isActive = false;
+    };
+  }, [trackData?.payment_method, id]);
 
 
   const { data: cancelReasonsData, refetch } = useGetOrderCancelReason(trackData?.module_type, trackData?.order_status);
