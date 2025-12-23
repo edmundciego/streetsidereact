@@ -102,6 +102,29 @@ const DigitalPaymentManage = ({
     return false;
   };
 
+  const extractPaymentIdFromUrl = (redirectUrl) => {
+    if (!redirectUrl || typeof redirectUrl !== "string") {
+      return null;
+    }
+    const match = redirectUrl.match(/[?&]payment_id=([^&]+)/);
+    return match ? decodeURIComponent(match[1]) : null;
+  };
+
+  const storePaymentRequestId = (orderId, paymentId) => {
+    if (!orderId || !paymentId) return;
+    try {
+      const stored = localStorage.getItem("payment_request_ids");
+      const parsed = stored ? JSON.parse(stored) : {};
+      parsed[orderId] = paymentId;
+      localStorage.setItem("payment_request_ids", JSON.stringify(parsed));
+    } catch (error) {
+      localStorage.setItem(
+        "payment_request_ids",
+        JSON.stringify({ [orderId]: paymentId })
+      );
+    }
+  };
+
   const buildCallbackUrl = () => {
     if (typeof window === "undefined") return undefined;
     const baseOrigin = window.location.origin;
@@ -207,6 +230,8 @@ const DigitalPaymentManage = ({
       } else {
         const { data } = await PaymentApi.initiate(payloadBase);
         const redirectUrl = data?.redirect_url;
+        const paymentId = data?.payment_id ?? extractPaymentIdFromUrl(redirectUrl);
+        storePaymentRequestId(id, paymentId);
         if (!redirectUrl) {
           throw new Error(
             data?.message ?? t("Unable to initiate payment session")

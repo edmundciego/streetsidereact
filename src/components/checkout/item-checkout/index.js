@@ -297,6 +297,29 @@ const ItemCheckout = (props) => {
     return false;
   };
 
+  const extractPaymentIdFromUrl = (redirectUrl) => {
+    if (!redirectUrl || typeof redirectUrl !== "string") {
+      return null;
+    }
+    const match = redirectUrl.match(/[?&]payment_id=([^&]+)/);
+    return match ? decodeURIComponent(match[1]) : null;
+  };
+
+  const storePaymentRequestId = (orderId, paymentId) => {
+    if (!orderId || !paymentId) return;
+    try {
+      const stored = localStorage.getItem("payment_request_ids");
+      const parsed = stored ? JSON.parse(stored) : {};
+      parsed[orderId] = paymentId;
+      localStorage.setItem("payment_request_ids", JSON.stringify(parsed));
+    } catch (error) {
+      localStorage.setItem(
+        "payment_request_ids",
+        JSON.stringify({ [orderId]: paymentId })
+      );
+    }
+  };
+
   const initiateDigiWalletPayment = async ({
     orderId,
     userId,
@@ -708,6 +731,9 @@ const ItemCheckout = (props) => {
                     callback: callBackUrl,
                   });
                   const redirectUrl = paymentInit?.redirect_url;
+                  const paymentId =
+                    paymentInit?.payment_id ?? extractPaymentIdFromUrl(redirectUrl);
+                  storePaymentRequestId(response?.data?.order_id, paymentId);
                   if (!redirectUrl) {
                     throw new Error(
                       paymentInit?.message ??

@@ -22,6 +22,7 @@ import toast from "react-hot-toast";
 import { useTranslation } from "react-i18next";
 import { useQuery } from "react-query";
 import { useDispatch, useSelector } from "react-redux";
+import PaymentApi from "api-manage/api-call-functions/paymentApi";
 import {
   clearOfflinePaymentInfo,
   setOrderDetailsModal,
@@ -87,6 +88,59 @@ const TopDetails = (props) => {
   const [openReviewModal, setOpenReviewModal] = useState(false);
   const dispatch = useDispatch();
   const { mutate: postParcelReturnMutation, isLoading: postParcelReturnLoading } = usePostParcelReturn();
+
+  const isUuid = (value) =>
+    typeof value === "string" &&
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+      value
+    );
+
+  const resolvePaymentRequestId = () => {
+    if (!trackData) return null;
+
+    const directId = trackData?.payment_request_id ?? trackData?.payment_id;
+    if (isUuid(directId)) {
+      return directId;
+    }
+
+    const orderTransactionRef = trackData?.transaction_reference;
+    if (isUuid(orderTransactionRef)) {
+      return orderTransactionRef;
+    }
+
+    const payments = Array.isArray(trackData?.payments)
+      ? trackData.payments
+      : [];
+    const paymentMatch = payments.find((payment) => {
+      return (
+        isUuid(payment?.payment_request_id) ||
+        isUuid(payment?.transaction_ref) ||
+        isUuid(payment?.transaction_id)
+      );
+    });
+    const paymentId =
+      paymentMatch?.payment_request_id ??
+      paymentMatch?.transaction_ref ??
+      paymentMatch?.transaction_id ??
+      null;
+    if (isUuid(paymentId)) {
+      return paymentId;
+    }
+
+    if (typeof window === "undefined") {
+      return null;
+    }
+
+    try {
+      const stored = localStorage.getItem("payment_request_ids");
+      if (!stored) return null;
+      const parsed = JSON.parse(stored);
+      const storedId = parsed?.[id];
+      return isUuid(storedId) ? storedId : null;
+    } catch (error) {
+      return null;
+    }
+  };
 
   useEffect(() => {
     if (paymentModalMessage) {
@@ -229,6 +283,65 @@ const TopDetails = (props) => {
     RETRYABLE_METHODS.includes(trackData?.payment_method) &&
     trackData?.payment_status === "unpaid" &&
     trackData?.order_status !== "failed";
+
+  useEffect(() => {
+    const method = String(trackData?.payment_method ?? "").toLowerCase();
+    const shouldPoll =
+      method === "placetopay" && trackData?.payment_status === "unpaid";
+
+    if (!shouldPoll) {
+      return undefined;
+    }
+
+    const paymentId = resolvePaymentRequestId();
+    if (!paymentId) {
+      return undefined;
+    }
+
+    let poller = null;
+    let isActive = true;
+
+    const pollStatus = async () => {
+      try {
+        const { data } = await PaymentApi.getStatus(paymentId);
+        if (!isActive || !data?.success) {
+          return;
+        }
+        const status = String(data?.status ?? "").toUpperCase();
+        const isFinal =
+          Boolean(data?.is_final) ||
+          ["APPROVED", "PAID", "REJECTED", "FAILED", "CANCELLED"].includes(
+            status
+          );
+        if (isFinal) {
+          refetchTrackData?.();
+          refetchOrderDetails?.();
+          if (poller) {
+            clearInterval(poller);
+            poller = null;
+          }
+        }
+      } catch (error) {
+        // Keep polling; errors are handled by the backend and may be transient.
+      }
+    };
+
+    pollStatus();
+    poller = setInterval(pollStatus, 10000);
+
+    return () => {
+      isActive = false;
+      if (poller) {
+        clearInterval(poller);
+      }
+    };
+  }, [
+    trackData?.payment_method,
+    trackData?.payment_status,
+    id,
+    refetchTrackData,
+    refetchOrderDetails,
+  ]);
 
 
   const { data: cancelReasonsData, refetch } = useGetOrderCancelReason(trackData?.module_type, trackData?.order_status);
