@@ -6,6 +6,7 @@ import {
   isSupported,
 } from "firebase/messaging";
 import { getAuth } from "firebase/auth";
+
 const firebaseConfig = {
   apiKey: "AIzaSyCNBXZ4uEOU7hAHkvEZJGIsUw3WN3hC38M",
   authDomain: "streetsideco.firebaseapp.com",
@@ -20,7 +21,11 @@ const firebaseConfig = {
 const firebaseApp = !getApps().length
   ? initializeApp(firebaseConfig)
   : getApp();
-const messaging = (async () => {
+
+export const auth = getAuth(firebaseApp);
+
+// Correctly export a promise that resolves to messaging instance (or null)
+export const getMessagingObject = async () => {
   try {
     const isSupportedBrowser = await isSupported();
     if (isSupportedBrowser) {
@@ -28,41 +33,45 @@ const messaging = (async () => {
     }
     return null;
   } catch (err) {
+    console.error("Messaging not supported:", err);
     return null;
   }
-})();
-
-export const fetchToken = async (setTokenFound, setFcmToken) => {
-  return getToken(await messaging, {
-    vapidKey:
-      "BFyeO2SnW09j8eJjb3rmOcjdA5yYrly0Z3FVeNvLoY01pxu_fA4CyPhLB8nFjmTadTSfAmz67m6fCVfzMP1ixRg",
-  })
-    .then((currentToken) => {
-      if (currentToken) {
-        setTokenFound(true);
-        setFcmToken(currentToken);
-
-        // Track the token -> client mapping, by sending to backend server
-        // show on the UI that permission is secured
-      } else {
-        setTokenFound(false);
-        setFcmToken();
-        // shows on the UI that permission is required
-      }
-    })
-    .catch((err) => {
-      console.error(err);
-      // catch error while creating client token
-    });
 };
 
+// fetchToken function
+export const fetchToken = async (setTokenFound, setFcmToken) => {
+  try {
+    const messaging = await getMessagingObject();
+    if (!messaging) return;
+
+    const currentToken = await getToken(messaging, {
+      vapidKey:
+        "",
+    });
+
+    if (currentToken) {
+      setTokenFound(true);
+      setFcmToken(currentToken);
+    } else {
+      setTokenFound(false);
+      setFcmToken();
+    }
+  } catch (err) {
+    console.error("Token fetch error:", err);
+  }
+};
+
+// onMessageListener function
 export const onMessageListener = async () =>
-  new Promise((resolve) =>
-    (async () => {
-      const messagingResolve = await messaging;
-      onMessage(messagingResolve, (payload) => {
+  new Promise(async (resolve, reject) => {
+    try {
+      const messaging = await getMessagingObject();
+      if (!messaging) return;
+
+      onMessage(messaging, (payload) => {
         resolve(payload);
       });
-    })()
-  );
-export const auth = getAuth(firebaseApp);
+    } catch (err) {
+      reject(err);
+    }
+  });

@@ -5,7 +5,6 @@ import { Provider as ReduxProvider } from "react-redux";
 import createEmotionCache from "../src/utils/create-emotion-cache";
 import { store } from "redux/store";
 import { ThemeProvider } from "@mui/material/styles";
-import { ThemeProvider as EmotionThemeProvider } from "@emotion/react";
 import { createTheme } from "theme";
 
 import CssBaseline from "@mui/material/CssBaseline";
@@ -22,7 +21,6 @@ import { persistStore } from "redux-persist";
 import { useTranslation } from "react-i18next";
 import useScrollToTop from "../src/api-manage/hooks/custom-hooks/useScrollToTop";
 import { useEffect } from "react";
-import { SpeedInsights } from "@vercel/speed-insights/next";
 
 Router.events.on("routeChangeStart", nProgress.start);
 Router.events.on("routeChangeError", nProgress.done);
@@ -68,31 +66,27 @@ function MyApp(props) {
           <ReduxProvider store={store}>
             <SettingsProvider>
               <SettingsConsumer>
-                {(value) => {
-                  const theme = createTheme({
-                    direction: value?.settings?.direction,
-                    responsiveFontSizes: value?.settings?.responsiveFontSizes,
-                    mode: value?.settings?.theme,
-                  });
-                  return (
-                    <EmotionThemeProvider theme={theme}>
-                      <ThemeProvider theme={theme}>
-                        <RTL direction={value?.settings?.direction}>
-                          <CssBaseline />
-                          <Toaster position="top-center" />
-                          {getLayout(<Component {...pageProps} />)}
-                        </RTL>
-                      </ThemeProvider>
-                    </EmotionThemeProvider>
-                  );
-                }}
+                {(value) => (
+                  <ThemeProvider
+                    theme={createTheme({
+                      direction: value?.settings?.direction,
+                      responsiveFontSizes: value?.settings?.responsiveFontSizes,
+                      mode: value?.settings?.theme,
+                    })}
+                  >
+                    <RTL direction={value?.settings?.direction}>
+                      <CssBaseline />
+                      <Toaster position="top-center" />
+                      {getLayout(<Component {...pageProps} />)}
+                    </RTL>
+                  </ThemeProvider>
+                )}
               </SettingsConsumer>
             </SettingsProvider>
           </ReduxProvider>
           <ReactQueryDevtools initialIsOpen={false} position="bottom-right" />
         </QueryClientProvider>
       </CacheProvider>
-      <SpeedInsights />
     </>
   );
 }

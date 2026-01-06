@@ -7,17 +7,9 @@ import {
 } from "helper-functions/getCurrentModuleType";
 import { store } from "redux/store";
 import { getDiscountedAmount } from "helper-functions/CardHelpers";
-
-export const normalizePhoneNumber = (value) => {
-  if (value === undefined || value === null) {
-    return "";
-  }
-  const stringValue = typeof value === "string" ? value : `${value}`;
-  return stringValue.replace(/[^\d]/g, "");
-};
-
-export const hasValidPhoneNumber = (value) =>
-  normalizePhoneNumber(value).length > 0;
+import toast from "react-hot-toast";
+import { cod_exceeds_message } from "./toasterMessages";
+import { OrderApi } from "../api-manage/another-formated-api/orderApi";
 
 export const getNumberWithConvertedDecimalPoint = (
   amount,
@@ -196,7 +188,7 @@ export const handlePurchasedAmount = (cartList) => {
         (product.food_variations.length > 0
           ? handleProductValueWithOutDiscount(product)
           : product.price) *
-          product.quantity +
+        product.quantity +
         selectedAddonsTotal(product.selectedAddons) +
         total,
       0
@@ -207,7 +199,7 @@ export const handlePurchasedAmount = (cartList) => {
         (product?.selectedOption?.length > 0
           ? handleValueWithOutDiscount(product)
           : product.price) *
-          product.quantity +
+        product.quantity +
         total,
       0
     );
@@ -335,21 +327,21 @@ const handleTotalDiscountBasedOnModules = (
       (total, product) =>
         (product.food_variations.length > 0
           ? handleProductValueWithOutDiscount(product) -
-            getConvertDiscount(
-              restaurentDiscount,
-              resDisType,
-              handleProductValueWithOutDiscount(product),
-              product.store_discount
-            )
+          getConvertDiscount(
+            restaurentDiscount,
+            resDisType,
+            handleProductValueWithOutDiscount(product),
+            product.store_discount
+          )
           : product.price -
-            getConvertDiscount(
-              restaurentDiscount,
-              resDisType,
-              product.price,
-              product.store_discount,
-              product.flash_sale
-            )) *
-          product.quantity +
+          getConvertDiscount(
+            restaurentDiscount,
+            resDisType,
+            product.price,
+            product.store_discount,
+            product.flash_sale
+          )) *
+        product.quantity +
         total,
       0
     );
@@ -358,20 +350,20 @@ const handleTotalDiscountBasedOnModules = (
       (total, product) =>
         (product?.selectedOption?.length > 0
           ? handleValueWithOutDiscount(product) -
-            getConvertDiscount(
-              restaurentDiscount,
-              resDisType,
-              handleValueWithOutDiscount(product),
-              product.store_discount
-            )
+          getConvertDiscount(
+            restaurentDiscount,
+            resDisType,
+            handleValueWithOutDiscount(product),
+            product.store_discount
+          )
           : product.price -
-            getConvertDiscount(
-              restaurentDiscount,
-              resDisType,
-              product.price,
-              product.store_discount
-            )) *
-          product.quantity +
+          getConvertDiscount(
+            restaurentDiscount,
+            resDisType,
+            product.price,
+            product.store_discount
+          )) *
+        product.quantity +
         total,
       0
     );
@@ -402,7 +394,7 @@ const handleProductWiseDiscount = (items) => {
   return totalDiscount;
 };
 
-export const getProductDiscount = (items, storeData,diffDiscount) => {
+export const getProductDiscount = (items, storeData, diffDiscount) => {
   const productWiseDiscount = handleProductWiseDiscount(items);
   if (storeData?.discount) {
     const endDate = storeData?.discount?.end_date;
@@ -415,7 +407,7 @@ export const getProductDiscount = (items, storeData,diffDiscount) => {
 
     // Check if the store discount is still valid
     if (combinedEndDateTime.isAfter(currentDateTime)) {
-     // console.log("Store discount is available");
+      // console.log("Store discount is available");
       const {
         discount: restaurentDiscount,
         discount_type: resDisType,
@@ -434,7 +426,7 @@ export const getProductDiscount = (items, storeData,diffDiscount) => {
       const purchasedAmount = items.reduce((total, product) => {
         const basePrice = product?.food_variations?.length > 0
           ? handleProductValueWithOutDiscount(product)
-          : product?.selectedOption?.length>0?product?.price + (product?.selectedOption?.reduce?.((sum, opt) => sum + (opt?.price || 0), 0) || 0):product?.price;
+          : product?.selectedOption?.length > 0 ? product?.price + (product?.selectedOption?.reduce?.((sum, opt) => sum + (opt?.price || 0), 0) || 0) : product?.price;
 
 
         const addonPrice = product?.selectedAddons?.length > 0
@@ -615,8 +607,8 @@ function distanceInKmBetweenEarthCoordinates(lat1, lon1, lat2, lon2) {
   const a =
     Math.pow(Math.sin(dLat / 2), 2) +
     Math.pow(Math.sin(dLon / 2), 2) *
-      Math.cos(toRadians(startLatitude)) *
-      Math.cos(toRadians(endLatitude));
+    Math.cos(toRadians(startLatitude)) *
+    Math.cos(toRadians(endLatitude));
   const c = 2 * Math.asin(Math.sqrt(a));
 
   return earthRadius * c;
@@ -691,16 +683,16 @@ export const getDeliveryFeeByBadWeather = (
 ) => {
   const totalCharge = charge;
 
-  if(Number(surgePrice?.price)>0){
-    if(surgePrice?.price_type==="percent"){
-        const tempValue = totalCharge * (Number(surgePrice?.price) / 100);
-        bad_weather_fees = tempValue;
-        return totalCharge + tempValue;
-    }else{
-        bad_weather_fees = Number(surgePrice?.price);
-        return totalCharge + Number(surgePrice?.price);
+  if (Number(surgePrice?.price) > 0) {
+    if (surgePrice?.price_type === "percent") {
+      const tempValue = totalCharge * (Number(surgePrice?.price) / 100);
+      bad_weather_fees = tempValue;
+      return totalCharge + tempValue;
+    } else {
+      bad_weather_fees = Number(surgePrice?.price);
+      return totalCharge + Number(surgePrice?.price);
     }
-  }else {
+  } else {
     return totalCharge;
   }
 
@@ -723,7 +715,7 @@ export const getDeliveryFees = (
   if (orderType === "delivery" || orderType === "schedule_order") {
     //convert m to km
     let convertedDistance = handleDistance(
-        distance,
+      distance,
       origin,
       destination
     );
@@ -738,7 +730,7 @@ export const getDeliveryFees = (
       totalOrderAmount >= freeDeliveryThreshold;
     const isFreeDeliveryToAllStores = freeDeliveryType === "free_delivery_to_all_store";
     //restaurant self delivery system checking
-    if (Number.parseInt(storeData?.self_delivery_system ) === 1) {
+    if (Number.parseInt(storeData?.self_delivery_system) === 1) {
       const storeWiseDeliveryFee = convertedDistance * storeData?.per_km_shipping_charge || 0;
 
       if (storeData?.free_delivery || ((isAdminFreeDeliveryEnabled && (isFreeDeliveryByAmount || isFreeDeliveryToAllStores)))) {
@@ -765,14 +757,14 @@ export const getDeliveryFees = (
     } else {
       if (zoneData?.data?.zone_data?.length > 0) {
         const chargeInfo = getInfoFromZoneData(zoneData);
-        if(chargeInfo?.pivot?.delivery_charge_type ==="fixed"){
-          if((isAdminFreeDeliveryEnabled && (isFreeDeliveryByAmount || isFreeDeliveryToAllStores)) ||
+        if (chargeInfo?.pivot?.delivery_charge_type === "fixed") {
+          if ((isAdminFreeDeliveryEnabled && (isFreeDeliveryByAmount || isFreeDeliveryToAllStores)) ||
             orderType === "take_away") {
             return 0;
-          }else{
-            return getDeliveryFeeByBadWeather(chargeInfo?.pivot?.fixed_shipping_charge + extraCharge,surgePrice);
+          } else {
+            return getDeliveryFeeByBadWeather(chargeInfo?.pivot?.fixed_shipping_charge + extraCharge, surgePrice);
           }
-        }else{
+        } else {
           if (
             chargeInfo?.pivot?.per_km_shipping_charge !== null &&
             chargeInfo?.pivot?.per_km_shipping_charge >= 0
@@ -780,7 +772,7 @@ export const getDeliveryFees = (
             deliveryFee =
               convertedDistance *
               (chargeInfo?.pivot?.per_km_shipping_charge || 0);
-            if((isAdminFreeDeliveryEnabled && (isFreeDeliveryByAmount || isFreeDeliveryToAllStores)) ||
+            if ((isAdminFreeDeliveryEnabled && (isFreeDeliveryByAmount || isFreeDeliveryToAllStores)) ||
               orderType === "take_away") {
               return 0;
             } else if (
@@ -825,7 +817,7 @@ export const getSubTotalPrice = (cartList) => {
         (product?.food_variations.length > 0
           ? getItemTotalWithoutDiscount(product)
           : product.price) *
-          product.quantity +
+        product.quantity +
         selectedAddonsTotal(product.selectedAddons) +
         total,
       0
@@ -836,7 +828,7 @@ export const getSubTotalPrice = (cartList) => {
         (product?.selectedOption?.length > 0
           ? product?.selectedOption?.[0]?.price
           : product.price) *
-          product.quantity +
+        product.quantity +
         total,
       0
     );
@@ -883,7 +875,7 @@ export const getCalculatedTotal = (
   vatAmount,
   surgePrice
 ) => {
-  const taxAmount=vatAmount|| 0
+  const taxAmount = vatAmount || 0
   if (couponDiscount) {
     if (couponDiscount?.coupon_type === "free_delivery") {
       return (
@@ -1124,33 +1116,11 @@ export const removeSpecialCharacters = (inputString) => {
 };
 export const getDigitalMethodFromZone = (storeId, zoneData) => {
   if (zoneData?.zone_data?.length > 0) {
-    // First try to find zone by store's zone_id
     const zone = zoneData?.zone_data?.find((item) => item?.id === storeId);
     if (zone) {
       return zone;
     }
-    
-    // If store zone not found or no storeId provided, check current user's zone
-    // This handles cases where user is browsing without a specific store context
-    if (!zone && zoneData?.zone_data?.length === 1) {
-      // Return the first (and likely only) zone from the API response
-      return zoneData.zone_data[0];
-    }
-    
-    // Fallback: check localStorage for current zone
-    if (typeof window !== 'undefined') {
-      const currentZoneId = localStorage.getItem('zoneid');
-      if (currentZoneId) {
-        const currentZone = zoneData?.zone_data?.find((item) => item?.id === parseInt(currentZoneId));
-        if (currentZone) {
-          return currentZone;
-        }
-      }
-    }
   }
-  
-  // Return null if no valid zone found
-  return null;
 };
 export function capitalizeText(text) {
   return text
@@ -1209,3 +1179,82 @@ export function debounce(func, delay = 500) {
     }, delay);
   };
 }
+export const handleFailedOrderPlace = ({
+  paymentMethod,
+  paymentFailedData,
+  failPayment,
+  handlePayment,
+  paymentMethodUpdateMutation,
+  walletPaymentMutation,
+  profileInfo,
+  orderId,
+  router,
+}) => {
+  const failedData = paymentFailedData || failPayment;
+  if (paymentMethod === "cash_on_delivery") {
+    if (failedData?.maximum_cod_order_amount > failedData?.order_amount) {
+      handlePayment(paymentMethodUpdateMutation);
+    } else {
+      toast.error(cod_exceeds_message);
+    }
+
+  } else if (paymentMethod === "wallet") {
+    handlePayment(walletPaymentMutation);
+
+  } else if (paymentMethod === "offline_payment") {
+    router.push(
+      {
+        pathname: "/checkout",
+        query: { page: "cart", method: "offline", incomplete_payment: true, order_id: orderId },
+      },
+      undefined,
+      { shallow: true }
+    );
+
+  } else {
+    const payment_platform = "web";
+    const page = "my-orders";
+    const callBackUrl = `${window.location.origin}/profile?page=${page}`;
+    const initiatePayload = {
+      order_id: orderId,
+      customer_id: profileInfo?.id,
+      payment_platform,
+      callback: callBackUrl,
+      payment_method: paymentMethod,
+    };
+    (async () => {
+      try {
+        const { data } = await OrderApi.initiatePayment(initiatePayload);
+        if (!data?.redirect_url || !data?.payment_id) {
+          throw new Error("Missing payment redirect.");
+        }
+        if (orderId) {
+          localStorage.setItem(`pending_payment_${orderId}`, data.payment_id);
+        }
+        const isDigiWallet = String(paymentMethod).toLowerCase() === "digiwallet";
+        if (isDigiWallet) {
+          router.push(
+            {
+              pathname: "/digiwallet-payment",
+              query: {
+                payment_id: data.payment_id,
+                order_id: orderId,
+                callback: callBackUrl,
+              },
+            },
+            undefined,
+            { shallow: true }
+          );
+        } else {
+          router.push(data.redirect_url, undefined, { shallow: true });
+        }
+      } catch (error) {
+        const message =
+          error?.response?.data?.message ||
+          error?.message ||
+          t("Unable to initiate payment.");
+        toast.error(message);
+      }
+    })();
+  }
+};

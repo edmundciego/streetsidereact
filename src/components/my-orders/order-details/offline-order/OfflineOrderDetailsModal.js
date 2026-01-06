@@ -6,166 +6,84 @@ import {
   Stack,
   Typography,
   alpha,
-  useTheme,
+  useTheme, Box
 } from "@mui/material";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
-import ErrorIcon from "@mui/icons-material/Error";
-import CancelIcon from "@mui/icons-material/Cancel";
 import { t } from "i18next";
-import AccessTimeIcon from "@mui/icons-material/AccessTime";
 
-import { CustomStackFullWidth } from "../../../../styled-components/CustomStyles.style";
+import { CustomStackFullWidth } from "styled-components/CustomStyles.style";
 import DotSpin from "../../../DotSpin";
 import CheckCircleOutlineOutlinedIcon from "@mui/icons-material/CheckCircleOutlineOutlined";
 import {
   ItemWrapper,
   ModalCustomTypography,
 } from "../../../order-details-modal/OrderDetailsModal.style";
-
+import CheckoutFailedCard from "components/checkout/CheckoutFailedCard";
+import { useRouter } from "next/router";
+import { CustomBox } from "styled-components/CustomStyles.style";
 const OfflineOrderDetailsModal = ({
   trackData,
   handleOfflineClose,
   trackDataIsLoading,
   trackDataIsFetching,
   page,
+  setOpenPaymentMethod,
+  setPaymentFailedData,
+  refetchTrackData
 }) => {
   const theme = useTheme();
-  const isFailure = page === "my-orders?flag=cancel" || page === "my-orders?flag=fail";
-  const offlineStatus = String(trackData?.offline_payment?.data?.status ?? "").toLowerCase();
-  const isPaymentPending =
-    !isFailure &&
-    (offlineStatus === "pending" || trackData?.order_status === "pending");
+  const router = useRouter();
+  console.log({ trackDataIsFetching });
+
   return (
     <CustomStackFullWidth
       padding={{ xs: "30px 15px", md: "60px 45px 40px" }}
       alignItems="center"
       gap="20px"
     >
-      {/* Conditional Icon based on payment status */}
-      {page === "my-orders?flag=cancel" ? (
-        <CancelIcon
-          sx={{
-            height: "45px",
-            width: "45px",
-            color: theme.palette.error.main,
-          }}
-        />
-      ) : page === "my-orders?flag=fail" ? (
-        <ErrorIcon
-          sx={{
-            height: "45px",
-            width: "45px",
-            color: theme.palette.error.main,
-          }}
-        />
-      ) : isPaymentPending ? (
-        <AccessTimeIcon
-          sx={{
-            height: "45px",
-            width: "45px",
-            color: theme.palette.warning.main,
-          }}
-        />
+      {(trackDataIsLoading || trackDataIsFetching) ? (
+        <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "1rem", maxWidth: "540px", width: "100%", minWidth: "340px", minHeight: "340px" }}>
+          <DotSpin />
+        </Box>
       ) : (
-        <CheckCircleIcon
-          sx={{
-            height: "45px",
-            width: "45px",
-            color: theme.palette.primary.main,
-          }}
-        />
+        <Typography fontSize="14px" fontWeight="400">
+          {(page === "my-orders?flag=fail" || page === "my-orders?flag=cancel" || trackData?.order_status === "failed") ? (
+            <CheckoutFailedCard
+              handleOrderDetailsClose={handleOfflineClose}
+              id={trackData?.id}
+              setOpenPaymentMethod={setOpenPaymentMethod}
+              amount={trackData?.order_amount}
+              setPaymentFailedData={setPaymentFailedData}
+              refetchTrackData={refetchTrackData}
+            />
+          ) : (
+            <Stack sx={{ alignItems: "center", justifyContent: "center", gap: "1rem", maxWidth: "540px" }}>
+              <CheckCircleIcon
+                sx={{ color: theme.palette.success.main, fontSize: "50px" }}
+              />
+
+              <Typography fontSize="20px" textAlign="center" fontWeight="500" >
+                {t("Order Payment Details submitted successfully")}!
+              </Typography>
+
+              <Typography
+                component="span"
+                fontWeight="600"
+                textAlign="center"
+              >
+                <Typography >
+                  {t("We will begin processing your order shortly. Your Order ID is")}
+                  <Typography component="span" fontWeight="bold" color="primary.main">
+                    #{trackData?.id}
+                  </Typography>
+                  {t(", Please keep this Order ID handy for tracking")}
+                </Typography>
+              </Typography>
+            </Stack>
+          )}
+        </Typography>
       )}
-      
-      {/* Conditional Title based on payment status */}
-      <Typography fontSize="16px" fontWeight="700" textAlign="center">
-        {isFailure
-          ? `${t("Payment Failed")} !`
-          : isPaymentPending
-          ? `${t("Payment Pending")} !`
-          : `${t("Order Placed Successfully")} !`}
-      </Typography>
-      <CustomStackFullWidth
-        padding={{ xs: "0px 20px", md: "0px 145px" }}
-        textAlign="center"
-      >
-        {trackDataIsLoading ? (
-          <Stack
-            minWidth={{ xs: "270px", sm: "370px" }}
-            width="100%"
-            padding="15px 0px"
-          >
-            <DotSpin />
-          </Stack>
-        ) : (
-          <Typography fontSize="14px" fontWeight="400">
-            {page === "my-orders?flag=cancel" ? (
-              <>
-                <Typography component="span" color={theme.palette.error.main}>
-                  {t("Your payment has been cancelled for order ")}
-                </Typography>
-                <Typography
-                  component="span"
-                  fontWeight="600"
-                  sx={{ color: theme.palette.primary.main }}
-                >
-                  #{trackData?.id}
-                </Typography>
-                <Typography component="span" fontWeight="400">
-                  {` ${t("has been placed. You can still complete your purchase with Cash on Delivery.")} !`}
-                </Typography>
-              </>
-            ) : page === "my-orders?flag=fail" ? (
-              <>
-                <Typography component="span" color={theme.palette.error.main}>
-                  {t("Your payment has failed for order ")}
-                </Typography>
-                <Typography
-                  component="span"
-                  fontWeight="600"
-                  sx={{ color: theme.palette.primary.main }}
-                >
-                  #{trackData?.id}
-                </Typography>
-                <Typography component="span" fontWeight="400">
-                  {` ${t("has been placed. You can still complete your purchase with Cash on Delivery.")} !`}
-                </Typography>
-              </>
-            ) : isPaymentPending ? (
-              <>
-                <Typography component="span">
-                  {`${t("Your order ")} `}
-                </Typography>
-                <Typography
-                  component="span"
-                  fontWeight="600"
-                  sx={{ color: theme.palette.primary.main }}
-                >
-                  #{trackData?.id}
-                </Typography>
-                <Typography component="span" fontWeight="400">
-                  {` ${t("has been placed, but the payment is still pending.")} `}
-                </Typography>
-              </>
-            ) : (
-              <>
-                <Typography component="span">
-                  {`${t("Your payment has been successfully processed, and your order ")} `}
-                </Typography>
-                <Typography
-                  component="span"
-                  fontWeight="600"
-                  sx={{ color: theme.palette.primary.main }}
-                >
-                  #{trackData?.id}
-                </Typography>
-                <Typography component="span" fontWeight="400">
-                  {` ${t("has been placed.")} !`}
-                </Typography>
-              </>
-            )}
-          </Typography>
-        )}
-      </CustomStackFullWidth>
+
       {trackData?.offline_payment && (
         <>
           <CustomStackFullWidth
@@ -180,13 +98,14 @@ const OfflineOrderDetailsModal = ({
               alignItems="center"
               gap="20px"
               borderRadius="10px"
+
             >
-              {trackDataIsLoading && trackDataIsFetching ? (
+              {trackDataIsLoading ? (
                 <Grid container padding="40px">
                   <DotSpin />
                 </Grid>
               ) : (
-                <Stack width="max-content">
+                <Stack>
                   <ItemWrapper container>
                     <ModalCustomTypography>
                       {`${t("Order")} #`}
@@ -247,7 +166,7 @@ const OfflineOrderDetailsModal = ({
               )}
             </CustomStackFullWidth>
           </CustomStackFullWidth>
-          <Typography color={theme.palette.text.secondary}>
+          <Typography color={theme.palette.text.secondary} padding="0px 0px">
             <Typography
               component="span"
               color={theme.palette.error.main}
@@ -262,14 +181,14 @@ const OfflineOrderDetailsModal = ({
           </Typography>
         </>
       )}
-      <Button
-        onClick={handleOfflineClose}
+      {/* <Button
         variant="contained"
-        // maxWidth="150px"
-        // fullWidth
+        color="primary"
+        // onClick={handleOfflineClose}
+        onClick={() => router.push("/home")}
       >
-        {t("Ok")}
-      </Button>
+        {t("Back to Home")}
+      </Button> */}
     </CustomStackFullWidth>
   );
 };

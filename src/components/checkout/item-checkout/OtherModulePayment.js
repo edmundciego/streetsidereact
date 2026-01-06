@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { useRouter } from "next/router";
 import {
   alpha,
   Button,
@@ -25,7 +26,7 @@ import PaymentMethodCard from "../PaymentMethodCard";
 import InfoIcon from "@mui/icons-material/Info";
 import { useTheme } from "@emotion/react";
 import { useDispatch, useSelector } from "react-redux";
-import { DeliveryCaption, PayButton } from "../CheckOut.style";
+import { DeliveryCaption } from "../CheckOut.style";
 import { setOfflineMethod } from "../../../redux/slices/offlinePaymentData";
 import { getToken } from "../../../helper-functions/getToken";
 import wallet from "../assets/wallet.png";
@@ -34,6 +35,26 @@ import OfflinePaymentIcon from "../assets/OfflinePaymentIcon";
 import { getAmountWithSign } from "helper-functions/CardHelpers";
 import CloseIcon from "@mui/icons-material/Close";
 import PartialPayment from "components/checkout/item-checkout/PartialPayment";
+
+export const PayButton = styled(Stack)(({ theme, value, paymentMethod }) => ({
+  padding: "10px 10px",
+  width: "100%",
+  gap: "5px",
+  border: "1px solid",
+  borderColor: alpha(theme.palette.neutral[400], 0.4),
+  borderRadius: "10px",
+  flexDirection: "row",
+  justifyContent: "space-between",
+  alignItems: "center",
+  color: theme.palette.neutral[1000],
+  cursor: "pointer",
+  height: "100%",
+  // background: value === paymentMethod && theme.palette.primary.main,
+  // "&:hover": {
+  //   // color: theme.palette.neutral[1000],
+  //   background: value === paymentMethod && theme.palette.primary.main,
+  // },
+}));
 
 const OfflineButton = styled(Button)(({ theme, value, paymentMethod }) => ({
   padding: "13px 20px",
@@ -182,9 +203,12 @@ const OtherModulePayment = (props) => {
     payableAmount,
     changeAmount,
     setChangeAmount,
+    failed,
+    failedOrderPlace
   } = props;
 
   const theme = useTheme();
+  const router = useRouter();
   const dispatch = useDispatch();
   const token = getToken();
   const borderColor = theme.palette.neutral[400];
@@ -209,15 +233,32 @@ const OtherModulePayment = (props) => {
     setPaymentMethod(`offline_payment`);
   };
   const handleSubmit = () => {
-    setOpenModel(false);
+    if (failed) {
+      failedOrderPlace?.()
+    } else {
+      setOpenModel(false);
+    }
+
   };
   useEffect(() => {
     if (paymentMethod === "cash_on_delivery") {
       setExpanded(true);
+    } else {
+      setExpanded(false)
     }
   }, [paymentMethod]);
+  useEffect(() => {
+    dispatch(setOfflineMethod(""));
+    setIsCheckedOffline(false);
+
+  }, [router.pathname]);
+
   return (
-    <CustomStackFullWidth spacing={1}>
+    <CustomStackFullWidth spacing={1} position="relative">
+      <Box sx={{ position: "absolute", top: "0", right: "0", padding: "10px", zIndex: 1, cursor: "pointer" }}>
+        {/* Modal Close Button */}
+        <CloseIcon onClick={() => setOpenModel(false)} />
+      </Box>
       <CustomStackFullWidth
         p={{ xs: "20px", md: "45px 45px 10px 45px" }}
         sx={{ maxHeight: "450px", overflowY: "auto", overflowX: "hidden" }}
@@ -249,8 +290,10 @@ const OtherModulePayment = (props) => {
             direction="row"
             sx={{ flexWrap: "wrap", gap: "10px" }}
           >
-            {configData?.customer_wallet_status === 1 &&
-              customerData?.data?.wallet_balance > 0 &&
+            {configData?.customer_wallet_status === 1 && getToken() &&
+              (failed
+                ? customerData?.data?.wallet_balance > payableAmount
+                : customerData?.data?.wallet_balance > 0) &&
               configData?.partial_payment_status === 1 && (
                 <Box sx={{ flex: "1 1 calc(50% - 5px)" }}>
                   <PartialPayment
@@ -264,6 +307,7 @@ const OtherModulePayment = (props) => {
                     switchToWallet={switchToWallet}
                     removePartialPayment={removePartialPayment}
                     payableAmount={payableAmount}
+                    failed={failed}
                   />
                 </Box>
               )}
@@ -327,7 +371,7 @@ const OtherModulePayment = (props) => {
                       <Typography
                         fontSize="18px"
                         color={theme.palette.neutral[1000]}
-                        fontWeight="700"
+                        fontWeight="500"
                       >
                         {getAmountWithSign(payableAmount - walletBalance)}
                       </Typography>
@@ -357,77 +401,77 @@ const OtherModulePayment = (props) => {
             )}
             {usePartialPayment
               ? ((isZoneDigital?.cash_on_delivery &&
-                  configData?.cash_on_delivery &&
-                  configData?.partial_payment_method === "both") ||
-                  configData?.partial_payment_method === "cod") && (
-                  <Box sx={{ flex: "1 1 calc(50% - 5px)" }} minHeight="67px">
-                    <PayButton
-                      value="cash_on_delivery"
-                      paymentMethod={paymentMethod}
-                      onClick={() => handleClick("cash_on_delivery")}
-                    >
-                      <Stack direction="row" gap="5px" alignItems="center">
-                        <CustomImageContainer
-                          src={money.src}
-                          width="20px"
-                          height="20px"
-                          alt="cod"
-                        />
-                        <Typography fontSize="12px" fontWeight="600">
-                          {t("Cash On Delivery")}
-                        </Typography>
-                      </Stack>
-                      {paymentMethod === "cash_on_delivery" ? (
-                        <CheckCircleIcon
-                          sx={{ color: (theme) => theme.palette.primary.main }}
-                        />
-                      ) : (
-                        <RadioButtonUncheckedIcon
-                          sx={{ color: (theme) => theme.palette.neutral[400] }}
-                        />
-                      )}
-                      {/*<CheckCircleIcon*/}
+                configData?.cash_on_delivery &&
+                configData?.partial_payment_method === "both") ||
+                configData?.partial_payment_method === "cod") && (
+                <Box sx={{ flex: "1 1 calc(50% - 5px)" }} minHeight="67px">
+                  <PayButton
+                    value="cash_on_delivery"
+                    paymentMethod={paymentMethod}
+                    onClick={() => handleClick("cash_on_delivery")}
+                  >
+                    <Stack direction="row" gap="5px" alignItems="center">
+                      <CustomImageContainer
+                        src={money.src}
+                        width="20px"
+                        height="20px"
+                        alt="cod"
+                      />
+                      <Typography fontSize="12px" fontWeight="600">
+                        {t("Cash On Delivery")}
+                      </Typography>
+                    </Stack>
+                    {paymentMethod === "cash_on_delivery" ? (
+                      <CheckCircleIcon
+                        sx={{ color: (theme) => theme.palette.primary.main }}
+                      />
+                    ) : (
+                      <RadioButtonUncheckedIcon
+                        sx={{ color: (theme) => theme.palette.neutral[400] }}
+                      />
+                    )}
+                    {/*<CheckCircleIcon*/}
 
-                      {/*/>*/}
-                    </PayButton>
-                  </Box>
-                )
+                    {/*/>*/}
+                  </PayButton>
+                </Box>
+              )
               : isZoneDigital?.cash_on_delivery &&
-                configData?.cash_on_delivery && (
-                  <Box sx={{ flex: "1 1 calc(50% - 5px)" }} minHeight="67px">
-                    <PayButton
-                      value="cash_on_delivery"
-                      paymentMethod={paymentMethod}
-                      onClick={() => handleClick("cash_on_delivery")}
-                    >
-                      <Stack direction="row" gap="5px" alignItems="center">
-                        <CustomImageContainer
-                          src={money.src}
-                          width="20px"
-                          height="20px"
-                          alt="cod"
-                        />
-                        <Typography fontSize="12px" fontWeight="600">
-                          {t("Cash On Delivery")}
-                        </Typography>
-                      </Stack>
-                      {paymentMethod === "cash_on_delivery" ? (
-                        <CheckCircleIcon
-                          sx={{ color: (theme) => theme.palette.primary.main }}
-                        />
-                      ) : (
-                        <RadioButtonUncheckedIcon
-                          sx={{ color: (theme) => theme.palette.neutral[400] }}
-                        />
-                      )}
-                      {/*<CheckCircleIcon*/}
+              configData?.cash_on_delivery && (
+                <Box sx={{ flex: "1 1 calc(50% - 5px)" }} minHeight="67px">
+                  <PayButton
+                    value="cash_on_delivery"
+                    paymentMethod={paymentMethod}
+                    onClick={() => handleClick("cash_on_delivery")}
+                  >
+                    <Stack direction="row" gap="5px" alignItems="center">
+                      <CustomImageContainer
+                        src={money.src}
+                        width="20px"
+                        height="20px"
+                        alt="cod"
+                      />
+                      <Typography fontSize="12px" fontWeight="600">
+                        {t("Cash On Delivery")}
+                      </Typography>
+                    </Stack>
+                    {paymentMethod === "cash_on_delivery" ? (
+                      <CheckCircleIcon
+                        sx={{ color: (theme) => theme.palette.primary.main }}
+                      />
+                    ) : (
+                      <RadioButtonUncheckedIcon
+                        sx={{ color: (theme) => theme.palette.neutral[400] }}
+                      />
+                    )}
+                    {/*<CheckCircleIcon*/}
 
-                      {/*/>*/}
-                    </PayButton>
-                  </Box>
-                )}
-            {}
-            {isZoneDigital?.cash_on_delivery &&
+                    {/*/>*/}
+                  </PayButton>
+                </Box>
+              )}
+            { }
+            {isZoneDigital?.cash_on_delivery && !failed &&
               BringChangeAmount({
                 changeAmount,
                 setChangeAmount,
@@ -494,12 +538,12 @@ const OtherModulePayment = (props) => {
               </CustomStackFullWidth>
             )}
         </CustomStackFullWidth>
-        <Stack onClick={handleClickOffline} sx={{ cursor: "pointer" }}>
-          {configData?.offline_payment_status === 1 &&
-          isZoneDigital?.offline_payment &&
-          forprescription !== "true" &&
-          typeof offlinePaymentOptions !== "undefined" &&
-          Object?.keys(offlinePaymentOptions)?.length !== 0 ? (
+        <Stack onClick={handleClickOffline} sx={{ cursor: "pointer", mt: 2 }}>
+          {!usePartialPayment && configData?.offline_payment_status === 1 &&
+            isZoneDigital?.offline_payment &&
+            forprescription !== "true" &&
+            typeof offlinePaymentOptions !== "undefined" &&
+            Object?.keys(offlinePaymentOptions)?.length !== 0 ? (
             <Stack
               padding="10px 10px 10px 10px"
               borderRadius="10px"
@@ -543,13 +587,13 @@ const OtherModulePayment = (props) => {
                             <Typography
                               fontSize="12px"
                               fontWeight="500"
-                              // paddingLeft="10px"
+                            // paddingLeft="10px"
                             >
                               {t("Pay Offline")}
                               <Tooltip
                                 placement="left"
                                 title={t(
-                                  "Offline Payment! Now, with just a click of a button, you can make secure transactions. It's simple, convenient, and reliable."
+                                  "Offline Payment now, with just a click of a button, you can make secure transactions. It's simple, convenient, and reliable."
                                 )}
                               >
                                 <InfoIcon

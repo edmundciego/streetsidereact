@@ -1,4 +1,4 @@
-import { createTheme, useTheme } from "@mui/material/styles";
+import { useTheme } from "@emotion/react";
 import { LoadingButton } from "@mui/lab";
 import { InputBase, Paper } from "@mui/material";
 import React, { useState } from "react";
@@ -13,7 +13,7 @@ const Subscribe = () => {
   const [emailAddress, setEmailAddress] = useState(null);
   const { t } = useTranslation();
   const { mutate, isLoading } = usePostNewsletterEmail();
-  const theme = useTheme() || createTheme();
+  const theme = useTheme();
 
   const handleSuccess = () => {
     toast.success(t("Subscribed Successfully"), {
@@ -73,7 +73,7 @@ const Subscribe = () => {
         sx={{
           width: "100px",
           borderRadius: "5px",
-          background: theme.palette.primary?.main || "#039D55",
+          background: theme.palette.primary.main,
           // backgroundColor: (theme) =>
           // 	getCurrentModuleType() === ModuleTypes.FOOD
           // 		? theme.palette.moduleTheme.food

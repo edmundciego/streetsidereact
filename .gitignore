@@ -7,8 +7,7 @@
 
 # testing
 /coverage
-.env.development
-.env.production
+
 # next.js
 /.next/
 /out/
@@ -19,8 +18,6 @@
 # misc
 .DS_Store
 *.pem
-*.zip
-*.md
 
 # debug
 npm-debug.log*
@@ -39,9 +36,6 @@ yarn-error.log*
 next-env.d.ts
 .yarn
 .zip
-.idea
-
-# VS Code settings and Copilot configuration
-.vscode/
-.copilotignore
-.copilot
+/.idea
+/.idea/
+/.vscode

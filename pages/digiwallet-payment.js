@@ -11,8 +11,16 @@ const DigiWalletPaymentPage = () => {
 
   useEffect(() => {
     if (!router.isReady) return;
-    const { payment_id, order_id, request_id, amount, phone, status, message } =
-      router.query;
+    const {
+      payment_id,
+      order_id,
+      request_id,
+      amount,
+      phone,
+      status,
+      message,
+      callback,
+    } = router.query;
     if (payment_id) {
       dispatch(
         hydrateFromQuery({
@@ -23,6 +31,7 @@ const DigiWalletPaymentPage = () => {
           phone,
           status,
           message,
+          callback,
         })
       );
     }

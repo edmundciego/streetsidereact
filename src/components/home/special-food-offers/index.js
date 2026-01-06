@@ -1,6 +1,5 @@
 import { alpha, Button, Skeleton } from "@mui/material";
-import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import Slider from "react-slick";
 import useGetDiscountedItems from "../../../api-manage/hooks/react-query/product-details/useGetDiscountedItems";
@@ -14,9 +13,9 @@ import ProductCard from "../../cards/ProductCard";
 import { RTL } from "../../rtl";
 import SpecialOfferCardShimmer from "../../Shimmer/SpecialOfferCardSimmer";
 import H2 from "../../typographies/H2";
-import { NextFood, PrevFood } from "../best-reviewed-items/SliderSettings";
+import { createEnhancedArrows } from "../../common/EnhancedSliderArrows";
 import { HomeComponentsWrapper } from "../HomePageComponents";
-import {useRouter} from "next/router";
+import { useRouter } from "next/router";
 
 const SpecialFoodOffers = ({ title }) => {
   const { t } = useTranslation();
@@ -29,7 +28,7 @@ const SpecialFoodOffers = ({ title }) => {
     useGetDiscountedItems(params);
   const [isHover, setIsHover] = useState(false);
   const lanDirection = getLanguage() ? getLanguage() : "ltr";
-  const router =useRouter()
+  const router = useRouter()
 
   // useEffect(() => {
   //   refetch();
@@ -44,8 +43,11 @@ const SpecialFoodOffers = ({ title }) => {
     speed: 800,
     autoplaySpeed: 4000,
     variableHeight: true,
-    prevArrow: isHover && <PrevFood displayNoneOnMobile />,
-    nextArrow: isHover && <NextFood displayNoneOnMobile />,
+    ...createEnhancedArrows(isHover, {
+      displayNoneOnMobile: true,
+      variant: "primary",
+      noBackground: true
+    }),
     responsive: [
       {
         breakpoint: 1200,
@@ -146,30 +148,20 @@ const SpecialFoodOffers = ({ title }) => {
               {isFetching ? (
                 <Skeleton width="100px" variant="80px" />
               ) : (
-                // <Link
-                //   href={{
-                //     pathname: "/home",
-                //     query: {
-                //       search: "special-offer",
-                //       module_id: getModuleId(),
-                //       data_type: "discounted",
-                //     },
-                //   }}
-                //   scroll={true}
-                // >
-                  <Button
-                    onClick={navigateToHome}
-                    variant="text"
-                    sx={{
-                      transition: "all ease 0.5s",
-                      textTransform: "capitalize",
-                      "&:hover": {
-                        letterSpacing: "0.03em",
-                      },
-                    }}
-                  >
-                    {t("View all")}
-                  </Button>
+
+                <Button
+                  onClick={navigateToHome}
+                  variant="text"
+                  sx={{
+                    transition: "all ease 0.5s",
+                    textTransform: "capitalize",
+                    "&:hover": {
+                      letterSpacing: "0.03em",
+                    },
+                  }}
+                >
+                  {t("View all")}
+                </Button>
                 // </Link>
               )}
             </CustomStackFullWidth>
@@ -180,6 +172,9 @@ const SpecialFoodOffers = ({ title }) => {
                   padding: { xs: "10px", md: "20px" },
                   backgroundColor: (theme) =>
                     alpha(theme.palette.neutral[400], 0.1),
+                  ".slick-slider .slick-track": {
+                    marginY: "10px",
+                  },
                 }}
               >
                 <>

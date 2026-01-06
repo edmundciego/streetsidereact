@@ -193,11 +193,10 @@ export const OrderSummary = styled(Typography)(({ theme }) => ({
 export const OrderFoodName = styled(Typography)(({ theme }) => ({
 	fontSize: "12px",
 	fontWeight: "500",
-	color: `${
-		theme.palette.mode === "dark"
-			? theme.palette.whiteContainer.main
-			: theme.palette.footer.appDownloadButtonBgGray
-	}`,
+	color: `${theme.palette.mode === "dark"
+		? theme.palette.whiteContainer.main
+		: theme.palette.footer.appDownloadButtonBgGray
+		}`,
 	textOverflow: "ellipsis",
 	whiteSpace: "nowrap",
 	overflow: "hidden",
@@ -279,31 +278,9 @@ export const CustomDatePicker = styled(DateCalendar)(({ theme }) => ({
 
 export const CustomButtonStack = styled(Stack)(({ theme }) => ({
 	[theme.breakpoints.down("sm")]: {
-		position: "fixed",
-		bottom: "0",
-		left: "0",
 		width: "100%",
-		padding: "18px",
-		background: theme.palette.background.default,
-		zIndex: "9999",
+
+
+
 	},
-}));
-export const PayButton = styled(Stack)(({ theme, value, paymentMethod }) => ({
-	padding: "10px 10px",
-	width: "100%",
-	gap: "5px",
-	border: "1px solid",
-	borderColor: alpha(theme.palette.neutral[400], 0.4),
-	borderRadius: "10px",
-	flexDirection: "row",
-	justifyContent: "space-between",
-	alignItems: "center",
-	color: theme.palette.neutral[1000],
-	cursor: "pointer",
-	height: "100%",
-	// background: value === paymentMethod && theme.palette.primary.main,
-	// "&:hover": {
-	//   // color: theme.palette.neutral[1000],
-	//   background: value === paymentMethod && theme.palette.primary.main,
-	// },
 }));

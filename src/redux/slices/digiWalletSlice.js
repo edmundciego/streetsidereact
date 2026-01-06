@@ -5,62 +5,52 @@ const initialState = {
   orderId: null,
   requestId: null,
   amount: null,
-  phone: "",
+  phone: null,
+  callback: null,
   status: "idle",
-  message: null,
-  loading: false,
-  error: null,
-  transactionId: null,
-  lastUpdated: null,
+  message: "",
+  error: "",
 };
 
 const digiWalletSlice = createSlice({
   name: "digiWallet",
   initialState,
   reducers: {
-    hydrateFromQuery: (state, action) => {
-      const { paymentId, orderId, requestId, amount, phone } = action.payload;
-      state.paymentId = paymentId ?? state.paymentId;
-      state.orderId = orderId ?? state.orderId;
-      state.requestId = requestId ?? state.requestId;
-      state.amount =
-        typeof amount === "number"
-          ? amount
-          : amount
-          ? Number.parseFloat(amount)
-          : state.amount;
-      state.phone = phone ?? state.phone;
-      state.status = action.payload.status ?? "otp_sent";
-      state.message = action.payload.message ?? state.message;
-      state.error = null;
-      state.loading = false;
-      state.lastUpdated = new Date().toISOString();
+    hydrateFromQuery(state, action) {
+      const payload = action.payload || {};
+      state.paymentId = payload.paymentId || payload.payment_id || state.paymentId;
+      state.orderId = payload.orderId || payload.order_id || state.orderId;
+      state.requestId = payload.requestId || payload.request_id || state.requestId;
+      state.amount = payload.amount || state.amount;
+      state.phone = payload.phone || state.phone;
+      state.callback = payload.callback || state.callback;
+      state.status = state.paymentId ? "ready" : state.status;
+      state.message = payload.message || state.message;
+      state.error = "";
     },
-    setStatus: (state, action) => {
-      const { status, message, transactionId, requestId } = action.payload;
-      state.status = status ?? state.status;
-      state.message = message ?? state.message;
-      state.transactionId = transactionId ?? state.transactionId;
-      state.requestId = requestId ?? state.requestId;
-      state.lastUpdated = new Date().toISOString();
+    setRequestId(state, action) {
+      state.requestId = action.payload;
     },
-    setLoading: (state, action) => {
-      state.loading = action.payload;
+    setStatus(state, action) {
+      state.status = action.payload;
     },
-    setError: (state, action) => {
-      state.error = action.payload;
-      if (action.payload) {
-        state.loading = false;
-      }
+    setMessage(state, action) {
+      state.message = action.payload || "";
     },
-    resetDigiWallet: () => initialState,
+    setError(state, action) {
+      state.error = action.payload || "";
+    },
+    resetDigiWallet(state) {
+      Object.assign(state, initialState);
+    },
   },
 });
 
 export const {
   hydrateFromQuery,
+  setRequestId,
   setStatus,
-  setLoading,
+  setMessage,
   setError,
   resetDigiWallet,
 } = digiWalletSlice.actions;

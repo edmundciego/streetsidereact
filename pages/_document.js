@@ -187,31 +187,22 @@ CustomDocument.getInitialProps = async (ctx) => {
   // 🛠 Fetch analytics config server-side
   let analyticsConfig = {};
   try {
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
-    if (baseUrl) {
-      const res = await fetch(`${baseUrl}/api/v1/config/get-analytic-scripts`, {
-        headers: {
-          "X-software-id": 33571750,
-          "X-server": "server",
-          origin: process.env.NEXT_CLIENT_HOST_URL || "http://localhost:3000",
-        },
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://yourdomain.com";
+    const res = await fetch(`${baseUrl}/api/v1/config/get-analytic-scripts`, {
+      headers: {
+        "X-software-id": 33571750,
+        "X-server": "server",
+        origin: process.env.NEXT_CLIENT_HOST_URL || "http://localhost:3000",
+      },
+    });
+    const data = await res.json();
+    if (Array.isArray(data)) {
+      data.forEach((item) => {
+        if (item.type && item.script_id) analyticsConfig[item.type] = item.script_id;
       });
-      
-      // Check if response is OK and content type is JSON
-      if (res.ok && res.headers.get("content-type")?.includes("application/json")) {
-        const data = await res.json();
-        if (Array.isArray(data)) {
-          data.forEach((item) => {
-            if (item.type && item.script_id) analyticsConfig[item.type] = item.script_id;
-          });
-        }
-      } else {
-        console.warn("Analytics API returned non-JSON response or failed");
-      }
     }
   } catch (err) {
     console.error("Error fetching analytics config:", err);
-    // Silently fail - analytics is not critical for build
   }
 
   return {

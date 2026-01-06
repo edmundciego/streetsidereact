@@ -7,16 +7,15 @@ import {
 } from "styled-components/CustomStyles.style";
 import H1 from "../../typographies/H1";
 import { Stack } from "@mui/system";
-import { Grid, Tooltip, Typography } from "@mui/material";
+import { Grid, Tooltip, Typography, IconButton, Card, alpha } from "@mui/material";
 import DeliveryInfo from "../DeliveryInfo";
-import Billing from "../Billing";
 import PaymentMethod from "../PaymentMethod";
 import useGetDistance from "../../../api-manage/hooks/react-query/google-api/useGetDistance";
 import { useDispatch, useSelector } from "react-redux";
 import { useOrderPlace } from "api-manage/hooks/react-query/order-place/useOrderPlace";
+import { OrderApi } from "api-manage/another-formated-api/orderApi";
 import toast from "react-hot-toast";
 import { t } from "i18next";
-import PaymentApi from "api-manage/api-call-functions/paymentApi";
 import Router, { useRouter } from "next/router";
 import useGetZoneId from "../../../api-manage/hooks/react-query/google-api/useGetZone";
 import {
@@ -57,11 +56,20 @@ import deliveryFree from "components/checkout/DeliveryFree";
 import { onErrorResponse } from "api-manage/api-error-response/ErrorResponses";
 import { useGetSurgePrice } from "api-manage/hooks/react-query/order-place/useGetSurgePrice";
 import InfoIcon from "@mui/icons-material/Info";
-import DigiWalletApi from "api-manage/api-call-functions/digiWalletApi";
-import { hydrateFromQuery } from "redux/slices/digiWalletSlice";
+import AddIcon from "@mui/icons-material/Add";
+import CloseIcon from "@mui/icons-material/Close";
+import EditIcon from "@mui/icons-material/Edit";
+import DeliveryInstruction from "../DeliveryInstruction";
+import BorderColorIcon from "@mui/icons-material/BorderColor";
+import LoadingButton from "@mui/lab/LoadingButton";
+
+
 
 const ParcelCheckout = () => {
   const theme = useTheme();
+  const router = useRouter();
+  const dispatch = useDispatch();
+  const { method, order_id } = router.query;
   const { configData } = useSelector((state) => state.configData);
   const { parcelInfo } = useSelector((state) => state.parcelInfoData);
   const { profileInfo } = useSelector((state) => state.profileInfo);
@@ -71,19 +79,20 @@ const ParcelCheckout = () => {
   const { parcelCategories } = useSelector((state) => state.parcelCategories);
   const [address, setAddress] = useState(undefined);
   const [deliveryTip, setDeliveryTip] = useState(0);
-  const [paymentMethod, setPaymentMethod] = useState(null);
+  const [paymentMethod, setPaymentMethod] = useState("cash_on_delivery");
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState(paymentMethod);
   const [sideDrawerOpen, setSideDrawerOpen] = useState(false);
   const [paidBy, setPaidBy] = useState("sender");
   const [orderId, setOrderId] = useState("");
-  const dispatch = useDispatch();
-  const router = useRouter();
-  const { method } = router.query;
+  const [selectedInstruction, setSelectedInstruction] = useState(null);
   const [offlineCheck, setOfflineCheck] = useState(false);
   const [zoneIdEnabled, setZoneIdEnabled] = useState(true);
   const [currentZoneId, setCurrentZoneId] = useState(null);
   const [openModal, setOpenModal] = useState(false);
+  const [openEditInstructionModal, setOpenEditInstructionModal] = useState(false);
   const [customerInstruction, setCustomerInstruction] = useState(null);
   const [check, setCheck] = React.useState(null);
+  const [customNote, setCustomNote] = useState("");
   const receiverLoacation = {
     lat: parcelInfo?.senderLocations?.lat,
     lng: parcelInfo?.senderLocations?.lng,
@@ -169,15 +178,49 @@ const ParcelCheckout = () => {
       address_type: "Selected Address",
     });
   }, []);
-  const handleOffineOrder = () => {
+  const handleOffineOrder = async (data) => {
     const offlinePaymentData = {
-      ...offlinePaymentInfo,
-      order_id: orderId,
-      guest_id: getGuestId(),
+      ...(data || offlinePaymentInfo),
+      order_id: orderId || order_id,
+      guest_id: guest_id,
     };
     dispatch(setOfflineInfoStep(3));
     dispatch(setOrderDetailsModal(true));
-    offlineMutate(offlinePaymentData);
+    if (offlinePaymentData) {
+      try {
+        await offlineMutate(offlinePaymentData, {
+          onSuccess: () => {
+            if (!token) {
+              Router.push(
+                {
+                  pathname: "/home",
+                  query: { order_id: orderId || order_id },
+                },
+                undefined,
+                { shallow: true }
+              );
+            } else {
+              Router.push(
+                {
+                  pathname: "/profile",
+                  query: {
+                    orderId: orderId || order_id,
+                    page: "my-orders",
+                    from: "checkout",
+                  },
+                },
+                undefined,
+                { shallow: true }
+              );
+            }
+          },
+          onError: onErrorResponse,
+        });
+        setOrderSuccess(true);
+      } catch (error) {
+        // toast.error(error?.response?.data?.message || t("Failed to process offline payment"));
+      }
+    }
   };
   const zoneId = JSON.parse(localStorage.getItem("zoneid"));
   useEffect(() => {
@@ -193,11 +236,11 @@ const ParcelCheckout = () => {
       });
     }
   }, [parcelCategories]);
-  useEffect(() => {
-    if (offlineCheck) {
-      handleOffineOrder();
-    }
-  }, [orderId]);
+  // useEffect(() => {
+  //   if (offlineCheck) {
+  //     handleOffineOrder();
+  //   }
+  // }, [orderId]);
   const parcelDeliveryFree = () => {
     let convertedDistance = handleDistance(
       data,
@@ -256,9 +299,9 @@ const ParcelCheckout = () => {
   });
   const isDigital =
     paymentMethod !== "cash_on_delivery" &&
-    paymentMethod !== "wallet" &&
-    paymentMethod !== "offline_payment" &&
-    paymentMethod !== null
+      paymentMethod !== "wallet" &&
+      paymentMethod !== "offline_payment" &&
+      paymentMethod !== null
       ? "digital_payment"
       : paymentMethod;
   const orderMutationObject = {
@@ -288,6 +331,19 @@ const ParcelCheckout = () => {
     floor: parcelInfo?.senderFloor,
   };
 
+  const handleEditInstructionClick = () => {
+    setOpenEditInstructionModal(!openEditInstructionModal);
+  };
+
+  const handleRemoveInstruction = () => {
+    setCustomerInstruction(null);
+    setSelectedInstruction(null);
+    // setCustomNote("");
+  };
+  const handleRemoveInstructionDes = () => {
+    setCustomNote("");
+  };
+
   const { data: order, isLoading, mutate: orderMutation } = useOrderPlace();
   const { data: taxData, mutate } = useGetTax();
 
@@ -303,115 +359,15 @@ const ParcelCheckout = () => {
     }
   }, [parcelDeliveryFree()]);
 
-  const extractPaymentIdFromUrl = (redirectUrl) => {
-    if (!redirectUrl || typeof redirectUrl !== "string") {
-      return null;
-    }
-    const match = redirectUrl.match(/[?&]payment_id=([^&]+)/);
-    return match ? decodeURIComponent(match[1]) : null;
-  };
-
-  const storePaymentRequestId = (orderId, paymentId) => {
-    if (!orderId || !paymentId) return;
-    try {
-      const stored = localStorage.getItem("payment_request_ids");
-      const parsed = stored ? JSON.parse(stored) : {};
-      parsed[orderId] = paymentId;
-      localStorage.setItem("payment_request_ids", JSON.stringify(parsed));
-    } catch (error) {
-      localStorage.setItem(
-        "payment_request_ids",
-        JSON.stringify({ [orderId]: paymentId })
-      );
-    }
-  };
-
-  const initiateParcelDigiWallet = async ({
-    orderId,
-    userId,
-    callBackUrl,
-    paymentPlatform,
-    amountToPay,
-    contactNumber,
-  }) => {
-    try {
-      const params = {
-        order_id: orderId,
-        customer_id: userId,
-        payment_platform: paymentPlatform,
-        callback: callBackUrl,
-        payment_method: "digiWallet",
-      };
-      const { data } = await DigiWalletApi.initiate(params);
-      const redirectUrl = data?.redirect_url;
-      let paymentId = data?.payment_id ?? null;
-      let requestId = data?.request_id ?? data?.transaction_id ?? null;
-      let status = data?.status ?? "otp_sent";
-      let message = data?.message;
-
-      if (!paymentId && typeof redirectUrl === "string") {
-        const match = redirectUrl.match(/[?&]payment_id=([^&]+)/);
-        if (match) {
-          paymentId = decodeURIComponent(match[1]);
-        }
-      }
-
-      if (!paymentId) {
-        throw new Error(
-          data?.message || t("Unable to initiate DigiWallet payment")
-        );
-      }
-
-      if (redirectUrl) {
-        const payResponse = await DigiWalletApi.triggerPay(redirectUrl);
-        const payData = payResponse?.data ?? {};
-        requestId = payData?.request_id ?? payData?.transaction_id ?? requestId;
-        status = payData?.status ?? status;
-        message = payData?.message ?? message;
-      }
-
-      dispatch(
-        hydrateFromQuery({
-          paymentId,
-          orderId,
-          requestId,
-          amount: amountToPay,
-          phone: contactNumber,
-          status: (status || "otp_sent").toLowerCase(),
-          message,
-        })
-      );
-
-      localStorage.setItem("totalAmount", amountToPay);
-
-      Router.push({
-        pathname: "/digiwallet-payment",
-        query: {
-          payment_id: paymentId,
-          order_id: orderId,
-          request_id: requestId ?? undefined,
-          amount: amountToPay,
-          phone: contactNumber,
-        },
-      });
-    } catch (err) {
-      const message =
-        err?.response?.data?.message ||
-        err?.response?.data?.errors?.[0]?.message ||
-        err?.message ||
-        t("Unable to initiate DigiWallet payment");
-      toast.error(message);
-    }
-  };
   const orderPlace = () => {
     if (paidBy === "sender") {
-      const handleSuccess = async (res) => {
+      const handleSuccess = (res) => {
         if (res) {
           if (token) {
             dispatch(setOrderDetailsModal(true));
           } else {
             dispatch(setGuestUserOrderId(res?.order_id));
-            dispatch(setOrderInformation(res));
+            dispatch(setOrderInformation({ ...res, phone: formatPhoneNumber(parcelInfo?.senderPhone) }));
             dispatch(setOrderDetailsModalOpen(true));
           }
           if (
@@ -426,57 +382,51 @@ const ParcelCheckout = () => {
             const callBackUrl = token
               ? `${window.location.origin}/profile?page=${page}`
               : `${window.location.origin}/home`;
-            const customerId =
-              profileInfo?.id ??
-              (res?.user_id ? res?.user_id : guest_id);
-            const contactNumber =
-              parcelInfo?.senderPhone ??
-              profileInfo?.phone ??
-              parcelInfo?.receiverPhone ??
-              "";
-            if (paymentMethod === "digiWallet") {
-              await initiateParcelDigiWallet({
-                orderId: res?.order_id,
-                userId: customerId,
-                callBackUrl,
-                paymentPlatform: payment_platform,
-                amountToPay: res?.total_ammount,
-                contactNumber,
-              });
-              return;
-            } else {
-              try {
-                const { data: paymentInit } = await PaymentApi.initiate({
-                  order_id: res?.order_id,
-                  customer_id: customerId,
-                  payment_method: paymentMethod,
-                  payment_platform,
-                  callback: callBackUrl,
-                });
-                const redirectUrl = paymentInit?.redirect_url;
-                const paymentId =
-                  paymentInit?.payment_id ?? extractPaymentIdFromUrl(redirectUrl);
-                storePaymentRequestId(res?.order_id, paymentId);
-                if (!redirectUrl) {
-                  throw new Error(
-                    paymentInit?.message ??
-                      t("Unable to initiate payment session")
+            const customerId = profileInfo?.id ?? res?.user_id ?? guest_id;
+            const initiatePayload = {
+              order_id: res?.order_id,
+              customer_id: customerId,
+              payment_platform,
+              callback: callBackUrl,
+              payment_method: paymentMethod,
+            };
+            OrderApi.initiatePayment(initiatePayload)
+              .then(({ data }) => {
+                if (!data?.redirect_url || !data?.payment_id) {
+                  throw new Error("Missing payment redirect.");
+                }
+                if (res?.order_id) {
+                  localStorage.setItem(
+                    `pending_payment_${res.order_id}`,
+                    data.payment_id
                   );
                 }
-                if (typeof window !== "undefined") {
-                  window.location.href = redirectUrl;
+                const isDigiWallet =
+                  String(paymentMethod).toLowerCase() === "digiwallet";
+                if (isDigiWallet) {
+                  router.push(
+                    {
+                      pathname: "/digiwallet-payment",
+                      query: {
+                        payment_id: data.payment_id,
+                        order_id: res?.order_id,
+                        callback: callBackUrl,
+                      },
+                    },
+                    undefined,
+                    { shallow: true }
+                  );
                 } else {
-                  router.push(redirectUrl);
+                  router.push(data.redirect_url, undefined, { shallow: true });
                 }
-              } catch (paymentError) {
+              })
+              .catch((error) => {
                 const message =
-                  paymentError?.response?.data?.message ||
-                  paymentError?.response?.data?.errors?.[0]?.message ||
-                  paymentError?.message ||
-                  t("Unable to initiate payment session");
+                  error?.response?.data?.message ||
+                  error?.message ||
+                  t("Unable to initiate payment.");
                 toast.error(message);
-              }
-            }
+              });
           } else if (paymentMethod === "wallet") {
             if (
               Number(profileInfo?.wallet_balance) < Number(parcelDeliveryFree())
@@ -503,32 +453,18 @@ const ParcelCheckout = () => {
             }
           } else if (paymentMethod === "offline_payment") {
             setOrderId(res?.order_id);
-            dispatch(setOrderInformation(res));
-            setOfflineCheck(true);
+            dispatch(setOrderInformation({ ...res, phone: formatPhoneNumber(parcelInfo?.senderPhone) }));
+            // setOfflineCheck(true);
             toast.success(res?.message);
-            if (!token) {
-              Router.push(
-                {
-                  pathname: "/home",
-                  query: { order_id: res?.order_id },
-                },
-                undefined,
-                { shallow: true }
-              );
-            } else {
-              Router.push(
-                {
-                  pathname: "/profile",
-                  query: {
-                    orderId: res?.order_id,
-                    page: "my-orders",
-                    from: "checkout",
-                  },
-                },
-                undefined,
-                { shallow: true }
-              );
-            }
+            console.log("offline");
+            Router.push(
+              {
+                pathname: "/checkout",
+                query: { page: "parcel", method: "offline" },
+              },
+              undefined,
+              { shallow: true }
+            );
           } else {
             toast.success(res?.message);
             const token = getToken();
@@ -582,7 +518,7 @@ const ParcelCheckout = () => {
             const token = getToken();
             if (!token) {
               setOrderId(res?.order_id);
-              dispatch(setOrderInformation(res));
+              dispatch(setOrderInformation({ ...res, phone: formatPhoneNumber(parcelInfo?.senderPhone) }));
               Router.push(
                 {
                   pathname: "/home",
@@ -631,16 +567,16 @@ const ParcelCheckout = () => {
   };
   const finalTotal = profileInfo?.is_valid_for_discount
     ? parcelDeliveryFree() +
-      Number(deliveryTip) +
-      (configData?.additional_charge ? configData?.additional_charge : 0) -
-      getReferDiscount(
-        parcelDeliveryFree(),
-        profileInfo?.discount_amount,
-        profileInfo?.discount_amount_type
-      )
+    Number(deliveryTip) +
+    (configData?.additional_charge ? configData?.additional_charge : 0) -
+    getReferDiscount(
+      parcelDeliveryFree(),
+      profileInfo?.discount_amount,
+      profileInfo?.discount_amount_type
+    )
     : parcelDeliveryFree() +
-      Number(deliveryTip) +
-      (configData?.additional_charge ? configData?.additional_charge : 0);
+    Number(deliveryTip) +
+    (configData?.additional_charge ? configData?.additional_charge : 0);
 
   const getParcelPayment = () => {
     // Check if zoneData and zone_data are available
@@ -652,15 +588,14 @@ const ParcelCheckout = () => {
     );
   };
   const extraText = t("This charge includes extra vehicle charge");
-  const deliveryToolTipsText = `${extraText} ${getAmountWithSign(extraCharge)}${
-    surgePrice?.customer_note_status !== 0
-      ? ` ${surgePrice?.customer_note} ${
-          surgePrice?.type === "amount"
-            ? getAmountWithSign(surgePrice?.price)
-            : `${surgePrice?.price}%`
-        }`
-      : ""
-  }`;
+  const deliveryToolTipsText = `${extraText} ${getAmountWithSign(extraCharge)}${surgePrice?.customer_note_status !== 0
+    ? ` ${surgePrice?.customer_note} ${surgePrice?.type === "amount"
+      ? getAmountWithSign(surgePrice?.price)
+      : `${surgePrice?.price}%`
+    }`
+    : ""
+    }`;
+
   return (
     <>
       {method === "offline" ? (
@@ -681,6 +616,7 @@ const ParcelCheckout = () => {
               }
               placeOrder={orderPlace}
               offlinePaymentLoading={offlinePaymentLoading || isLoading}
+              handleOffineOrder={handleOffineOrder}
             />
           </CustomPaperBigCard>
         </CustomStackFullWidth>
@@ -693,8 +629,8 @@ const ParcelCheckout = () => {
             <H1 text="Checkout" textAlign="left" />
           </Stack>
           <CustomStackFullWidth>
-            <Grid container spacing={4}>
-              <Grid item xs={12} sm={12} md={4}>
+            <Grid container spacing={3}>
+              <Grid item xs={12} sm={12} md={8}>
                 <DeliveryInfo
                   configData={configData}
                   parcelInfo={parcelInfo}
@@ -707,134 +643,326 @@ const ParcelCheckout = () => {
                   formik={formik}
                   passwordHandler={passwordHandler}
                   confirmPasswordHandler={confirmPasswordHandler}
-                />
-              </Grid>
-              <Grid item xs={12} sm={12} md={4}>
-                <Billing
+                  data={data}
+                  parcelDeliveryFree={parcelDeliveryFree}
+                  senderLocation={parcelInfo?.senderLocations}
+                  receiverLocation={parcelInfo?.receiverLocations}
+                  extraChargeLoading={extraChargeLoading}
                   deliveryTip={deliveryTip}
                   setDeliveryTip={setDeliveryTip}
                   paidBy={paidBy}
                   setPaidBy={setPaidBy}
-                  data={data}
-                  parcelDeliveryFree={parcelDeliveryFree}
-                  zoneData={{ data: zoneData }}
-                  senderLocation={parcelInfo?.senderLocations}
-                  receiverLocation={parcelInfo?.receiverLocations}
-                  configData={configData}
-                  extraChargeLoading={extraChargeLoading}
+                  zoneData={zoneData}
+                  setPaymentMethod={setPaymentMethod}
+                  paymentMethod={paymentMethod}
+                  selectedPaymentMethod={selectedPaymentMethod}
+                  setSelectedPaymentMethod={setSelectedPaymentMethod}
+                  isLoading={isLoading}
+                  orderPlace={orderPlace}
+                  // zoneData={{ data: zoneData }}
+                  // configData={configData}
+                  storeZoneId={currentZoneId}
+                  parcel="true"
+                  offlinePaymentOptions={offlinePaymentOptions}
+                  getParcelPayment={getParcelPayment}
                 />
               </Grid>
               <Grid item xs={12} sm={12} md={4}>
+
                 {currentZoneId && zoneData && (
-                  <CustomPaperBigCard padding="20px">
-                    <DeliveryCaption parcel="true">
-                      {t("Order Summary")}
-                    </DeliveryCaption>
-                    <CustomStackFullWidth spacing={1} paddingY="10px">
-                      <Stack direction="row" justifyContent="space-between">
-                        <Typography fontWeight="500">
-                          {t("Delivery Fee")}
-                          {extraCharge > 0 || surgePrice?.price > 0 ? (
-                            <Tooltip
-                              title={deliveryToolTipsText}
-                              placement="top"
-                              arrow={true}
+                  <Card sx={{ padding: "1.2rem", backgroundColor: theme.palette.background.custom, border: `1px solid rgba(0, 0, 0, 0.05)`, }}>
+                    <Stack gap="1rem">
+                      <DeliveryCaption>
+                        {t("Order Summary")}
+                      </DeliveryCaption>
+
+                      <Stack sx={{
+                        backgroundColor: theme.palette.background.paper,
+                        padding: "1rem",
+                        borderRadius: ".5rem",
+                      }}>
+                        <Stack
+                          flexDirection="row"
+                          alignItems="center"
+                          justifyContent="space-between"
+                        >
+                          <Typography fontSize="16px" fontWeight="500">
+                            {t("Add More Delivery Instruction")}
+                          </Typography>
+                          {selectedInstruction ? (
+                            //   <IconButton>
+                            //     <BorderColorIcon sx={{color:theme=>theme.palette.primary.main}} fontSize="medium" onClick={handleClick} />
+                            // </IconButton>
+                            <Stack
+                              direction="row"
+                              alignItems="center"
+                              gap={.5}
+                              onClick={handleClick}
+                              sx={{
+                                cursor: "pointer",
+                                color: theme.palette.info.main,
+                                fontWeight: "500",
+                              }}>
+                              <EditIcon fontSize="12px" />
+                              {t("Edit")}
+                            </Stack>
+                          ) : (
+                            <Stack onClick={handleEditInstructionClick}>
+                              <AddIcon width="16px" height="16px" />
+                            </Stack>
+                          )}
+                        </Stack>
+                        <Stack>
+                          {customerInstruction && (
+                            <Stack
+                              direction="row"
+                              gap="10px"
+                              justifyContent="flex-start"
+                              mt="1rem"
+                              sx={{
+                                backgroundColor: theme => theme.palette.neutral[300],
+                                padding: "8px 10px",
+                                borderRadius: "8px"
+                              }}
                             >
-                              <InfoIcon sx={{ fontSize: "11px" }} />
-                            </Tooltip>
-                          ) : null}
-                        </Typography>
-                        <Typography fontWeight="500">
-                          {getAmountWithSign(parcelDeliveryFree())}
-                        </Typography>
+                              <Stack
+                                gap="10px"
+                                direction="row"
+                                alignItems="center"
+                                justifyContent="space-between"
+                                width="100%"
+
+                              >
+                                <Typography
+                                  fontSize="12px"
+                                  fontWeight={400}
+                                //color={theme.palette.primary.main}
+                                >
+                                  {selectedInstruction}
+                                </Typography>
+                                <Stack
+                                  justifyContent="flex-end"
+                                  alignItems='end'
+                                  sx={{ cursor: "pointer" }}
+
+                                >
+                                  <CloseIcon
+                                    sx={{
+                                      width: "20px",
+                                      height: "20px",
+                                      fontWeight: "700"
+                                    }}
+                                    onClick={handleRemoveInstruction}
+                                  />
+                                </Stack>
+                              </Stack>
+                            </Stack>
+                          )}
+                          {customNote && (
+                            <Stack
+                              gap="10px"
+                              direction="row"
+                              alignItems="center"
+                              justifyContent="space-between"
+                              width="100%"
+                              sx={{
+                                backgroundColor: theme => theme.palette.neutral[300],
+                                padding: "8px 10px",
+                                borderRadius: "8px"
+                              }}
+                              marginTop="10px"
+                            >
+                              <Stack>
+                                <Typography
+                                  fontSize="12px"
+                                  fontWeight={600}
+
+                                >Note:</Typography>
+                                <Typography
+                                  fontSize="12px"
+                                  fontWeight={400}
+                                  color={alpha(
+                                    theme.palette.neutral[600],
+                                    0.7
+                                  )}
+                                >
+                                  {customNote}
+                                </Typography>
+                              </Stack>
+                              <Stack
+                                justifyContent="flex-end"
+                                alignItems='end'
+                                sx={{ cursor: "pointer" }}
+                              >
+                                <CloseIcon
+                                  sx={{
+                                    width: "20px",
+                                    height: "20px",
+                                    fontWeight: "700"
+                                  }}
+                                  onClick={handleRemoveInstructionDes}
+                                />
+                              </Stack>
+                            </Stack>
+                          )}
+                        </Stack>
+                        <CustomModal
+                          openModal={openEditInstructionModal}
+                          handleClose={() => setOpenEditInstructionModal(false)}
+                        >
+                          <CustomStackFullWidth
+                            direction="row"
+                            alignItems="center"
+                            justifyContent="flex-end"
+                            sx={{ position: "relative" }}
+                          >
+                            <IconButton
+                              onClick={() => setOpenModal(false)}
+                              sx={{
+                                zIndex: "99",
+                                position: "absolute",
+                                top: 0,
+                                right: 0,
+                                backgroundColor: (theme) =>
+                                  theme.palette.neutral[100],
+                                borderRadius: "50%",
+                                [theme.breakpoints.down("md")]: {
+                                  top: 10,
+                                  right: 5,
+                                },
+                              }}
+                            >
+                              <CloseIcon
+                                sx={{ fontSize: "20px", fontWeight: "700" }}
+                              />
+                            </IconButton>
+                          </CustomStackFullWidth>
+                          <DeliveryInstruction
+                            setOpenModal={setOpenEditInstructionModal}
+                            deliveryInstruction={deliveryInstruction}
+                            setCustomerInstruction={setCustomerInstruction}
+                            selectedInstruction={selectedInstruction}
+                            setSelectedInstruction={setSelectedInstruction}
+                            customNote={customNote}
+                            setCustomNote={setCustomNote}
+
+                          />
+                        </CustomModal>
                       </Stack>
-                      <Stack direction="row" justifyContent="space-between">
-                        <Typography fontWeight="500">
-                          {t("Delivery Man Tips")}
-                        </Typography>
-                        <Typography fontWeight="500">
-                          {getAmountWithSign(deliveryTip)}
-                        </Typography>
-                      </Stack>
-                      {taxData?.tax_included !== null &&
-                      taxData?.tax_included === 0 ? (
-                        <>
+
+                      <Stack
+                        spacing={1}
+                        paddingY="10px"
+                        sx={{
+                          backgroundColor: theme.palette.background.paper,
+                          borderRadius: ".5rem",
+                          padding: "1rem",
+                        }}
+                      >
+                        <Stack direction="row" justifyContent="space-between">
+                          <Typography fontWeight="500">
+                            {t("Delivery Fee")}
+                            {extraCharge > 0 || surgePrice?.price > 0 ? (
+                              <Tooltip
+                                title={deliveryToolTipsText}
+                                placement="top"
+                                arrow={true}
+                              >
+                                <InfoIcon sx={{ fontSize: "11px" }} />
+                              </Tooltip>
+                            ) : null}
+                          </Typography>
+                          <Typography fontWeight="500">
+                            {getAmountWithSign(parcelDeliveryFree())}
+                          </Typography>
+                        </Stack>
+                        <Stack direction="row" justifyContent="space-between">
+                          <Typography fontWeight="500">
+                            {t("Delivery Man Tips")}
+                          </Typography>
+                          <Typography fontWeight="500">
+                            {getAmountWithSign(deliveryTip)}
+                          </Typography>
+                        </Stack>
+                        {taxData?.tax_included !== null &&
+                          taxData?.tax_included === 0 ? (
+                          <>
+                            <Stack direction="row" justifyContent="space-between">
+                              <Typography fontWeight="500">
+                                {t("VAT/TAX")}
+                              </Typography>
+                              <Typography fontWeight="500">
+                                {taxData?.tax_included === 0 && <>{"(+)"}</>}
+                                {getAmountWithSign(taxData?.tax_amount)}
+                              </Typography>
+                            </Stack>
+                          </>
+                        ) : null}
+                        {configData?.additional_charge_status === 1 && (
                           <Stack direction="row" justifyContent="space-between">
-                            <Typography fontWeight="500">
-                              {t("VAT/TAX")}
+                            <Typography
+                              fontWeight="500"
+                              sx={{
+                                textTransform: "capitalize",
+                                overflow: "hidden",
+                                textOverflow: "ellipsis",
+                                whiteSpace: "nowrap", // ensures single line
+                              }}
+                            >
+                              {configData?.additional_charge_name}
                             </Typography>
                             <Typography fontWeight="500">
-                              {taxData?.tax_included === 0 && <>{"(+)"}</>}
-                              {getAmountWithSign(taxData?.tax_amount)}
+                              {getAmountWithSign(configData?.additional_charge)}
                             </Typography>
                           </Stack>
-                        </>
-                      ) : null}
-                      {configData?.additional_charge_status === 1 && (
+                        )}
+
+                        <CustomDivider border="1px" />
                         <Stack direction="row" justifyContent="space-between">
                           <Typography
                             fontWeight="500"
-                            sx={{
-                              textTransform: "capitalize",
-                              overflow: "hidden",
-                              textOverflow: "ellipsis",
-                              whiteSpace: "nowrap", // ensures single line
-                            }}
+                            color="primary"
+                            component="span"
                           >
-                            {configData?.additional_charge_name}
+                            {t("Total")}
+                            {taxData?.tax_included === 1 &&
+                              taxData?.tax_included !== null && (
+                                <Typography
+                                  fontSize="12px"
+                                  sx={{ marginInlineStart: "5px" }}
+                                  color="primary"
+                                  component="span"
+                                >
+                                  {"(Vat/Tax incl.)"}
+                                </Typography>
+                              )}
                           </Typography>
-                          <Typography fontWeight="500">
-                            {getAmountWithSign(configData?.additional_charge)}
-                          </Typography>
-                        </Stack>
-                      )}
-
-                      <CustomDivider border="1px" />
-                      <Stack direction="row" justifyContent="space-between">
-                        <Typography
-                          fontWeight="500"
-                          color="primary"
-                          component="span"
-                        >
-                          {t("Total")}
-                          {taxData?.tax_included === 1 &&
-                            taxData?.tax_included !== null && (
-                              <Typography
-                                fontSize="12px"
-                                sx={{ marginInlineStart: "5px" }}
-                                color="primary"
-                                component="span"
-                              >
-                                {"(Vat/Tax incl.)"}
-                              </Typography>
-                            )}
-                        </Typography>
-                        <Typography fontWeight="500" color="primary">
-                          {getAmountWithSign(
-                            parcelDeliveryFree() +
+                          <Typography fontWeight="500" color="primary">
+                            {getAmountWithSign(
+                              parcelDeliveryFree() +
                               Number(deliveryTip) +
                               taxData?.tax_amount +
                               (configData?.additional_charge
                                 ? configData?.additional_charge
                                 : 0)
-                          )}
-                        </Typography>
+                            )}
+                          </Typography>
+                        </Stack>
                       </Stack>
-                    </CustomStackFullWidth>
-                    <PaymentMethod
-                      setPaymentMethod={setPaymentMethod}
-                      paymentMethod={paymentMethod}
-                      paidBy={paidBy}
-                      isLoading={isLoading}
-                      orderPlace={orderPlace}
-                      zoneData={{ data: zoneData }}
-                      configData={configData}
-                      storeZoneId={currentZoneId}
-                      parcel="true"
-                      offlinePaymentOptions={offlinePaymentOptions}
-                      getParcelPayment={getParcelPayment}
-                    />
-                  </CustomPaperBigCard>
+
+                      <Stack>
+                        <LoadingButton
+                          type="submit"
+                          fullWidth
+                          variant="contained"
+                          onClick={orderPlace}
+                          loading={isLoading}
+                        >
+                          {t("Confirm Parcel Request")}
+                        </LoadingButton>
+                      </Stack>
+                    </Stack>
+                  </Card>
                 )}
               </Grid>
             </Grid>

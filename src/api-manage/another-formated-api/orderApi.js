@@ -5,6 +5,9 @@ export const OrderApi = {
   placeOrder: (formData) => {
     return MainApi.post("/api/v1/customer/order/place", formData);
   },
+  initiatePayment: (payload) => {
+    return MainApi.post("/api/v1/payment/initiate", payload);
+  },
   prescriptionPlaceOrder: (orderData) => {
 
     const {

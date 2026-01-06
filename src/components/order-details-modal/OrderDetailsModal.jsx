@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import toast from "react-hot-toast";
 import CustomModal from "../modal";
 import {
   alpha,
@@ -13,13 +14,13 @@ import { useDispatch, useSelector } from "react-redux";
 import { CustomStackFullWidth } from "../../styled-components/CustomStyles.style";
 import { setOrderDetailsModalOpen } from "../../redux/slices/utils";
 import { getGuestId } from "../../helper-functions/getToken";
-import CheckCircleOutlineOutlinedIcon from "@mui/icons-material/CheckCircleOutlineOutlined";
-import { ItemWrapper, ModalCustomTypography } from "./OrderDetailsModal.style";
 import { useRouter } from "next/router";
 import { useTranslation } from "react-i18next";
 import jwt from "base-64";
 import CheckoutFailed from "../checkout/CheckoutFailed";
-import AccessTimeIcon from "@mui/icons-material/AccessTime";
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import { setOrderDetailsModal } from "redux/slices/offlinePaymentData";
+import MainApi from "../../api-manage/MainApi";
 
 const OrderDetailsModal = ({ orderDetailsModalOpen }) => {
   const dispatch = useDispatch();
@@ -34,17 +35,22 @@ const OrderDetailsModal = ({ orderDetailsModalOpen }) => {
   const { guestUserOrderId, guestUserInfo } = useSelector(
     (state) => state.guestUserInfo
   );
+  const { orderDetailsModal, offlineInfoStep } = useSelector(
+    (state) => state.offlinePayment
+  );
   const { orderInformation } = useSelector((state) => state.utilsData);
-  const resolvedStatus = String(status ?? orderInformation?.status ?? "").toLowerCase();
-  const isPaymentPending = flag === "pending" || resolvedStatus === "pending";
+  const [pendingPaymentId, setPendingPaymentId] = useState(null);
+  const [paymentStatus, setPaymentStatus] = useState(null);
+  const [polling, setPolling] = useState(false);
   const handleOrderDetailsClose = () => {
+    dispatch(setOrderDetailsModal(false));
     dispatch(setOrderDetailsModalOpen(false));
   };
   const handleClickToRoute = (href) => {
     dispatch(setOrderDetailsModalOpen(false));
     router.push(href, undefined, { shallow: true });
   };
-
+  console.log({orderDetailsModal});
   useEffect(() => {
     if (token) {
       try {
@@ -75,6 +81,49 @@ const OrderDetailsModal = ({ orderDetailsModalOpen }) => {
     }
   }, [token]);
 
+  const orderIdForPayment = guestUserOrderId || order_id || attributeId;
+  const failureStatuses = ["REJECTED", "FAILED", "CANCELLED", "PARTIAL_EXPIRED"];
+  const successStatuses = ["APPROVED", "PAID"];
+  const isPendingPayment = paymentStatus === "PENDING";
+  const isFailedPayment = failureStatuses.includes(paymentStatus || "");
+
+  const checkPaymentStatus = async () => {
+    if (!pendingPaymentId) return;
+    try {
+      const { data } = await MainApi.get(
+        `/api/v1/payment/status/${pendingPaymentId}`
+      );
+      const status = String(data?.status || "").toUpperCase();
+      if (status) {
+        setPaymentStatus(status);
+      }
+      if (successStatuses.includes(status) || failureStatuses.includes(status)) {
+        localStorage.removeItem(`pending_payment_${orderIdForPayment}`);
+        setPolling(false);
+      }
+    } catch (error) {
+      // keep polling; status fetch can fail transiently
+    }
+  };
+
+  useEffect(() => {
+    if (!orderIdForPayment || typeof window === "undefined") return;
+    const storedPaymentId = localStorage.getItem(
+      `pending_payment_${orderIdForPayment}`
+    );
+    if (storedPaymentId) {
+      setPendingPaymentId(storedPaymentId);
+      setPaymentStatus("PENDING");
+      setPolling(true);
+    }
+  }, [orderIdForPayment]);
+
+  useEffect(() => {
+    if (!pendingPaymentId || !polling) return;
+    checkPaymentStatus();
+    const timer = setInterval(checkPaymentStatus, 8000);
+    return () => clearInterval(timer);
+  }, [pendingPaymentId, polling]);
   return (
     <CustomModal
       openModal={orderDetailsModalOpen}
@@ -104,65 +153,109 @@ const OrderDetailsModal = ({ orderDetailsModalOpen }) => {
           <CloseIcon sx={{ fontSize: "24px", fontWeight: "500" }} />
         </IconButton>
       </CustomStackFullWidth>
-      {(flag && flag === "fail") || flag === "cancel" ? (
+      {(flag && flag === "fail") || flag === "cancel" || isFailedPayment ? (
         <CheckoutFailed
           id={order_id ? order_id : attributeId}
           configData={configData}
           handleOrderDetailsClose={handleOrderDetailsClose}
         />
+      ) : isPendingPayment ? (
+        <CustomStackFullWidth
+          padding={{ xs: "40px 15px", md: "45px 45px 40px" }}
+          alignItems="center"
+          gap="16px"
+        >
+          <Typography fontSize="18px" fontWeight="700">
+            {t("Payment Pending")}
+          </Typography>
+          <Typography fontWeight="400" textAlign="center" maxWidth="380px">
+            {t(
+              "Your payment is still being processed. We will update the order once it is confirmed."
+            )}
+          </Typography>
+          <Button variant="contained" onClick={checkPaymentStatus}>
+            {t("Check Status")}
+          </Button>
+        </CustomStackFullWidth>
       ) : (
         <CustomStackFullWidth
           padding={{ xs: "40px 15px", md: "45px 45px 40px" }}
           alignItems="center"
           gap="20px"
         >
-          {isPaymentPending ? (
-            <AccessTimeIcon
-              sx={{
-                height: "46px",
-                width: "46px",
-                color: alpha(theme.palette.warning.main, 0.9),
-              }}
-            />
-          ) : (
-            <CheckCircleOutlineOutlinedIcon
-              sx={{
-                height: "46px",
-                width: "46px",
-                color: alpha(theme.palette.primary.main, 0.7),
-              }}
-            />
-          )}
-          <Typography fontSize="16px" fontWeight="700">
-            {isPaymentPending
-              ? `${t("Payment Pending")} !`
-              : `${t("Order Placed Successfully")} !`}
+          <CheckCircleIcon
+            sx={{
+              height: "56px",
+              width: "56px",
+              color: alpha(theme.palette.primary.main, .9),
+            }}
+          />
+          <Typography fontSize="18px" fontWeight="700">
+            {`${t("Order Placed Successfully")}`}
           </Typography>
-          <CustomStackFullWidth
+          {/* <CustomStackFullWidth
             padding={{ xs: "0px 20px", md: "0px 38px" }}
             textAlign="center"
           >
-            {isPaymentPending ? (
-              <Typography fontWeight="400">
-                {t(
-                  "Your order is placed, but the payment is still pending. We will update the status as soon as we receive confirmation."
-                )}
+            <Typography fontWeight="400">
+              {`${t("Make sure to remember your ")}`}
+              <Typography component="span" fontWeight={500}>{`${t(
+                "order ID and phone number"
+              )}`}</Typography>
+              <Typography component="span">
+                {`${t(
+                  " that is used in this order as you have ordered as guest user. Other wise you won’t be able to track your order in future."
+                )}`}
               </Typography>
-            ) : (
-              <Typography fontWeight="400">
-                {`${t("Make sure to remember your ")}`}
-                <Typography component="span" fontWeight={500}>{`${t(
-                  "order ID and phone number"
-                )}`}</Typography>
-                <Typography component="span">
-                  {`${t(
-                    " that is used in this order as you have ordered as guest user. Other wise you won’t be able to track your order in future."
-                  )}`}
-                </Typography>
-              </Typography>
-            )}
-          </CustomStackFullWidth>
-          <CustomStackFullWidth
+            </Typography>
+          </CustomStackFullWidth> */}
+          <Typography fontWeight="400" textAlign="center" maxWidth="380px">
+            We will begin processing your order shortly. Your Order ID is
+              <Typography component="span" fontWeight={600}>{ " " }{guestUserOrderId || order_id}</Typography>,
+              placed using the phone number
+              <Typography component="span" fontWeight={600}>{" "}{guestUserInfo?.phone || orderInformation?.phone || "+880170987654"}</Typography>.
+          </Typography>
+          <Typography fontWeight="400" textAlign="center" maxWidth="380px">
+            Please keep this Order ID handy for track your order in future We’ve also emailed the details to you
+          </Typography>
+
+
+
+          <Stack
+            direction="row"
+            alignItems="center"
+            justifyContent="space-between"
+            width="100%"
+            maxWidth="370px"
+            padding=".25rem .25rem .25rem .75rem"
+            marginBlock="15px"
+            borderRadius="999rem"
+            sx={{
+              border: `1px dashed ${theme.palette.neutral[400]}`,
+            }}
+          >
+            <Typography fontWeight={700}>
+              {t("Order ID")} #{guestUserOrderId || order_id}
+            </Typography>
+            <Button
+              variant="contained"
+              sx={{
+                borderRadius: "999rem",
+                padding: "6px 20px",
+                textTransform: "capitalize",
+                minWidth: "auto",
+              }}
+              onClick={() => {
+                navigator.clipboard.writeText(guestUserOrderId || order_id);
+                toast.success(t("Order ID copied!"));
+              }}
+            >
+              {t("Copy")}
+            </Button>
+          </Stack>
+
+
+          {/* <CustomStackFullWidth
             padding="20px 10px 20px 10px"
             backgroundColor={alpha(theme.palette.neutral[400], 0.09)}
             alignItems="center"
@@ -198,12 +291,12 @@ const OrderDetailsModal = ({ orderDetailsModalOpen }) => {
                 </ItemWrapper>
               </Stack>
             </Stack>
-          </CustomStackFullWidth>
+          </CustomStackFullWidth> */}
           <Button
             onClick={() => handleClickToRoute("/track-order")}
             variant="contained"
-            // maxWidth="150px"
-            // fullWidth
+          // maxWidth="150px"
+          // fullWidth
           >
             {t("Track Order")}
           </Button>
