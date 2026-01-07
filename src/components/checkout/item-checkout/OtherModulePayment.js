@@ -35,6 +35,7 @@ import OfflinePaymentIcon from "../assets/OfflinePaymentIcon";
 import { getAmountWithSign } from "helper-functions/CardHelpers";
 import CloseIcon from "@mui/icons-material/Close";
 import PartialPayment from "components/checkout/item-checkout/PartialPayment";
+import { filterDigiWalletMethods } from "utils/CustomFunctions";
 
 export const PayButton = styled(Stack)(({ theme, value, paymentMethod }) => ({
   padding: "10px 10px",
@@ -215,8 +216,13 @@ const OtherModulePayment = (props) => {
   const [openOfflineOptions, setOpenOfflineOptions] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const { offlineMethod } = useSelector((state) => state.offlinePayment);
+  const { profileInfo } = useSelector((state) => state.profileInfo);
   const [isCheckedOffline, setIsCheckedOffline] = useState(
     offlineMethod !== ""
+  );
+  const paymentMethods = filterDigiWalletMethods(
+    configData?.active_payment_method_list,
+    profileInfo
   );
 
   const handleClickOffline = () => {
@@ -497,13 +503,13 @@ const OtherModulePayment = (props) => {
                 </Typography>
                 <CustomStackFullWidth spacing={1}>
                   <Grid container>
-                    {configData?.active_payment_method_list?.map(
+                    {paymentMethods?.map(
                       (item, index) => {
                         return (
                           <Grid
                             item
                             xs={
-                              configData?.active_payment_method_list?.length > 1
+                              paymentMethods?.length > 1
                                 ? 6
                                 : 12
                             }

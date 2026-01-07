@@ -37,6 +37,7 @@ import OfflinePaymentIcon from "../assets/OfflinePaymentIcon";
 import cashOnDelivery from "../assets/cod2.svg";
 import wallet from "../assets/wallet.svg";
 import { CustomButtonPrimary } from "styled-components/CustomButtons.style";
+import { filterDigiWalletMethods } from "utils/CustomFunctions";
 
 const OfflineButton = styled(Button)(({ theme, value, paymentMethod }) => ({
   padding: "15px 15px",
@@ -82,10 +83,15 @@ const ParcelPaymentMethod = (props) => {
   const { offlineMethod, offlineInfoStep } = useSelector(
     (state) => state.offlinePayment
   );
+  const { profileInfo } = useSelector((state) => state.profileInfo);
   const [isCheckedOffline, setIsCheckedOffline] = useState(
     offlineMethod !== "" ? true : false
   );
   const [openOfflineOptions, setOpenOfflineOptions] = useState(false);
+  const paymentMethods = filterDigiWalletMethods(
+    configData?.active_payment_method_list,
+    profileInfo
+  );
 
   const handleClickOffline = () => {
     setOpenOfflineOptions(!openOfflineOptions);
@@ -275,7 +281,7 @@ const ParcelPaymentMethod = (props) => {
                   configData?.digital_payment_info?.digital_payment &&
                   getParcelPayment()[0]?.digital_payment && (
                     <>
-                      {configData?.active_payment_method_list?.map(
+                      {paymentMethods?.map(
                         (item, index) => {
                           return (
                             <Stack flexGrow={1} flexBasis={"48%"}>

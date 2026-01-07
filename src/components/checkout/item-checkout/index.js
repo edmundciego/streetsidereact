@@ -33,6 +33,7 @@ import {
 } from "styled-components/CustomStyles.style";
 import {
 	formatPhoneNumber,
+	filterDigiWalletMethods,
 	getDayNumber,
 	getDigitalMethodFromZone,
 	getFinalTotalPrice,
@@ -1056,6 +1057,10 @@ const ItemCheckout = (props) => {
 		storeData?.zone_id,
 		zoneData?.data
 	);
+	const paymentMethods = filterDigiWalletMethods(
+		configData?.active_payment_method_list,
+		profileInfo
+	);
 
 	const isZoneCod = () => { };
 	const hasOnlyPaymentMethod = () => {
@@ -1064,12 +1069,12 @@ const ItemCheckout = (props) => {
 			configData?.customer_wallet_status !== 1 &&
 			configData?.offline_payment_status !== 1 &&
 			configData?.digital_payment &&
-			configData?.active_payment_method_list?.length === 1 &&
+			paymentMethods?.length === 1 &&
 			isZoneDigital?.digital_payment
 		) {
-			setPaymentMethod(configData?.active_payment_method_list[0]?.gateway);
+			setPaymentMethod(paymentMethods?.[0]?.gateway);
 			setPaymentMethodImage(
-				configData?.active_payment_method_list[0]?.gateway_image_full_url
+				paymentMethods?.[0]?.gateway_image_full_url
 			);
 		}
 	};

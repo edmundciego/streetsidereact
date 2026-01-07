@@ -14,6 +14,7 @@ import { PrimaryButton } from "components/Map/map.style";
 import { getToken } from "helper-functions/getToken";
 import PartialPayment from "components/checkout/item-checkout/PartialPayment";
 import { getAmountWithSign } from "helper-functions/CardHelpers";
+import { filterDigiWalletMethods } from "utils/CustomFunctions";
 
 const RentalPaymentMethod = ({
   handleClose,
@@ -30,6 +31,11 @@ const RentalPaymentMethod = ({
 }) => {
   const theme = useTheme();
   const { configData } = useSelector((state) => state.configData);
+  const { profileInfo } = useSelector((state) => state.profileInfo);
+  const paymentMethods = filterDigiWalletMethods(
+    configData?.active_payment_method_list,
+    profileInfo
+  );
 
   const handleClick = (value) => {
     setPaymentMethod(value);
@@ -166,7 +172,7 @@ const RentalPaymentMethod = ({
           </Typography>
           <CustomStackFullWidth spacing={1}>
             <Grid container spacing={3}>
-              {configData?.active_payment_method_list?.map((item, index) => {
+              {paymentMethods?.map((item, index) => {
                 return (
                   <Grid item xs={6} key={index}>
                     <PaymentMethodCard

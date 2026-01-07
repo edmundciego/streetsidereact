@@ -33,6 +33,7 @@ import CloseIcon from "@mui/icons-material/Close";
 import { getLanguage } from "../../helper-functions/getLanguage";
 import "simplebar-react/dist/simplebar.min.css";
 import SimpleBar from "simplebar-react";
+import { filterDigiWalletMethods } from "utils/CustomFunctions";
 
 const validationSchema = Yup.object({
   amount: Yup.string().required("Please Enter amount"),
@@ -53,15 +54,18 @@ const WalletBoxComponent = (props) => {
   const [isFocus, setFocus] = useState(false);
   const [loading, setLoading] = useState(false);
   const { configData } = useSelector((state) => state?.configData);
-  const [value, setValue] = useState(
-    configData?.active_payment_method_list[0]?.gateway
+  const { profileInfo } = useSelector((state) => state.profileInfo);
+  const paymentMethods = filterDigiWalletMethods(
+    configData?.active_payment_method_list,
+    profileInfo
   );
+  const [value, setValue] = useState(paymentMethods?.[0]?.gateway);
   const base_url = configData?.base_urls?.gateway_image_url;
 
   const formik = useFormik({
     initialValues: {
       amount: "",
-      payment_method: configData?.active_payment_method_list[0]?.gateway,
+      payment_method: paymentMethods?.[0]?.gateway,
     },
     validationSchema: validationSchema,
     onSubmit: async (values, helpers) => {
@@ -70,6 +74,14 @@ const WalletBoxComponent = (props) => {
       } catch (err) {}
     },
   });
+
+  React.useEffect(() => {
+    const nextGateway = paymentMethods?.[0]?.gateway;
+    if (nextGateway && nextGateway !== value) {
+      setValue(nextGateway);
+      formik.setFieldValue("payment_method", nextGateway);
+    }
+  }, [paymentMethods, value, formik]);
 
   const { mutate } = useAddFundToWallet();
 
@@ -242,7 +254,7 @@ const WalletBoxComponent = (props) => {
               </Typography>
             </Stack>
           </Stack>
-          {configData?.active_payment_method_list?.length>0 && configData?.add_fund_status ?  (
+          {paymentMethods?.length > 0 && configData?.add_fund_status ? (
             <Button
               sx={{
                 position: "absolute",
@@ -335,7 +347,7 @@ const WalletBoxComponent = (props) => {
                 </Typography>
                 <>
                   <Stack>
-                    {configData?.active_payment_method_list?.map((item, i) => (
+                    {paymentMethods?.map((item, i) => (
                       <CustomRadioBox key={item?.gateway}>
                         <label
                           className={value == item.gateway ? "active" : ""}

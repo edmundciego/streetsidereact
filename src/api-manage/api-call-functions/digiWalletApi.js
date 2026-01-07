@@ -9,12 +9,12 @@ const withJsonHeaders = {
 
 export const digiWalletApi = {
   initiate: (paymentId) =>
-    MainApi.get("/payment/digiWallet/pay", {
+    MainApi.get("/payment/digiwallet/pay", {
       ...withJsonHeaders,
       params: { payment_id: paymentId },
     }),
   confirmOtp: (payload) =>
-    MainApi.post("/payment/digiWallet/webhook", payload, withJsonHeaders),
+    MainApi.post("/payment/digiwallet/webhook", payload, withJsonHeaders),
   getStatus: (paymentId) =>
     MainApi.get(`/api/v1/payment/digiwallet/status/${paymentId}`, withJsonHeaders),
   resendOtp: (paymentId) =>
