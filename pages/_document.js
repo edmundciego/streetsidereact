@@ -24,27 +24,6 @@ class CustomDocument extends Document {
           <meta name="application-name" content="StreetSide" />
           <meta name="msapplication-TileColor" content="#111827" />
           
-          {/* Fonts - preload for LCP */}
-          <link rel="preconnect" href="https://fonts.googleapis.com" />
-          <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
-          <link
-            href="https://fonts.googleapis.com/css2?family=Rubik:wght@300;400;500;600;700&display=swap"
-            rel="stylesheet"
-          />
-
-          {/* Social login scripts - defer to avoid blocking render */}
-          <script
-            type="application/javascript"
-            src="https://accounts.google.com/gsi/client"
-            async
-            defer
-          />
-          <script
-            type="text/javascript"
-            src="https://appleid.cdn-apple.com/appleauth/static/jsapi/appleid/1/en_US/appleid.auth.js"
-            async
-            defer
-          />
           <meta name="theme-color" content="#111827" />
 
           {/* ✅ Analytics scripts */}

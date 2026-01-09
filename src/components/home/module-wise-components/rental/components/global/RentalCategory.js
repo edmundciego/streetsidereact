@@ -1,18 +1,16 @@
 import { CustomCarCard } from "components/home/module-wise-components/rental/components/Rental.style";
 import { Box, Stack } from "@mui/system";
 import { Tooltip, Typography, useTheme } from "@mui/material";
+
 import { useRouter } from "next/router";
 import CustomImageContainer from "components/CustomImageContainer";
 import NextImage from "components/NextImage";
-import useTextEllipsis from "api-manage/hooks/custom-hooks/useTextEllipsis";
 
 const RentalCategory = ({ data }) => {
   const router = useRouter();
-
   const rentalCategoryImage = data?.image_full_url;
   const rentalCategoryName = data?.name;
   const rentalCategoryId = data?.id;
-  const { textRef, isEllipsed } = useTextEllipsis(rentalCategoryName);
 
   const handleCategoryClick = () => {
     router.push({
@@ -27,7 +25,7 @@ const RentalCategory = ({ data }) => {
         <Stack
           alignItems="center"
           mb={1}
-
+        
         >
           <NextImage
             width={180}
@@ -36,40 +34,22 @@ const RentalCategory = ({ data }) => {
             objectFit="cover"
           />
         </Stack>
-        {isEllipsed ? (
-          <Tooltip
-            title={rentalCategoryName}
-            placement="top"
-            arrow
-            componentsProps={{
-              tooltip: {
-                sx: {
-                  bgcolor: (theme) => theme.palette.toolTipColor,
-                  "& .MuiTooltip-arrow": {
-                    color: (theme) => theme.palette.toolTipColor,
-                  },
+        <Tooltip
+          title={rentalCategoryName}
+          placement="top"
+          arrow
+          componentsProps={{
+            tooltip: {
+              sx: {
+                bgcolor: (theme) => theme.palette.toolTipColor,
+                "& .MuiTooltip-arrow": {
+                  color: (theme) => theme.palette.toolTipColor,
                 },
               },
-            }}
-          >
-            <Typography
-              ref={textRef}
-              sx={{
-                textAlign: "center",
-                color: (theme) => theme.palette.neutral[500],
-                fontWeight: "500",
-                fontSize: "18px",
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                whiteSpace: "nowrap"
-              }}
-            >
-              {rentalCategoryName}
-            </Typography>
-          </Tooltip>
-        ) : (
+            },
+          }}
+        >
           <Typography
-            ref={textRef}
             sx={{
               textAlign: "center",
               color: (theme) => theme.palette.neutral[500],
@@ -82,7 +62,7 @@ const RentalCategory = ({ data }) => {
           >
             {rentalCategoryName}
           </Typography>
-        )}
+        </Tooltip>
       </Box>
     </CustomCarCard>
   );

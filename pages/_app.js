@@ -22,6 +22,14 @@ import { useTranslation } from "react-i18next";
 import useScrollToTop from "../src/api-manage/hooks/custom-hooks/useScrollToTop";
 import { useEffect } from "react";
 import OfflineIndicator from "../src/components/OfflineIndicator";
+import { Rubik } from 'next/font/google';
+
+const rubik = Rubik({
+  weight: ['300', '400', '500', '600', '700'],
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-rubik',
+});
 
 Router.events.on("routeChangeStart", nProgress.start);
 Router.events.on("routeChangeError", nProgress.done);
@@ -60,7 +68,7 @@ function MyApp(props) {
   }, [currentVersion]);
 
   return (
-    <>
+    <main className={rubik.className}>
       {useScrollToTop()}
       <CacheProvider value={emotionCache}>
         <QueryClientProvider client={queryClient}>
@@ -89,7 +97,7 @@ function MyApp(props) {
           <ReactQueryDevtools initialIsOpen={false} position="bottom-right" />
         </QueryClientProvider>
       </CacheProvider>
-    </>
+    </main>
   );
 }
 

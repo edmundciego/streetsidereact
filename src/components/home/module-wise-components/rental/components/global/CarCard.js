@@ -31,7 +31,6 @@ import {
 import CustomModal from "components/modal";
 import RentalCarQuickView from "./RentalCarQuickView";
 import { useRouter } from "next/router";
-import useTextEllipsis from "api-manage/hooks/custom-hooks/useTextEllipsis";
 
 import { useDispatch, useSelector } from "react-redux";
 import useUpdateBookingCart from "components/home/module-wise-components/rental/rental-api-manage/hooks/react-query/confirm-booking/useUpdateBookingCart";
@@ -82,12 +81,12 @@ export const handleBadgeRental = (data) => {
   if (Number.parseInt(data?.discount_price) > 0) {
     if (data?.discount_type === "percent") {
       return (
-        <CustomBadge
+        <CustomBadge 
           bg_color="#DA6868"
-          fontSize="12px"
-          border_radius="5px 1px 14px 0px"
-          top={0}
-          text={`${data?.discount_price}${p_off}`}
+          fontSize="12px" 
+          border_radius="5px 1px 14px 0px" 
+          top={0} 
+          text={`${data?.discount_price}${p_off}`} 
         />
       );
     } else {
@@ -118,7 +117,6 @@ const CarCard = ({
   const theme = useTheme();
   const dispatch = useDispatch();
   const router = useRouter();
-  const { ref: textRef, isEllipsed } = useTextEllipsis(data?.name);
   const [isWishlisted, setIsWishlisted] = useState(false);
   const [cartItemData, setCartItemData] = useState({});
   const [carDetails, setCarDetails] = useState({});
@@ -215,8 +213,8 @@ const CarCard = ({
     if (data?.total_vehicle_count < updateQuantity) {
       toast.error(t(`You can't add more than ${data?.total_vehicle_count} quantities of this vehicle.`));
     } else {
-      if (from === "from_search") {
-        if (Number(rentalSearch?.duration) === Number(cartList?.user_data?.estimated_hours)) {
+      if(from === "from_search"){
+        if(Number(rentalSearch?.duration) === Number(cartList?.user_data?.estimated_hours)){
           updateCart(
             cartItem,
             cartList?.user_data,
@@ -225,7 +223,7 @@ const CarCard = ({
             updateQuantity,
             updateMutate
           )
-        } else {
+        }else{
           setUpdateOrAdd({
             type: 'update',
             quantity: updateQuantity,
@@ -234,7 +232,7 @@ const CarCard = ({
           setOpenHourDiffModal(true);
           setOpen(false)
         }
-      } else {
+      }else{
         updateCart(
           cartItem,
           cartList?.user_data,
@@ -249,17 +247,17 @@ const CarCard = ({
 
   const handleDecrement = (cartItem) => {
     const updateQuantity = cartItem?.quantity - 1;
-    if (from === "from_search") {
-      if (Number(rentalSearch?.duration) === Number(cartList?.user_data?.estimated_hours)) {
+    if(from === "from_search"){
+      if(Number(rentalSearch?.duration) === Number(cartList?.user_data?.estimated_hours)){
         updateCart(
           cartItem,
           cartList?.user_data,
           dispatch,
-          setCartList,
+          setCartList,    
           updateQuantity,
           updateMutate
         )
-      } else {
+      }else{
         setUpdateOrAdd({
           type: 'update',
           quantity: updateQuantity,
@@ -267,7 +265,7 @@ const CarCard = ({
         })
         setOpenHourDiffModal(true);
       }
-    } else {
+    }else{
       updateCart(
         cartItem,
         cartList?.user_data,
@@ -330,9 +328,9 @@ const CarCard = ({
 
 
   const handleSameProvider = (bookingDetails) => {
-    if (cartList?.carts?.length > 0) {
+    if(cartList?.carts?.length>0){
       if (rentalSearch?.tripType === cartList?.user_data?.rental_type) {
-        if (cartList?.user_data?.rental_type === "hourly" || cartList?.user_data?.rental_type === "day_wise") {
+        if(cartList?.user_data?.rental_type === "hourly" || cartList?.user_data?.rental_type==="day_wise"){
           if (Number(rentalSearch?.duration) === Number(cartList?.user_data?.estimated_hours)) {
             bookingConfirm({
               ...bookingDetails,
@@ -349,7 +347,7 @@ const CarCard = ({
             });
             setOpenHourDiffModal(true);
           }
-        } else {
+        }else{
           bookingConfirm({
             ...bookingDetails,
             confirmMutate,
@@ -369,7 +367,7 @@ const CarCard = ({
         setIsSameOpen?.(true);
         handleClose?.();
       }
-    } else {
+    }else{
       bookingConfirm({
         ...bookingDetails,
         confirmMutate,
@@ -412,9 +410,9 @@ const CarCard = ({
       estimated_hours: updateCartObject?.durationValue,
       pickup_time: updateCartObject?.dateValue,
       destination_time: Math.floor(
-        updateCartObject?.data?.distanceMeters / (60 * 60)
+        updateCartObject?.data?.distanceMeters  / (60 * 60)
       ),
-      distance: Number(updateCartObject?.data?.duration?.replace('s', '')) / 1000,
+      distance:Number(updateCartObject?.data?.duration?.replace('s', ''))/ 1000,
       guest_id: getToken() ? null : getGuestId()
     };
 
@@ -443,8 +441,8 @@ const CarCard = ({
     });
   };
 
-  const handleHourDiffModal = (bookingDetails, updateOrAdd) => {
-    if (updateOrAdd?.type === 'add') {
+  const handleHourDiffModal = (bookingDetails,updateOrAdd) => {
+    if(updateOrAdd?.type === 'add'){
       bookingConfirm({
         ...bookingDetails,
         confirmMutate,
@@ -454,9 +452,8 @@ const CarCard = ({
         handleClose: () => setOpenHourDiffModal(false),
         onErrorResponse,
       });
-    } else {
-      const tempUserData = {
-        ...cartList?.user_data,
+    }else{
+      const tempUserData = {...cartList?.user_data,
         estimated_hours: rentalSearch?.duration,
       }
       updateCart(
@@ -465,7 +462,7 @@ const CarCard = ({
         dispatch,
         setCartList,
         updateOrAdd?.quantity,
-        updateMutate
+        updateMutate  
       )
       setOpenHourDiffModal(false);
     }
@@ -488,26 +485,8 @@ const CarCard = ({
           <Box p={2}>
             <Stack direction="row" spacing={2} justifyContent="space-between">
               <Stack gap={1}>
-                {isEllipsed ? (
-                  <Tooltip title={data?.name} placement="top">
-                    <Typography
-                      ref={textRef}
-                      noWrap
-                      variant="body1"
-                      component="h6"
-                      width={180}
-                      fontSize={16}
-                      fontWeight={600}
-                      sx={{
-                        color: (theme) => theme.palette.neutral[1000],
-                      }}
-                    >
-                      {data?.name}
-                    </Typography>
-                  </Tooltip>
-                ) : (
+                <Tooltip title={data?.name} placement="top">
                   <Typography
-                    ref={textRef}
                     noWrap
                     variant="body1"
                     component="h6"
@@ -520,7 +499,7 @@ const CarCard = ({
                   >
                     {data?.name}
                   </Typography>
-                )}
+                </Tooltip>
                 <Typography sx={{ fontSize: "12px", mt: "-6px" }} component="p">
                   {data?.provider?.name}
                 </Typography>
@@ -615,8 +594,8 @@ const CarCard = ({
                     bg_color="#EF8C45"
                     text={t("New Arrival")}
                     fontSize="12px"
-                    border_radius="0px 1px 14px 0px"
-
+                   border_radius="0px 1px 14px 0px"
+                    
                   />
                 ) : null}
 
@@ -832,22 +811,22 @@ const CarCard = ({
                   <Typography
                     className="original-price"
                     sx={{
-                      fontSize: data?.discount_type !== 'amount' ? "13px" : "18px",
-                      fontWeight: data?.discount_type !== 'amount' ? "400" : "600",
-                      textDecoration: data?.discount_type === 'amount' ? "none" : "line-through",
-                      color: (theme) => data?.discount_type === "amount" ? theme.palette.neutral[1000] : theme.palette.neutral[400],
+                      fontSize:data?.discount_type!=='amount'? "13px":"18px",
+                      fontWeight:data?.discount_type!=='amount'? "400":"600",
+                      textDecoration:data?.discount_type==='amount'?"none": "line-through",
+                      color: (theme) => data?.discount_type==="amount"? theme.palette.neutral[1000]:theme.palette.neutral[400],
                     }}
                   >
                     {getAmountWithSign(mainPrice(data, rentalSearch?.tripType))}
                   </Typography>
-                ) : <Typography
+                ) :   <Typography
                   sx={{
                     fontSize: "18px",
                     fontWeight: "600",
                     color: (theme) => theme.palette.neutral[1000],
                   }}
                 >   {getAmountWithSign(mainPrice(data, rentalSearch?.tripType))}</Typography>}
-                {data?.discount_type === 'amount' ? null : (
+                {data?.discount_type==='amount' ? null:(
                   <Typography
                     sx={{
                       fontSize: "18px",
@@ -869,7 +848,7 @@ const CarCard = ({
                   </Typography>
                 )}
 
-
+                
               </Stack>
             </Box>
             <RentWithIncrementDecrement
@@ -984,18 +963,18 @@ const CarCard = ({
           from={fromSearch}
         />
       </CustomModal>
-      <CustomModal openModal={isSameOpen} handleClose={() => { setIsSameOpen(false) }} maxWidth="380px">
-        <IconButton
+      <CustomModal openModal={isSameOpen} handleClose={()=>{setIsSameOpen(false)}} maxWidth="380px">
+      <IconButton
           onClick={() => setIsSameOpen(false)}
           sx={{ position: "absolute", top: 0, right: 0 }}
         >
           <CloseIcon sx={{ fontSize: "16px" }} />
         </IconButton>
         <ChangeTripType cartList={cartList}
-          setIsSameOpen={setIsSameOpen}
-          userDataIsLoading={userDataIsLoading}
-          handleChangePrvTripType={handleChangePrvTripType}
-          updateCartObject={updateCartObject}
+                        setIsSameOpen={setIsSameOpen}
+                        userDataIsLoading={userDataIsLoading}
+                        handleChangePrvTripType={handleChangePrvTripType}
+                        updateCartObject={updateCartObject}
         />
       </CustomModal>
       <CustomModal openModal={openTripChange} maxWidth="380px">
@@ -1019,8 +998,8 @@ const CarCard = ({
           }
         />
       </CustomModal>
-      <CustomModal openModal={openHourDiffModal} handleClose={() => { setOpenHourDiffModal(false) }} maxWidth="350px">
-        <IconButton
+      <CustomModal openModal={openHourDiffModal} handleClose={()=>{setOpenHourDiffModal(false)}} maxWidth="350px">
+      <IconButton
           onClick={() => setOpenHourDiffModal(false)}
           sx={{ position: "absolute", top: 0, right: 0 }}
         >
