@@ -24,6 +24,7 @@ import { useEffect } from "react";
 import OfflineIndicator from "../src/components/OfflineIndicator";
 import { Rubik } from 'next/font/google';
 import { SpeedInsights } from '@vercel/speed-insights/next';
+import { Analytics } from '@vercel/analytics/react';
 
 const rubik = Rubik({
   weight: ['300', '400', '500', '600', '700'],
@@ -90,6 +91,7 @@ function MyApp(props) {
                       <Toaster position="top-center" />
                       {getLayout(<Component {...pageProps} />)}
                       <SpeedInsights />
+                      <Analytics />
                     </RTL>
                   </ThemeProvider>
                 )}
