@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useState } from "react";
+import { useRef, useState, useMemo } from "react";
 import placeholder from "../../public/static/no-image-found.png";
 
 const shimmer = (w, h) => `
@@ -35,22 +35,25 @@ const NextImage = ({
    sizes = undefined,
    ...props
  }) => {
-  const [currentSrc, setCurrentSrc] = useState(src || altSrc);
-  const [hasError, setHasError] = useState(false);
-
-  useEffect(() => {
-    // Only reset if src actually changed and we haven't errored to altSrc
-    if (src && src !== currentSrc && !hasError) {
-      setCurrentSrc(src);
-    } else if (!src && currentSrc !== altSrc) {
-      setCurrentSrc(altSrc);
+  // Use ref to track the last valid src to prevent flicker
+  const lastValidSrc = useRef(src || altSrc);
+  const [errorFallback, setErrorFallback] = useState(false);
+  
+  // Determine the image source without causing unnecessary re-renders
+  const imageSrc = useMemo(() => {
+    if (errorFallback) {
+      return altSrc;
     }
-  }, [src]);
+    if (src) {
+      lastValidSrc.current = src;
+      return src;
+    }
+    return lastValidSrc.current || altSrc;
+  }, [src, errorFallback, altSrc]);
 
   const handleError = () => {
-    if (altSrc && currentSrc !== altSrc) {
-      setHasError(true);
-      setCurrentSrc(altSrc);
+    if (!errorFallback) {
+      setErrorFallback(true);
     }
   };
 
@@ -65,14 +68,20 @@ const NextImage = ({
   // Default sizes hint for responsive images
   const defaultSizes = sizes || `(max-width: 768px) 100vw, ${width}px`;
 
+  // Memoize placeholder to prevent recalculation on every render
+  const placeholderData = useMemo(
+    () => `data:image/svg+xml;base64,${toBase64(shimmer(width || 100, height || 100))}`,
+    [width, height]
+  );
+
   return (
     <Image
-      src={currentSrc}
+      src={imageSrc}
       width={width}
       height={height}
       alt={alt}
       onError={handleError}
-      placeholder={`data:image/svg+xml;base64,${toBase64(shimmer(width, height))}`}
+      placeholder={placeholderData}
       style={style}
       sizes={defaultSizes}
       {...props}
