@@ -36,13 +36,20 @@ const NextImage = ({
    ...props
  }) => {
   const [currentSrc, setCurrentSrc] = useState(src || altSrc);
+  const [hasError, setHasError] = useState(false);
 
   useEffect(() => {
-    setCurrentSrc(src || altSrc);
-  }, [src, altSrc]);
+    // Only reset if src actually changed and we haven't errored to altSrc
+    if (src && src !== currentSrc && !hasError) {
+      setCurrentSrc(src);
+    } else if (!src && currentSrc !== altSrc) {
+      setCurrentSrc(altSrc);
+    }
+  }, [src]);
 
   const handleError = () => {
     if (altSrc && currentSrc !== altSrc) {
+      setHasError(true);
       setCurrentSrc(altSrc);
     }
   };
