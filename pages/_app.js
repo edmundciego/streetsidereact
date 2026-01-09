@@ -21,6 +21,7 @@ import { persistStore } from "redux-persist";
 import { useTranslation } from "react-i18next";
 import useScrollToTop from "../src/api-manage/hooks/custom-hooks/useScrollToTop";
 import { useEffect } from "react";
+import OfflineIndicator from "../src/components/OfflineIndicator";
 
 Router.events.on("routeChangeStart", nProgress.start);
 Router.events.on("routeChangeError", nProgress.done);
@@ -76,6 +77,7 @@ function MyApp(props) {
                   >
                     <RTL direction={value?.settings?.direction}>
                       <CssBaseline />
+                      <OfflineIndicator />
                       <Toaster position="top-center" />
                       {getLayout(<Component {...pageProps} />)}
                     </RTL>
