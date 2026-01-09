@@ -23,6 +23,7 @@ import useScrollToTop from "../src/api-manage/hooks/custom-hooks/useScrollToTop"
 import { useEffect } from "react";
 import OfflineIndicator from "../src/components/OfflineIndicator";
 import { Rubik } from 'next/font/google';
+import { SpeedInsights } from '@vercel/speed-insights/next';
 
 const rubik = Rubik({
   weight: ['300', '400', '500', '600', '700'],
@@ -88,6 +89,7 @@ function MyApp(props) {
                       <OfflineIndicator />
                       <Toaster position="top-center" />
                       {getLayout(<Component {...pageProps} />)}
+                      <SpeedInsights />
                     </RTL>
                   </ThemeProvider>
                 )}
