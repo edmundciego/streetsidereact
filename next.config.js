@@ -14,6 +14,25 @@ const withPWA = require('next-pwa')({
   
   // Runtime caching strategies
   runtimeCaching: [
+    // Prioritize Category Images (served via Next.js Image Optimization or direct)
+    {
+      urlPattern: ({ url }) => {
+        const isNextImage = url.pathname.startsWith('/_next/image') && url.searchParams.get('url')?.includes('category');
+        const isDirectCategory = url.pathname.includes('category') && /\.(?:png|jpg|jpeg|webp|gif|svg|ico)$/i.test(url.pathname);
+        return isNextImage || isDirectCategory;
+      },
+      handler: 'CacheFirst',
+      options: {
+        cacheName: 'category-image-cache',
+        expiration: {
+          maxEntries: 100,
+          maxAgeSeconds: 2592000, // 30 days
+        },
+        cacheableResponse: {
+          statuses: [0, 200],
+        },
+      },
+    },
     // Config API - critical, refresh in background
     {
       urlPattern: /\/api\/v1\/config$/,

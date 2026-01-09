@@ -259,6 +259,7 @@ const Banners = ({feature}) => {
                           width={624}
                           objectFit="cover"
                           borderRadius="10px"
+                          priority={index < 2}
                         />
                       </BannersWrapper>
                     ))}
