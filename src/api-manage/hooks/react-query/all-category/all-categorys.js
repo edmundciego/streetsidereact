@@ -24,8 +24,10 @@ export const useGetCategories = (
       enabled: false,
       onSuccess: handleRequestOnSuccess,
       onError: onErrorResponse,
-      cacheTime: 300000,
-      staleTime: 1000 * 60 * 5, // 5 minutes
+      cacheTime: 1000 * 60 * 30, // 30 minutes
+      staleTime: 1000 * 60 * 10, // 10 minutes
+      refetchOnWindowFocus: false,
+      refetchOnMount: false,
     }
   );
 };
@@ -36,8 +38,10 @@ const getFeaturedData = async () => {
 export const useGetFeaturedCategories = (handleSuccess) => {
   return useQuery(["featured-categories-lists",getCurrentModuleType()], () => getFeaturedData(), {
      enabled: true,
-    cacheTime: 1000 * 60,        // 1 minute
-    staleTime: 1000 * 30,        // 30 seconds
+    cacheTime: 1000 * 60 * 30,   // 30 minutes - keep in memory
+    staleTime: 1000 * 60 * 10,   // 10 minutes - don't refetch for 10 min
+    refetchOnWindowFocus: false, // Don't refetch when tab regains focus
+    refetchOnMount: false,       // Don't refetch when component remounts
     onError: onErrorResponse,
     onSuccess: (data) => {
       if (handleSuccess) {

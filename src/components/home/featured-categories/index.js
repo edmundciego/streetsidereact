@@ -503,7 +503,7 @@ const FeaturedCategories = () => {
 
   return (
     <CustomBoxFullWidth sx={{ mt: "20px" }}>
-      {isLoading ? (
+      {isLoading && !data?.data ? (
         <HomeComponentsWrapper>
           <SliderCustom
             sx={{
