@@ -7,6 +7,9 @@ const withPWA = require('next-pwa')({
   // Exclude Firebase messaging SW from being overwritten
   publicExcludes: ['!firebase-messaging-sw.js'],
   
+  // Exclude non-existent Next.js 15 files from precaching
+  buildExcludes: [/dynamic-css-manifest\.json$/],
+  
   // Fallback page when offline
   fallbacks: {
     document: '/offline',
