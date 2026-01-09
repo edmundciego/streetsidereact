@@ -32,6 +32,7 @@ const NextImage = ({
    objectFit,
    borderRadius,
    aspectRatio,
+   sizes = undefined,
    ...props
  }) => {
   const [currentSrc, setCurrentSrc] = useState(src || altSrc);
@@ -54,6 +55,9 @@ const NextImage = ({
     ...props.style, // allow passing additional styles
   };
 
+  // Default sizes hint for responsive images
+  const defaultSizes = sizes || `(max-width: 768px) 100vw, ${width}px`;
+
   return (
     <Image
       src={currentSrc}
@@ -63,7 +67,7 @@ const NextImage = ({
       onError={handleError}
       placeholder={`data:image/svg+xml;base64,${toBase64(shimmer(width, height))}`}
       style={style}
-
+      sizes={defaultSizes}
       {...props}
     />
   );

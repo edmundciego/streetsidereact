@@ -5,18 +5,74 @@ This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next
 First, run the development server:
 
 ```bash
-npm run dev
-# or
 yarn dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-You can start editing the page by modifying `pages/WishLists.js`. The page auto-updates as you edit the file.
+## Build & Deployment
 
-[API routes](https://nextjs.org/docs/api-routes/introduction) can be accessed on [http://localhost:3000/api/hello](http://localhost:3000/api/hello). This endpoint can be edited in `pages/api/hello.js`.
+### Install Dependencies
 
-The `pages/api` directory is mapped to `/api/*`. Files in this directory are treated as [API routes](https://nextjs.org/docs/api-routes/introduction) instead of React pages.
+```bash
+yarn install
+```
+
+### Build for Production
+
+```bash
+yarn build
+```
+
+This generates:
+- `.next/` — Compiled Next.js output
+- `public/sw.js` — Service worker (auto-generated, gitignored)
+- `public/workbox-*.js` — Workbox runtime (auto-generated, gitignored)
+- `public/fallback-*.js` — Offline fallback (auto-generated, gitignored)
+
+### Start Production Server
+
+```bash
+yarn start
+# Or with PM2:
+pm2 restart streetside-react
+```
+
+### Deployment Checklist
+
+1. `git pull origin main`
+2. `yarn install` (if dependencies changed)
+3. `yarn build` (regenerates service worker)
+4. Restart the server
+
+> **Important:** Always run `yarn build` after pulling. The service worker files are gitignored and must be regenerated on each deployment.
+
+## PWA Service Worker
+
+The app uses `next-pwa` for offline caching. Configuration is in `next.config.js`.
+
+**Cached resources:**
+| Cache | Strategy | TTL | Content |
+|-------|----------|-----|---------|
+| `config-cache` | StaleWhileRevalidate | 5 min | `/api/v1/config` |
+| `static-api-cache` | CacheFirst | 10 min | Categories, modules, landing page |
+| `dynamic-api-cache` | StaleWhileRevalidate | 5 min | Items, stores, banners, campaigns |
+| `image-cache` | CacheFirst | 24 hours | All images |
+| `google-fonts-webfonts` | CacheFirst | 1 year | Google Fonts |
+
+**Key files:**
+- `public/manifest.json` — PWA manifest
+- `public/Streetside Stores-app-icon.png` — App icon
+- `pages/offline.js` — Offline fallback page
+- `src/components/OfflineIndicator.js` — Network status banner
+
+## Troubleshooting
+
+| Issue | Solution |
+|-------|----------|
+| `Cannot find type definition file for 'minimatch'` | `yarn add -D @types/minimatch` |
+| Service worker not updating | Hard refresh (Ctrl+Shift+R) or clear cache |
+| Build fails | Delete `.next/` and `node_modules/.cache/`, then rebuild |
 
 ## Learn More
 
@@ -26,9 +82,3 @@ To learn more about Next.js, take a look at the following resources:
 - [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
 
 You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js/) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.

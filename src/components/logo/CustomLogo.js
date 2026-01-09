@@ -40,8 +40,10 @@ const CustomLogo = ({ logoImg, atlText, height, width, objectFit }) => {
         alt={atlText}
         objectFit={objectFit ? objectFit : "contain"}
         loading="eager"
+        priority={true}
         width={100}
         height={70}
+        sizes="100px"
       />
     </Logo>
   );

@@ -107,6 +107,18 @@ const nextConfig = {
     } : false,
   },
   images: {
+    // Use modern formats (WebP/AVIF)
+    formats: ['image/avif', 'image/webp'],
+    
+    // Define device sizes for srcset generation
+    deviceSizes: [640, 750, 828, 1080, 1200, 1920],
+    
+    // Define image sizes for smaller images (thumbnails, icons)
+    imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
+    
+    // Cache optimized images longer
+    minimumCacheTTL: 86400, // 24 hours
+    
     remotePatterns: [
       {
         protocol: 'http',
