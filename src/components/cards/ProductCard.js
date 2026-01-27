@@ -12,10 +12,10 @@ import { styled } from "@mui/material/styles";
 import { Box, Stack } from "@mui/system";
 import { getAmountWithSign } from "helper-functions/CardHelpers";
 import { useRouter } from "next/router";
-import React, { useEffect, useReducer, useState, useRef } from "react";
+import React, { memo, useEffect, useReducer, useState, useRef } from "react";
 import toast from "react-hot-toast";
 import { useTranslation } from "react-i18next";
-import { useDispatch, useSelector } from "react-redux";
+import { useDispatch, useSelector, useStore } from "react-redux";
 import {
   setCart,
   setDecrementToCartItem,
@@ -43,7 +43,7 @@ import { onErrorResponse } from "api-manage/api-error-response/ErrorResponses";
 import { useAddToWishlist } from "api-manage/hooks/react-query/wish-list/useAddWishList";
 import { useWishListDelete } from "api-manage/hooks/react-query/wish-list/useWishListDelete";
 import { getCartListModuleWise } from "helper-functions/getCartListModuleWise";
-import { getCurrentModuleType } from "helper-functions/getCurrentModuleType";
+import { getCurrentModuleType, getCurrentModuleId } from "helper-functions/getCurrentModuleType";
 import { getLanguage } from "helper-functions/getLanguage";
 import { getModuleId } from "helper-functions/getModuleId";
 import { getGuestId } from "helper-functions/getToken";
@@ -248,43 +248,35 @@ const ProductCard = (props) => {
   const theme = useTheme();
   const isSmall = useMediaQuery(theme.breakpoints.down("sm"));
   const reduxDispatch = useDispatch();
-  const { cartList: aliasCartList } = useSelector((state) => state.cart);
-  const cartList = getCartListModuleWise(aliasCartList);
+  const store = useStore();
+  const cartItem = useSelector((state) =>
+    state.cart.cartList?.find(
+      (cart) =>
+        cart.id === item?.id &&
+        (cart?.module?.id === getCurrentModuleId() ||
+          cart?.module_id === getCurrentModuleId())
+    )
+  );
+  const isWishlisted = useSelector((state) =>
+    !!state.wishList.wishLists?.item?.find((wishItem) => wishItem.id === item?.id)
+  );
   const classes = textWithEllipsis();
   const { t } = useTranslation();
   const p_off = t("%");
-  const { wishLists } = useSelector((state) => state.wishList);
-  const [isWishlisted, setIsWishlisted] = useState(false);
+
   const { mutate: addFavoriteMutation } = useAddToWishlist();
   const { mutate } = useWishListDelete();
-  const [isProductExist, setIsProductExist] = useState(false);
-  const [count, setCount] = useState(0);
+
+  const isProductExist = !!cartItem;
+  const count = cartItem?.quantity || 0;
+
   const { mutate: addToMutate, isLoading } = useAddCartItem();
   const { mutate: updateMutate, isLoading: updateLoading } =
     useCartItemUpdate();
   const { mutate: cartItemRemoveMutate } = useDeleteCartItem();
-  useEffect(() => {
-    const isInCart = getItemFromCartlist();
-    if (isInCart) {
-      setIsProductExist(true);
-      setCount(isInCart?.quantity);
-    } else {
-      setIsProductExist(false);
-    }
-  }, [aliasCartList]);
+
   const getItemFromCartlist = () => {
-    const cartList = getCartListModuleWise(aliasCartList);
-    return cartList?.find((things) => things.id === item?.id);
-  };
-  useEffect(() => {
-    wishlistItemExistHandler();
-  }, [wishLists]);
-  const wishlistItemExistHandler = () => {
-    if (wishLists?.item?.find((wishItem) => wishItem.id === item?.id)) {
-      setIsWishlisted(true);
-    } else {
-      setIsWishlisted(false);
-    }
+    return cartItem;
   };
 
   useEffect(() => { }, [state.clearCartModal]);
@@ -358,7 +350,7 @@ const ProductCard = (props) => {
       });
     }
   }, [item]);
-  const isInCart = cartList?.find((things) => things.id === item?.id);
+  const isInCart = cartItem;
   const handleSuccess = (res) => {
     if (res) {
       let product = {};
@@ -378,13 +370,17 @@ const ProductCard = (props) => {
   };
 
   const addToCartHandler = () => {
+    const state = store.getState();
+    const aliasCartList = state.cart.cartList;
+    const cartList = getCartListModuleWise(aliasCartList);
+
     if (cartList.length > 0) {
       const isStoreExist = cartList.find(
         (item) => item?.store_id === state?.modalData[0]?.store_id
       );
 
       if (isStoreExist) {
-        if (!isInCart) {
+        if (!cartItem) {
           const itemObject = {
             guest_id: getGuestId(),
             model: state.modalData[0]?.available_date_starts
@@ -408,7 +404,7 @@ const ProductCard = (props) => {
         }
       }
     } else {
-      if (!isInCart) {
+      if (!cartItem) {
         const itemObject = {
           guest_id: getGuestId(),
           model: state.modalData[0]?.available_date_starts
@@ -1351,4 +1347,4 @@ const ProductCard = (props) => {
 
 ProductCard.propTypes = {};
 
-export default ProductCard;
+export default memo(ProductCard);
