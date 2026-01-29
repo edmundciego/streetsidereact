@@ -22,14 +22,10 @@ const ProductDetails = ({ productDetailsData, configData }) => {
 	const [isWishlisted, setIsWishlisted] = useState(false);
 	const { mutate: addFavoriteMutation } = useAddToWishlist();
 	const { mutate } = useWishListDelete();
-	const { data: storeData, refetch } = useGetStoreDetails(
+	const { data: storeData } = useGetStoreDetails(
 		productDetailsData?.store_id
 	);
-	useEffect(() => {
-		if (productDetailsData?.store_id) {
-			refetch();
-		}
-	}, []);
+
 	const addToWishlistHandler = (e) => {
 		e.stopPropagation();
 		let token = undefined;
