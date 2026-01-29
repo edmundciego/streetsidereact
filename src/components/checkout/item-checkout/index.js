@@ -176,7 +176,7 @@ const ItemCheckout = (props) => {
 		page === "campaign"
 			? campaignItemList?.[0]?.store_id
 			: cartList?.[0]?.store_id;
-	const { data: storeData, refetch } = useGetStoreDetails(storeId);
+	const { data: storeData } = useGetStoreDetails(storeId);
 	const { data: tripsData } = useGetMostTrips();
 	const { mutate: offlineMutate, isLoading: offlinePaymentLoading } =
 		useOfflinePayment();
@@ -197,11 +197,6 @@ const ItemCheckout = (props) => {
 	useEffect(() => {
 		refetchOfflinePaymentOptions();
 	}, []);
-	useEffect(() => {
-		if (storeId) {
-			refetch();
-		}
-	}, [storeId]);
 
 	const currentLatLng = JSON.parse(
 		window.localStorage.getItem("currentLatLng")
@@ -274,7 +269,6 @@ const ItemCheckout = (props) => {
 			address: location,
 			address_type: "Selected Address",
 		});
-		refetch();
 	}, []);
 
 	useEffect(() => {

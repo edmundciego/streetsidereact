@@ -52,15 +52,12 @@ const PrescriptionCheckout = ({ storeId ,page}) => {
   const [note, setNote] = useState("");
   const [paymentMethodImage, setPaymentMethodImage] = useState("");
   const { configData } = useSelector((state) => state.configData);
-  const { data: storeData, refetch } = useGetStoreDetails(storeId);
+  const { data: storeData } = useGetStoreDetails(storeId);
   const { guestUserInfo } = useSelector((state) => state.guestUserInfo);
   const guestId = getGuestId();
   const [payableAmount,setPayableAmount] = useState(0);
   const {mutate:taxMutate,data}=useGetTax()
 
-  useEffect(() => {
-    refetch();
-  }, [storeId]);
   useEffect(() => {
     const currentLatLng = JSON.parse(localStorage.getItem("currentLatLng"));
     const location = localStorage.getItem("location");
@@ -71,7 +68,6 @@ const PrescriptionCheckout = ({ storeId ,page}) => {
       address: location,
       address_type: "Selected Address",
     });
-    refetch();
   }, []);
 
   const currentLatLng = JSON.parse(
