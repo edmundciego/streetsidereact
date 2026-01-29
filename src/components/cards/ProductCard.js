@@ -15,7 +15,7 @@ import { useRouter } from "next/router";
 import React, { useEffect, useReducer, useState, useRef } from "react";
 import toast from "react-hot-toast";
 import { useTranslation } from "react-i18next";
-import { useDispatch, useSelector } from "react-redux";
+import { useDispatch, useSelector, useStore } from "react-redux";
 import {
   setCart,
   setDecrementToCartItem,
@@ -248,44 +248,28 @@ const ProductCard = (props) => {
   const theme = useTheme();
   const isSmall = useMediaQuery(theme.breakpoints.down("sm"));
   const reduxDispatch = useDispatch();
-  const { cartList: aliasCartList } = useSelector((state) => state.cart);
-  const cartList = getCartListModuleWise(aliasCartList);
+  const store = useStore();
   const classes = textWithEllipsis();
   const { t } = useTranslation();
   const p_off = t("%");
-  const { wishLists } = useSelector((state) => state.wishList);
-  const [isWishlisted, setIsWishlisted] = useState(false);
   const { mutate: addFavoriteMutation } = useAddToWishlist();
   const { mutate } = useWishListDelete();
-  const [isProductExist, setIsProductExist] = useState(false);
-  const [count, setCount] = useState(0);
   const { mutate: addToMutate, isLoading } = useAddCartItem();
   const { mutate: updateMutate, isLoading: updateLoading } =
     useCartItemUpdate();
   const { mutate: cartItemRemoveMutate } = useDeleteCartItem();
-  useEffect(() => {
-    const isInCart = getItemFromCartlist();
-    if (isInCart) {
-      setIsProductExist(true);
-      setCount(isInCart?.quantity);
-    } else {
-      setIsProductExist(false);
-    }
-  }, [aliasCartList]);
-  const getItemFromCartlist = () => {
-    const cartList = getCartListModuleWise(aliasCartList);
-    return cartList?.find((things) => things.id === item?.id);
-  };
-  useEffect(() => {
-    wishlistItemExistHandler();
-  }, [wishLists]);
-  const wishlistItemExistHandler = () => {
-    if (wishLists?.item?.find((wishItem) => wishItem.id === item?.id)) {
-      setIsWishlisted(true);
-    } else {
-      setIsWishlisted(false);
-    }
-  };
+
+  const cartItem = useSelector((state) =>
+    getCartListModuleWise(state.cart.cartList).find((things) => things.id === item?.id)
+  );
+  const isWishlisted = useSelector((state) =>
+    !!state.wishList.wishLists?.item?.find((wishItem) => wishItem.id === item?.id)
+  );
+  const isInCart = cartItem;
+  const isProductExist = !!cartItem;
+  const count = cartItem?.quantity || 0;
+
+  const getItemFromCartlist = () => cartItem;
 
   useEffect(() => { }, [state.clearCartModal]);
   const handleClearCartModalOpen = () =>
@@ -358,7 +342,7 @@ const ProductCard = (props) => {
       });
     }
   }, [item]);
-  const isInCart = cartList?.find((things) => things.id === item?.id);
+
   const handleSuccess = (res) => {
     if (res) {
       let product = {};
@@ -378,6 +362,9 @@ const ProductCard = (props) => {
   };
 
   const addToCartHandler = () => {
+    const globalCartList = store.getState().cart.cartList;
+    const cartList = getCartListModuleWise(globalCartList);
+
     if (cartList.length > 0) {
       const isStoreExist = cartList.find(
         (item) => item?.store_id === state?.modalData[0]?.store_id
@@ -1082,7 +1069,6 @@ const ProductCard = (props) => {
         onSuccess: (response) => {
           if (response) {
             reduxDispatch(addWishList(item));
-            setIsWishlisted(true);
             toast.success(response?.message);
           }
         },
@@ -1096,7 +1082,6 @@ const ProductCard = (props) => {
     e.stopPropagation();
     const onSuccessHandlerForDelete = (res) => {
       reduxDispatch(removeWishListItem(item?.id));
-      setIsWishlisted(false);
       toast.success(res.message, {
         id: "wishlist",
       });
@@ -1351,4 +1336,4 @@ const ProductCard = (props) => {
 
 ProductCard.propTypes = {};
 
-export default ProductCard;
+export default React.memo(ProductCard);
