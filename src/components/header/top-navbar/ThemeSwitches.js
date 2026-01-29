@@ -45,6 +45,7 @@ const ThemeSwitches = ({ noText }) => {
       <CustomSwitch
         checked={settings.theme === "light"}
         onChange={handleChange}
+        inputProps={{ "aria-label": t("Switch theme") }}
       />
       {!noText ? (
         <Typography color={theme.palette.neutral[1000]}>
