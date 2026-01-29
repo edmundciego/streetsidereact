@@ -54,6 +54,7 @@ import { handleBadgeRental } from "components/home/module-wise-components/rental
 import CustomBadge from "components/cards/CustomBadge";
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import VehicleDetailsRentThisCar from "../vehicle-details/VehicleDetailsRentThisCar";
+import { escapeHtml } from "utils/CustomFunctions";
 
 const RentalCarQuickView = ({
   carDetails,
@@ -81,9 +82,9 @@ const RentalCarQuickView = ({
   const { wishLists } = useSelector((state) => state?.wishList);
   const rentalSearch = useSelector((state) => state?.rentalSearch?.rentalSearch);
 
-  const formattedText = carDetails?.description
-    ?.replace(/\r\n\r\n/g, "<br /><br />")
-    ?.replace(/(\d+\.)/g, '<br />$1');
+  const formattedText = escapeHtml(carDetails?.description)
+    .replace(/\r\n\r\n/g, "<br /><br />")
+    .replace(/(\d+\.)/g, '<br />$1');
 
   const { mutate: addFavoriteMutation } = useAddWishlist();
   const { mutate: removeFavoriteMutation } = useRemoveRentalWishList();
