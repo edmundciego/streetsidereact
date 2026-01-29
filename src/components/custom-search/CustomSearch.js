@@ -76,6 +76,7 @@ const CustomSearch = ({
             onChange={(e) => handleChange(e.target.value)}
             onKeyPress={(e) => handleKeyPress(e)}
             language_direction={language_direction}
+            inputProps={{ "aria-label": t(label) }}
           // onFocus={() => handleOnFocus?.(value)}
           />
         </>
@@ -90,6 +91,7 @@ const CustomSearch = ({
             onChange={(e) => handleChange(e.target.value)}
             onKeyPress={(e) => handleKeyPress(e)}
             language_direction={language_direction}
+            inputProps={{ "aria-label": t(label) }}
           // onFocus={() => handleOnFocus?.(value)}
           />
           {value === "" ? (
@@ -113,7 +115,10 @@ const CustomSearch = ({
                   language_direction={language_direction}
                   right="20px"
                 >
-                  <IconButton sx={{ marginRight: "-4px !important" }}>
+                  <IconButton
+                    aria-label={t("Clear")}
+                    sx={{ marginRight: "-4px !important" }}
+                  >
                     <CloseIcon fontSize="small" />
                   </IconButton>
                 </CloseIconWrapper>
@@ -126,7 +131,7 @@ const CustomSearch = ({
   };
 
   return (
-    <form onSubmit={handleKeyPress}>
+    <form onSubmit={handleKeyPress} role="search">
       <Search direction="row" alignItems="center" type2={type2}>
         {getTypeWiseChanges()}
       </Search>
