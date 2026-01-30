@@ -19,7 +19,7 @@ const SearchWithTitle = (props) => {
   const getBannerSubTexts = t("with affordable price.")
 
   const getBannerTexts = () => {
-    switch (getCurrentModuleType()) {
+    switch (moduleType) {
       case ModuleTypes.GROCERY:
         return {
           title: "Fresh Item that deserve to eat",

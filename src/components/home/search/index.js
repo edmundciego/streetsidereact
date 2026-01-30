@@ -35,6 +35,7 @@ const SearchResult = (props) => {
   const router = useRouter();
   const dispatch = useDispatch();
   const { data_type } = router.query;
+  const moduleType = getCurrentModuleType();
   const theme = useTheme();
   const isSmall = useMediaQuery(theme.breakpoints.down("md"));
   const id = router.query.id;
@@ -137,17 +138,17 @@ const SearchResult = (props) => {
   const tabs = [
     {
       name:
-        getCurrentModuleType() === "food"
+        moduleType === "food"
           ? "Foods"
-          : getCurrentModuleType() === "ecommerce"
+          : moduleType === "ecommerce"
             ? "Items"
-            : getCurrentModuleType() === "pharmacy"
+            : moduleType === "pharmacy"
               ? "Medicines"
               : "Groceries",
       value: "items",
     },
     {
-      name: getCurrentModuleType() === "food" ? "Restaurants" : "Stores",
+      name: moduleType === "food" ? "Restaurants" : "Stores",
       value: "stores",
     },
   ];

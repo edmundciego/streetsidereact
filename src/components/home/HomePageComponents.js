@@ -155,7 +155,7 @@ const HomePageComponents = ({ configData, landingPageData }) => {
   }, [router.query.data_type]);
 
   const getModuleWiseComponents = () => {
-    switch (getCurrentModuleType()) {
+    switch (moduleType) {
       case ModuleTypes.GROCERY:
         return <Grocery configData={configData} />;
       case ModuleTypes.PHARMACY:
@@ -317,7 +317,7 @@ const HomePageComponents = ({ configData, landingPageData }) => {
           </Box>
         </Box>
       </CustomModal>
-      {token && getCurrentModuleType() !== "parcel" && <CashBackPopup />}
+      {token && moduleType !== "parcel" && <CashBackPopup />}
       {token && failPayment && !(Array.isArray(failPayment) && failPayment.length === 0) && (
         <CustomModal
           handleClose={() => {
