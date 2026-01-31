@@ -53,7 +53,7 @@ const DrawerMenu = ({ setToggled, openDrawer, setOpenDrawer }) => {
     <>
       <IconButton
         size="large"
-        aria-label="account of current user"
+        aria-label={t("Open menu")}
         aria-controls="menu-appbar"
         aria-haspopup="true"
         onClick={toggleDrawer(!openDrawer)}

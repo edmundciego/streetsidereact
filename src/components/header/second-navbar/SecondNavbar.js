@@ -409,7 +409,11 @@ const SecondNavBar = ({ configData }) => {
           spacing={2.5}
         >
           {!token && moduleType !== "parcel" && location && (
-            <IconButton onClick={handleTrackOrder} id="track-order-button">
+            <IconButton
+              onClick={handleTrackOrder}
+              id="track-order-button"
+              aria-label={moduleType !== "rental" ? t("Track order") : t("Track Trip")}
+            >
               <Tooltip
                 title={moduleType !== "rental" ? t("Track order") : t("Track Trip")}
                 arrow

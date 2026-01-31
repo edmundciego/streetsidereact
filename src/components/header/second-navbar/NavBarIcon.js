@@ -20,6 +20,7 @@ const NavBarIcon = ({ icon, label, user, handleClick, badgeCount }) => {
             gap: "15px",
           }}
           onClick={() => handleClick()}
+          aria-label={label ? t(label) : undefined}
         >
           <Tooltip
             title={t(label)}
