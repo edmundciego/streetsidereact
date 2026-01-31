@@ -2,6 +2,16 @@ This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next
 
 ## Getting Started
 
+### Environment Setup
+
+This project uses environment variables for configuration.
+1. Copy `.env.example` to `.env.local` (or `.env.development` / `.env.production`).
+2. Fill in the required values in the new file.
+
+```bash
+cp .env.example .env.local
+```
+
 First, run the development server:
 
 ```bash
