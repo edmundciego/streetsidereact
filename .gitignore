@@ -52,3 +52,6 @@ public/sw.js.map
 public/workbox-*.js
 public/workbox-*.js.map
 public/fallback-*.js
+
+# Allow .jules markdown files
+!.jules/*.md

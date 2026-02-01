@@ -45,6 +45,7 @@ const CustomCopyWithTooltip = (props) => {
         </Button>
       ) : (
         <IconButton
+          aria-label={copy ? t("Copied") : t("Copy")}
           onMouseEnter={() => copy && setCopy(false)}
           onClick={() => handleCopy(value)}
           sx={{ p: { xs: "0px", sm: "5px" }, m: { xs: "0px", sm: "5px" } }}
