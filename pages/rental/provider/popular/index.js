@@ -6,7 +6,7 @@ import MainLayout from "../../../../src/components/layout/MainLayout";
 import {PageDetailsWrapper} from "../../../../src/styled-components/CustomStyles.style";
 import CustomContainer from "../../../../src/components/container";
 import TypeWiseStore from "../../../../src/components/Store/TypeWiseStore";
-import { getServerSideProps } from "../../../index";
+import { getServerSideProps } from "../../../../src/utils/server-side-props";
 import {getCurrentModuleType} from "../../../../src/helper-functions/getCurrentModuleType";
 
 
