@@ -9,7 +9,7 @@ import CustomContainer from "../../../../src/components/container";
 import {CustomStackFullWidth} from "../../../../src/styled-components/CustomStyles.style";
 import TypeWiseStore from "../../../../src/components/Store/TypeWiseStore";
 import {getImageUrl} from "../../../../src/utils/CustomFunctions";
-import { getServerSideProps } from "../../../index";
+import { getServerSideProps } from "../../../../src/utils/server-side-props";
 
 
 const Index = ({ configData, landingPageData }) => {

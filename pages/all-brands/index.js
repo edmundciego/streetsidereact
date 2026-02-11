@@ -3,7 +3,7 @@ import React from "react";
 import Brands from "../../src/components/home/brands";
 import MainLayout from "../../src/components/layout/MainLayout";
 import SEO from "../../src/components/seo";
-import { getServerSideProps } from "../index";
+import { getServerSideProps } from "../../src/utils/server-side-props";
 import { getImageUrl } from "utils/CustomFunctions";
 
 const Index = ({ configData, landingPageData }) => {

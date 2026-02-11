@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next";
 import { useRouter } from "next/router";
 import TypeWiseStore from "../../../src/components/Store/TypeWiseStore";
 import MainLayout from "../../../src/components/layout/MainLayout";
-import { getServerSideProps } from "../../index";
+import { getServerSideProps } from "../../../src/utils/server-side-props";
 import SEO from "../../../src/components/seo";
 import { PageDetailsWrapper } from "../../../src/styled-components/CustomStyles.style";
 import CustomContainer from "../../../src/components/container";

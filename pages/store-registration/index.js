@@ -1,7 +1,7 @@
 import React, { useEffect } from "react";
 import CssBaseline from "@mui/material/CssBaseline";
 import MainLayout from "../../src/components/layout/MainLayout";
-import { getServerSideProps } from "../index";
+import { getServerSideProps } from "../../src/utils/server-side-props";
 import SEO from "../../src/components/seo"
 import StoreRegistration from "../../src/components/store-resgistration";
 import { NoSsr } from "@mui/material";

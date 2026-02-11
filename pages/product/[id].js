@@ -8,7 +8,7 @@ import CustomContainer from "../../src/components/container";
 import useScrollToTop from "api-manage/hooks/custom-hooks/useScrollToTop";
 import {NoSsr} from "@mui/material";
 
-const Index = ({ configData, productDetailsData, landingPageData }) => {
+const Index = ({ configData, productDetailsData }) => {
   const { cartList, campaignItem } = useSelector((state) => state.cart);
   const [productDetails, setProductDetails] = useState([]);
   useEffect(() => {
@@ -56,7 +56,7 @@ const Index = ({ configData, productDetailsData, landingPageData }) => {
         description={`${productDetailsData?.description}`}
         configData={configData}
       />
-      <MainLayout configData={configData} landingPageData={landingPageData}>
+      <MainLayout configData={configData}>
         <CustomContainer>
           {productDetails.length > 0 && (
             <NoSsr>
@@ -107,25 +107,11 @@ export const getServerSideProps = async (context) => {
     );
     productDetailsData = await productDetails.json();
   }
-  const landingPageRes = await fetch(
-    `${process.env.NEXT_PUBLIC_BASE_URL}/api/v1/react-landing-page`,
-    {
-      method: "GET",
-      headers: {
-        "X-software-id": 33571750,
-        "X-server": "server",
-        origin: process.env.NEXT_CLIENT_HOST_URL,
-        "X-localization": language,
-      },
-    }
-  );
-  const landingPageData = await landingPageRes.json();
 
   return {
     props: {
       configData: config,
       productDetailsData: !productType ? productDetailsData : null,
-      landingPageData: landingPageData,
     },
   };
 };
