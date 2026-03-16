@@ -10,6 +10,7 @@ import { createTheme } from "theme";
 import CssBaseline from "@mui/material/CssBaseline";
 import { RTL } from "components/rtl";
 import { Toaster } from "react-hot-toast";
+import { getServerSideProps } from "./index";
 import { SettingsConsumer, SettingsProvider } from "contexts/settings-context";
 import "../src/language/i18n";
 import { QueryClient, QueryClientProvider } from "react-query";
@@ -20,17 +21,7 @@ import { persistStore } from "redux-persist";
 import { useTranslation } from "react-i18next";
 import useScrollToTop from "../src/api-manage/hooks/custom-hooks/useScrollToTop";
 import { useEffect } from "react";
-import OfflineIndicator from "../src/components/OfflineIndicator";
-import { Rubik } from 'next/font/google';
-import { SpeedInsights } from '@vercel/speed-insights/next';
-import { Analytics } from '@vercel/analytics/react';
-
-const rubik = Rubik({
-  weight: ['300', '400', '500', '600', '700'],
-  subsets: ['latin'],
-  display: 'swap',
-  variable: '--font-rubik',
-});
+import ModuleChecker from "../src/components/module-select/ModuleChecker";
 
 Router.events.on("routeChangeStart", nProgress.start);
 Router.events.on("routeChangeError", nProgress.done);
@@ -69,7 +60,7 @@ function MyApp(props) {
   }, [currentVersion]);
 
   return (
-    <main className={rubik.className}>
+    <>
       {useScrollToTop()}
       <CacheProvider value={emotionCache}>
         <QueryClientProvider client={queryClient}>
@@ -86,11 +77,9 @@ function MyApp(props) {
                   >
                     <RTL direction={value?.settings?.direction}>
                       <CssBaseline />
-                      <OfflineIndicator />
                       <Toaster position="top-center" />
+                      <ModuleChecker />
                       {getLayout(<Component {...pageProps} />)}
-                      <SpeedInsights />
-                      <Analytics />
                     </RTL>
                   </ThemeProvider>
                 )}
@@ -100,8 +89,9 @@ function MyApp(props) {
           <ReactQueryDevtools initialIsOpen={false} position="bottom-right" />
         </QueryClientProvider>
       </CacheProvider>
-    </main>
+    </>
   );
 }
 
 export default MyApp;
+export { getServerSideProps };

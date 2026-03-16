@@ -6,7 +6,10 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
+    "test": "jest",
     "lint": "next lint",
+    "i18n:scan": "node i18n-scan.js",
+    "i18n:watch": "node i18n-watch.js",
     "type-check": "tsc --noEmit",
     "type-check:watch": "tsc --noEmit --watch"
   },
@@ -76,14 +79,13 @@
   },
   "devDependencies": {
     "@types/js-cookie": "^3.0.6",
-    "@types/minimatch": "^5.1.2",
     "@types/node": "^24.10.0",
     "@types/nprogress": "^0.2.3",
     "@types/react": "^19.2.2",
     "@types/react-dom": "^19.2.2",
     "@types/react-slick": "^0.23.13",
     "@types/react-transition-group": "^4.4.12",
-    "babel-loader": "^10.0.0",
+    "jest": "^30.3.0",
     "prettier": "2.8.0",
     "typescript": "5.9.3"
   },

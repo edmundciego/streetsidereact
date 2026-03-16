@@ -5,12 +5,14 @@ import ProductDetails from "../../src/components/product-details/ProductDetails"
 import { useSelector } from "react-redux";
 import SEO from "../../src/components/seo";
 import CustomContainer from "../../src/components/container";
-import useScrollToTop from "api-manage/hooks/custom-hooks/useScrollToTop";
-import {NoSsr} from "@mui/material";
+import { NoSsr } from "@mui/material";
 
-const Index = ({ configData, productDetailsData }) => {
+const Index = ({ configData, productDetailsData,  }) => {
   const { cartList, campaignItem } = useSelector((state) => state.cart);
   const [productDetails, setProductDetails] = useState([]);
+  
+
+
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, []);
@@ -42,28 +44,29 @@ const Index = ({ configData, productDetailsData }) => {
       setProductDetails([{ ...campaignItem, isCampaignItem: true }]);
     }
   };
+
+  
   return (
     <>
       <CssBaseline />
       <SEO
         title={
-          configData
-            ? `${productDetailsData?.name || productDetails[0]?.name}`
-            : "Loading..."
+         productDetailsData?.meta_title
         }
-        image={`${configData?.base_urls?.item_image_url}/${productDetailsData?.image}`}
+        image={productDetailsData?.meta_image}
         businessName={configData?.business_name}
-        description={`${productDetailsData?.description}`}
+        description={productDetailsData?.meta_description}
         configData={configData}
+        robotsMeta={productDetailsData?.meta_data}
       />
       <MainLayout configData={configData}>
         <CustomContainer>
           {productDetails.length > 0 && (
             <NoSsr>
-            <ProductDetails
-              productDetailsData={productDetails[0]}
-              configData={configData}
-            />
+              <ProductDetails
+                productDetailsData={productDetails[0]}
+                configData={configData}
+              />
             </NoSsr>
           )}
         </CustomContainer>
@@ -90,28 +93,30 @@ export const getServerSideProps = async (context) => {
   );
   const config = await configRes.json();
   const productId = context.query.id;
-  const moduleId = context.query.module_id;
-  const productType = context.query?.product_type;
-  let productDetails = null;
-  let productDetailsData = null;
-  if (!productType) {
-    productDetails = await fetch(
-      `${process.env.NEXT_PUBLIC_BASE_URL}/api/v1/items/details/${productId}`,
-      {
-        method: "GET",
-        headers: {
-          moduleId: moduleId,
-          "X-localization": language,
-        },
-      }
-    );
-    productDetailsData = await productDetails.json();
-  }
+  const moduleId = context.query.module || context.query.module_id;
+  const productTypeRaw = context.query?.product_type;
+  const campaign = context.query?.campaign;
+  const isCampaign = campaign === "1";
+  const productDetailsRes = await fetch(
+    `${process.env.NEXT_PUBLIC_BASE_URL}/api/v1/items/details/${productId}${
+      isCampaign ? "?campaign=1" : ""
+    }`,
+    {
+      method: "GET",
+      headers: {
+        moduleId: moduleId,
+        "X-localization": language,
+      },
+    }
+  );
+  const productDetailsData = await productDetailsRes.json();
+ 
 
   return {
     props: {
       configData: config,
-      productDetailsData: !productType ? productDetailsData : null,
+      productDetailsData: productDetailsData,
+      
     },
   };
 };

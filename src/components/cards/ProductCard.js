@@ -12,10 +12,12 @@ import { styled } from "@mui/material/styles";
 import { Box, Stack } from "@mui/system";
 import { getAmountWithSign } from "helper-functions/CardHelpers";
 import { useRouter } from "next/router";
+import { handleProductRedirect } from "helper-functions/handleProductRedirect";
+
 import React, { useEffect, useReducer, useState, useRef } from "react";
 import toast from "react-hot-toast";
 import { useTranslation } from "react-i18next";
-import { useDispatch, useSelector, useStore } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import {
   setCart,
   setDecrementToCartItem,
@@ -248,28 +250,44 @@ const ProductCard = (props) => {
   const theme = useTheme();
   const isSmall = useMediaQuery(theme.breakpoints.down("sm"));
   const reduxDispatch = useDispatch();
-  const store = useStore();
+  const { cartList: aliasCartList } = useSelector((state) => state.cart);
+  const cartList = getCartListModuleWise(aliasCartList);
   const classes = textWithEllipsis();
   const { t } = useTranslation();
   const p_off = t("%");
+  const { wishLists } = useSelector((state) => state.wishList);
+  const [isWishlisted, setIsWishlisted] = useState(false);
   const { mutate: addFavoriteMutation } = useAddToWishlist();
   const { mutate } = useWishListDelete();
+  const [isProductExist, setIsProductExist] = useState(false);
+  const [count, setCount] = useState(0);
   const { mutate: addToMutate, isLoading } = useAddCartItem();
   const { mutate: updateMutate, isLoading: updateLoading } =
     useCartItemUpdate();
   const { mutate: cartItemRemoveMutate } = useDeleteCartItem();
-
-  const cartItem = useSelector((state) =>
-    getCartListModuleWise(state.cart.cartList).find((things) => things.id === item?.id)
-  );
-  const isWishlisted = useSelector((state) =>
-    !!state.wishList.wishLists?.item?.find((wishItem) => wishItem.id === item?.id)
-  );
-  const isInCart = cartItem;
-  const isProductExist = !!cartItem;
-  const count = cartItem?.quantity || 0;
-
-  const getItemFromCartlist = () => cartItem;
+  useEffect(() => {
+    const isInCart = getItemFromCartlist();
+    if (isInCart) {
+      setIsProductExist(true);
+      setCount(isInCart?.quantity);
+    } else {
+      setIsProductExist(false);
+    }
+  }, [aliasCartList]);
+  const getItemFromCartlist = () => {
+    const cartList = getCartListModuleWise(aliasCartList);
+    return cartList?.find((things) => things.id === item?.id);
+  };
+  useEffect(() => {
+    wishlistItemExistHandler();
+  }, [wishLists]);
+  const wishlistItemExistHandler = () => {
+    if (wishLists?.item?.find((wishItem) => wishItem.id === item?.id)) {
+      setIsWishlisted(true);
+    } else {
+      setIsWishlisted(false);
+    }
+  };
 
   useEffect(() => { }, [state.clearCartModal]);
   const handleClearCartModalOpen = () =>
@@ -315,19 +333,12 @@ const ProductCard = (props) => {
   };
   const handleClick = () => {
     if (item?.module_type === "ecommerce") {
-      router.push({
-        pathname: "/product/[id]",
-        query: {
-          id: `${item?.slug ? item?.slug : item?.id}`,
-          module_id: `${getModuleId()}`,
-        },
-      }).then(() => {
-        window.scrollTo({ top: 0, behavior: "smooth" }); // ✅ scroll to top after navigation
-      });
+      handleProductRedirect(item, router);
     } else {
       dispatch({ type: ACTION.setOpenModal, payload: true });
     }
   };
+
 
   useEffect(() => {
     if (item) {
@@ -342,7 +353,7 @@ const ProductCard = (props) => {
       });
     }
   }, [item]);
-
+  const isInCart = cartList?.find((things) => things.id === item?.id);
   const handleSuccess = (res) => {
     if (res) {
       let product = {};
@@ -362,9 +373,6 @@ const ProductCard = (props) => {
   };
 
   const addToCartHandler = () => {
-    const globalCartList = store.getState().cart.cartList;
-    const cartList = getCartListModuleWise(globalCartList);
-
     if (cartList.length > 0) {
       const isStoreExist = cartList.find(
         (item) => item?.store_id === state?.modalData[0]?.store_id
@@ -419,15 +427,7 @@ const ProductCard = (props) => {
   const addToCart = (e) => {
     if (item?.module_type === "ecommerce") {
       if (item?.variations?.length > 0 || item?.has_variant) {
-        router.push({
-          pathname: "/product/[id]",
-          query: {
-            id: `${item?.slug ? item?.slug : item?.id}`,
-            module_id: `${getModuleId()}`,
-          },
-        }).then(() => {
-          window.scrollTo({ top: 0, behavior: "smooth" }); // ✅ scroll to top after navigation
-        });
+        handleProductRedirect(item, router);
       } else {
         e.stopPropagation();
         addToCartHandler();
@@ -1069,6 +1069,7 @@ const ProductCard = (props) => {
         onSuccess: (response) => {
           if (response) {
             reduxDispatch(addWishList(item));
+            setIsWishlisted(true);
             toast.success(response?.message);
           }
         },
@@ -1082,6 +1083,7 @@ const ProductCard = (props) => {
     e.stopPropagation();
     const onSuccessHandlerForDelete = (res) => {
       reduxDispatch(removeWishListItem(item?.id));
+      setIsWishlisted(false);
       toast.success(res.message, {
         id: "wishlist",
       });
@@ -1112,6 +1114,7 @@ const ProductCard = (props) => {
         addToWishlistHandler={addToWishlistHandler}
         removeFromWishlistHandler={removeFromWishlistHandler}
         isWishlisted={isWishlisted}
+        setOpenLocationAlert={setOpenLocationAlert}
       />
     ) : (
       <>
@@ -1170,6 +1173,7 @@ const ProductCard = (props) => {
             setOpenLocationAlert={setOpenLocationAlert}
             noRecommended={noRecommended}
             configData={configData}
+            
           />
         ) : (
           <CardWrapper
@@ -1236,7 +1240,7 @@ const ProductCard = (props) => {
                         theme.palette.mode === "dark" ? "#B3B3B399" : "#EDEDED99",
                       color: theme.palette.neutral[1000],
                       fontSize: "12px",
-                      zIndex: "999",
+                      zIndex: "9",
 
                     }}
                     component="h4"
@@ -1336,4 +1340,4 @@ const ProductCard = (props) => {
 
 ProductCard.propTypes = {};
 
-export default React.memo(ProductCard);
+export default ProductCard;

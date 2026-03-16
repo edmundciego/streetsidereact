@@ -11,7 +11,7 @@ import CustomContainer from "../../src/components/container";
 import MainLayout from "../../src/components/layout/MainLayout";
 import AuthGuard from "../../src/components/route-guard/AuthGuard";
 import SEO from "../../src/components/seo";
-import { getServerSideProps } from "../../src/utils/server-side-props";
+import { getServerSideProps } from "../index";
 import { getImageUrl } from "utils/CustomFunctions";
 import useScrollToTop from "api-manage/hooks/custom-hooks/useScrollToTop";
 import { setConfigData } from "redux/slices/configData";
@@ -61,7 +61,7 @@ const CheckOutPage = () => {
 
       <MainLayout configData={configData} landingPageData={landingPageData}>
         <CustomContainer>
-          <AuthGuard from="checkout">
+          
             {page === "parcel" && <ParcelCheckout configData={configData} />}
             {page === "prescription" && (
               <PrescriptionCheckout
@@ -108,7 +108,7 @@ const CheckOutPage = () => {
                 buyNowItemList={buyNowItemList}
               />
             )}
-          </AuthGuard>
+         
         </CustomContainer>
       </MainLayout>
     </>

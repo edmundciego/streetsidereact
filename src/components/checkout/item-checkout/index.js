@@ -1,6 +1,7 @@
 import { useTheme } from "@emotion/react";
 import { alpha, Grid, Typography, useMediaQuery } from "@mui/material";
 import { Stack } from "@mui/system";
+import { baseUrl } from "api-manage/MainApi";
 import { OrderApi } from "api-manage/another-formated-api/orderApi";
 import { ProfileApi } from "api-manage/another-formated-api/profileApi";
 import {
@@ -33,7 +34,6 @@ import {
 } from "styled-components/CustomStyles.style";
 import {
 	formatPhoneNumber,
-	filterDigiWalletMethods,
 	getDayNumber,
 	getDigitalMethodFromZone,
 	getFinalTotalPrice,
@@ -176,7 +176,7 @@ const ItemCheckout = (props) => {
 		page === "campaign"
 			? campaignItemList?.[0]?.store_id
 			: cartList?.[0]?.store_id;
-	const { data: storeData } = useGetStoreDetails(storeId);
+	const { data: storeData, refetch } = useGetStoreDetails(storeId);
 	const { data: tripsData } = useGetMostTrips();
 	const { mutate: offlineMutate, isLoading: offlinePaymentLoading } =
 		useOfflinePayment();
@@ -197,6 +197,11 @@ const ItemCheckout = (props) => {
 	useEffect(() => {
 		refetchOfflinePaymentOptions();
 	}, []);
+	useEffect(() => {
+		if (storeId) {
+			refetch();
+		}
+	}, [storeId]);
 
 	const currentLatLng = JSON.parse(
 		window.localStorage.getItem("currentLatLng")
@@ -269,6 +274,7 @@ const ItemCheckout = (props) => {
 			address: location,
 			address_type: "Selected Address",
 		});
+		refetch();
 	}, []);
 
 	useEffect(() => {
@@ -550,52 +556,17 @@ const ItemCheckout = (props) => {
 							}
 							if (paymentMethod === "digital_payment") {
 								toast.success(response?.data?.message);
+								const newBaseUrl = baseUrl;
 								const page = "my-orders";
 								const callBackUrl = token
 									? `${window.location.origin}/profile?page=${page}`
 									: `${window.location.origin}/order?order_id=${response?.data?.order_id}&total=${response?.data?.total_ammount}`;
-								const initiatePayload = {
-									order_id: response?.data?.order_id,
-									customer_id: customerData?.data?.id ?? guest_id,
-									payment_platform: "web",
-									callback: callBackUrl,
-									payment_method: paymentMethod,
-								};
+								const url = `${newBaseUrl}/payment-mobile?order_id=${response?.data?.order_id
+									}&customer_id=${customerData?.data?.id ?? guest_id
+									}&callback=${callBackUrl},`;
 								localStorage.setItem("totalAmount", totalAmount);
 								dispatch(setClearCart());
-								OrderApi.initiatePayment(initiatePayload)
-									.then(({ data }) => {
-										if (!data?.redirect_url || !data?.payment_id) {
-											throw new Error("Missing payment redirect.");
-										}
-										if (response?.data?.order_id) {
-											localStorage.setItem(
-												`pending_payment_${response.data.order_id}`,
-												data.payment_id
-											);
-										}
-										const isDigiWallet =
-											String(paymentMethod).toLowerCase() === "digiwallet";
-										if (isDigiWallet) {
-											Router.push({
-												pathname: "/digiwallet-payment",
-												query: {
-													payment_id: data.payment_id,
-													order_id: response?.data?.order_id,
-													callback: callBackUrl,
-												},
-											});
-										} else {
-											Router.push(data.redirect_url);
-										}
-									})
-									.catch((error) => {
-										const message =
-											error?.response?.data?.message ||
-											error?.message ||
-											t("Unable to initiate payment.");
-										toast.error(message);
-									});
+								Router.push(url);
 							} else if (paymentMethod === "wallet") {
 								toast.success(response?.data?.message);
 								setOrderId(response?.data?.order_id);
@@ -662,59 +633,16 @@ const ItemCheckout = (props) => {
 							const callBackUrl = token
 								? `${window.location.origin}/profile?page=${page}`
 								: `${window.location.origin}/home`;
-							const customerId =
-								customerData?.data?.id ??
-								response?.data?.user_id ??
-								guest_id;
-							const initiatePayload = {
-								order_id: response?.data?.order_id,
-								customer_id: customerId,
-								payment_platform,
-								callback: callBackUrl,
-								payment_method: paymentMethod,
-							};
-
+							const url = `${baseUrl}/payment-mobile?order_id=${response?.data?.order_id
+								}&customer_id=${customerData?.data?.id ?? response?.data?.user_id
+									? response?.data?.user_id
+									: guest_id
+								}&payment_platform=${payment_platform}&callback=${callBackUrl}&payment_method=${paymentMethod}`;
 							localStorage.setItem("totalAmount", totalAmount);
 							dispatch(setGuestUserInfo(null));
 							dispatch(setOrderDetailsModal(true));
-
-							OrderApi.initiatePayment(initiatePayload)
-								.then(({ data }) => {
-									if (!data?.redirect_url || !data?.payment_id) {
-										throw new Error("Missing payment redirect.");
-									}
-									if (response?.data?.order_id) {
-										localStorage.setItem(
-											`pending_payment_${response.data.order_id}`,
-											data.payment_id
-										);
-									}
-									const isDigiWallet =
-										String(paymentMethod).toLowerCase() === "digiwallet";
-									if (isDigiWallet) {
-										Router.push(
-											{
-												pathname: "/digiwallet-payment",
-												query: {
-													payment_id: data.payment_id,
-													order_id: response?.data?.order_id,
-													callback: callBackUrl,
-												},
-											},
-											undefined,
-											{ shallow: true }
-										);
-									} else {
-										Router.push(data.redirect_url, undefined, { shallow: true });
-									}
-								})
-								.catch((error) => {
-									const message =
-										error?.response?.data?.message ||
-										error?.message ||
-										t("Unable to initiate payment.");
-									toast.error(message);
-								});
+							//dispatch(setClearCart());
+							Router.push(url, undefined, { shallow: true });
 						} else if (paymentMethod === "offline_payment") {
 							toast.success("Order is successful placed", {
 								id: paymentMethod,
@@ -874,15 +802,21 @@ const ItemCheckout = (props) => {
 	const handleImageUpload = (value) => {
 		setIsImageSelected([value]);
 	};
+	console.log({payableAmount});
+	
 	const handlePartialPayment = () => {
-		if (payableAmount > customerData?.data?.wallet_balance) {
+		if (payableAmount > customerData?.data?.wallet_balance && configData?.partial_payment_status === 1) {
 			setUsePartialPayment(true);
 			setPaymentMethod("");
 			dispatch(setOfflineMethod(""));
 		} else {
+			if (customerData?.data?.wallet_balance > payableAmount) {
 			setPaymentMethod("wallet");
 			setSwitchToWallet(true);
-			dispatch(setOfflineMethod(""));
+				dispatch(setOfflineMethod(""));
+			}else{
+				toast.error(t("Your wallet balance is insufficient for partial payment."));
+			}
 		}
 	};
 	const removePartialPayment = () => {
@@ -1051,10 +985,6 @@ const ItemCheckout = (props) => {
 		storeData?.zone_id,
 		zoneData?.data
 	);
-	const paymentMethods = filterDigiWalletMethods(
-		configData?.active_payment_method_list,
-		profileInfo
-	);
 
 	const isZoneCod = () => { };
 	const hasOnlyPaymentMethod = () => {
@@ -1063,12 +993,12 @@ const ItemCheckout = (props) => {
 			configData?.customer_wallet_status !== 1 &&
 			configData?.offline_payment_status !== 1 &&
 			configData?.digital_payment &&
-			paymentMethods?.length === 1 &&
+			configData?.active_payment_method_list?.length === 1 &&
 			isZoneDigital?.digital_payment
 		) {
-			setPaymentMethod(paymentMethods?.[0]?.gateway);
+			setPaymentMethod(configData?.active_payment_method_list[0]?.gateway);
 			setPaymentMethodImage(
-				paymentMethods?.[0]?.gateway_image_full_url
+				configData?.active_payment_method_list[0]?.gateway_image_full_url
 			);
 		}
 	};
@@ -1083,6 +1013,13 @@ const ItemCheckout = (props) => {
 			setPaymentMethod("cash_on_delivery")
 		}
 	}, [isZoneDigital, configData?.cash_on_delivery]);
+
+	useEffect(() => {
+		setPaymentMethodImage(
+			""
+		);
+		setPaymentMethod("")
+	}, [cartList]);
 	return (
 		<>
 			{method === "offline" ? (
@@ -1173,7 +1110,7 @@ const ItemCheckout = (props) => {
 								confirmPasswordHandler={confirmPasswordHandler}
 								check={check}
 								setCheck={setCheck}
-								isHomeDelivery={configData?.home_delivery_status}
+								isHomeDelivery={configData?.home_delivery_status && storeData?.delivery}
 							/>
 
 							{Number.parseInt(configData?.dm_tips_status) === 1 &&

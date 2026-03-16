@@ -5,7 +5,7 @@ import CampaignsDetails from "../../../src/components/campaigns-details";
 import { useRouter } from "next/router";
 import useGetBasicCampaignsDetails from "../../../src/api-manage/hooks/react-query/useGetBasicCampaignsDetails";
 import SEO from "../../../src/components/seo";
-import { getServerSideProps } from "../../../src/utils/server-side-props";
+import { getServerSideProps } from "../../index";
 import CustomContainer from "../../../src/components/container";
 import { getImageUrl } from "utils/CustomFunctions";
 

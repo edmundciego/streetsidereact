@@ -17,17 +17,16 @@ export const useGetCategories = (
   handleRequestOnSuccess,
   queryKey
 ) => {
+  const moduleType = getCurrentModuleType();
   return useQuery(
-    queryKey ? queryKey : "catogories-list",
+    [queryKey ? queryKey : "catogories-list", moduleType],
     () => getData(searchKey),
     {
-      enabled: false,
+      enabled:  !!moduleType,
       onSuccess: handleRequestOnSuccess,
       onError: onErrorResponse,
-      cacheTime: 1000 * 60 * 30, // 30 minutes
-      staleTime: 1000 * 60 * 10, // 10 minutes
-      refetchOnWindowFocus: false,
-      refetchOnMount: false,
+      cacheTime: 300000,
+      staleTime: 1000 * 60 * 5, // 5 minutes
     }
   );
 };
@@ -36,12 +35,11 @@ const getFeaturedData = async () => {
   return await MainApi.get(`${categories_api}`);
 };
 export const useGetFeaturedCategories = (handleSuccess) => {
-  return useQuery(["featured-categories-lists",getCurrentModuleType()], () => getFeaturedData(), {
-     enabled: true,
-    cacheTime: 1000 * 60 * 30,   // 30 minutes - keep in memory
-    staleTime: 1000 * 60 * 10,   // 10 minutes - don't refetch for 10 min
-    refetchOnWindowFocus: false, // Don't refetch when tab regains focus
-    refetchOnMount: false,       // Don't refetch when component remounts
+  const moduleType = getCurrentModuleType();
+  return useQuery(["featured-categories-lists", moduleType], () => getFeaturedData(), {
+     enabled: !!moduleType,
+    cacheTime: 1000 * 60,        // 1 minute
+    staleTime: 1000 * 30,        // 30 seconds
     onError: onErrorResponse,
     onSuccess: (data) => {
       if (handleSuccess) {
@@ -50,3 +48,4 @@ export const useGetFeaturedCategories = (handleSuccess) => {
     },
   });
 };
+

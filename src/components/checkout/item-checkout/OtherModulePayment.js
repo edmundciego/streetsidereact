@@ -35,7 +35,6 @@ import OfflinePaymentIcon from "../assets/OfflinePaymentIcon";
 import { getAmountWithSign } from "helper-functions/CardHelpers";
 import CloseIcon from "@mui/icons-material/Close";
 import PartialPayment from "components/checkout/item-checkout/PartialPayment";
-import { filterDigiWalletMethods } from "utils/CustomFunctions";
 
 export const PayButton = styled(Stack)(({ theme, value, paymentMethod }) => ({
   padding: "10px 10px",
@@ -192,7 +191,6 @@ const OtherModulePayment = (props) => {
     parcel,
     setOpenModel,
     usePartialPayment,
-
     offlinePaymentOptions,
     setPaymentMethodImage,
     isZoneDigital,
@@ -216,13 +214,8 @@ const OtherModulePayment = (props) => {
   const [openOfflineOptions, setOpenOfflineOptions] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const { offlineMethod } = useSelector((state) => state.offlinePayment);
-  const { profileInfo } = useSelector((state) => state.profileInfo);
   const [isCheckedOffline, setIsCheckedOffline] = useState(
     offlineMethod !== ""
-  );
-  const paymentMethods = filterDigiWalletMethods(
-    configData?.active_payment_method_list,
-    profileInfo
   );
 
   const handleClickOffline = () => {
@@ -258,13 +251,11 @@ const OtherModulePayment = (props) => {
     setIsCheckedOffline(false);
 
   }, [router.pathname]);
+console.log({usePartialPayment});
 
   return (
     <CustomStackFullWidth spacing={1} position="relative">
-      <Box sx={{ position: "absolute", top: "0", right: "0", padding: "10px", zIndex: 1, cursor: "pointer" }}>
-        {/* Modal Close Button */}
-        <CloseIcon onClick={() => setOpenModel(false)} />
-      </Box>
+      
       <CustomStackFullWidth
         p={{ xs: "20px", md: "45px 45px 10px 45px" }}
         sx={{ maxHeight: "450px", overflowY: "auto", overflowX: "hidden" }}
@@ -299,8 +290,7 @@ const OtherModulePayment = (props) => {
             {configData?.customer_wallet_status === 1 && getToken() &&
               (failed
                 ? customerData?.data?.wallet_balance > payableAmount
-                : customerData?.data?.wallet_balance > 0) &&
-              configData?.partial_payment_status === 1 && (
+                : customerData?.data?.wallet_balance > 0) && (
                 <Box sx={{ flex: "1 1 calc(50% - 5px)" }}>
                   <PartialPayment
                     remainingBalance={
@@ -351,14 +341,15 @@ const OtherModulePayment = (props) => {
                       color={theme.palette.neutral[600]}
                       fontWeight="500"
                     >
-                      {getAmountWithSign(
+                  {getAmountWithSign(
                         paymentMethod === "wallet"
                           ? payableAmount
                           : walletBalance
                       )}
                     </Typography>
                   </Stack>
-                  {!usePartialPayment ? null : (
+                  {!usePartialPayment ||
+                  configData?.partial_payment_status !== 1 ? null : (
                     <Stack
                       direction="row"
                       justifyContent="space-between"
@@ -387,7 +378,8 @@ const OtherModulePayment = (props) => {
               </Box>
             )}
 
-            {!usePartialPayment ? null : (
+            {!usePartialPayment ||
+            configData?.partial_payment_status !== 1 ? null : (
               <Box
                 sx={{
                   flex: "1 1 calc(100% - 5px)",
@@ -491,9 +483,10 @@ const OtherModulePayment = (props) => {
             paidBy !== "receiver" &&
             forprescription !== "true" &&
             configData?.digital_payment_info?.digital_payment &&
+            (!usePartialPayment || configData?.partial_payment_status === 1) &&
             (configData?.partial_payment_method === "digital_payment" ||
               configData?.partial_payment_method === "both" ||
-              configData?.partial_payment_method === null) && (
+              configData?.partial_payment_method === null || configData?.partial_payment_method === "") && (
               <CustomStackFullWidth paddingY="10px">
                 <Typography fontSize="14px" fontWeight="500">
                   {t("Payment Methods")}
@@ -503,13 +496,13 @@ const OtherModulePayment = (props) => {
                 </Typography>
                 <CustomStackFullWidth spacing={1}>
                   <Grid container>
-                    {paymentMethods?.map(
+                    {configData?.active_payment_method_list?.map(
                       (item, index) => {
                         return (
                           <Grid
                             item
                             xs={
-                              paymentMethods?.length > 1
+                              configData?.active_payment_method_list?.length > 1
                                 ? 6
                                 : 12
                             }

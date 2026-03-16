@@ -7,9 +7,6 @@ import {
 } from "helper-functions/getCurrentModuleType";
 import { store } from "redux/store";
 import { getDiscountedAmount } from "helper-functions/CardHelpers";
-import toast from "react-hot-toast";
-import { cod_exceeds_message } from "./toasterMessages";
-import { OrderApi } from "../api-manage/another-formated-api/orderApi";
 
 export const getNumberWithConvertedDecimalPoint = (
   amount,
@@ -1214,85 +1211,7 @@ export function debounce(func, delay = 500) {
     }, delay);
   };
 }
-export const handleFailedOrderPlace = ({
-  paymentMethod,
-  paymentFailedData,
-  failPayment,
-  handlePayment,
-  paymentMethodUpdateMutation,
-  walletPaymentMutation,
-  profileInfo,
-  orderId,
-  router,
-}) => {
-  const failedData = paymentFailedData || failPayment;
-  if (paymentMethod === "cash_on_delivery") {
-    if (failedData?.maximum_cod_order_amount > failedData?.order_amount) {
-      handlePayment(paymentMethodUpdateMutation);
-    } else {
-      toast.error(cod_exceeds_message);
-    }
-
-  } else if (paymentMethod === "wallet") {
-    handlePayment(walletPaymentMutation);
-
-  } else if (paymentMethod === "offline_payment") {
-    router.push(
-      {
-        pathname: "/checkout",
-        query: { page: "cart", method: "offline", incomplete_payment: true, order_id: orderId },
-      },
-      undefined,
-      { shallow: true }
-    );
-
-  } else {
-    const payment_platform = "web";
-    const page = "my-orders";
-    const callBackUrl = `${window.location.origin}/profile?page=${page}`;
-    const initiatePayload = {
-      order_id: orderId,
-      customer_id: profileInfo?.id,
-      payment_platform,
-      callback: callBackUrl,
-      payment_method: paymentMethod,
-    };
-    (async () => {
-      try {
-        const { data } = await OrderApi.initiatePayment(initiatePayload);
-        if (!data?.redirect_url || !data?.payment_id) {
-          throw new Error("Missing payment redirect.");
-        }
-        if (orderId) {
-          localStorage.setItem(`pending_payment_${orderId}`, data.payment_id);
-        }
-        const isDigiWallet = String(paymentMethod).toLowerCase() === "digiwallet";
-        if (isDigiWallet) {
-          router.push(
-            {
-              pathname: "/digiwallet-payment",
-              query: {
-                payment_id: data.payment_id,
-                order_id: orderId,
-                callback: callBackUrl,
-              },
-            },
-            undefined,
-            { shallow: true }
-          );
-        } else {
-          router.push(data.redirect_url, undefined, { shallow: true });
-        }
-      } catch (error) {
-        const message =
-          error?.response?.data?.message ||
-          error?.message ||
-          t("Unable to initiate payment.");
-        toast.error(message);
-      }
-    })();
-  }
-};
+export { handleFailedOrderPlace } from "./paymentFailureHandler";
 
 export function escapeHtml(text) {
   if (!text) return "";

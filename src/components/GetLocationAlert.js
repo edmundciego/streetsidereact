@@ -28,6 +28,7 @@ const GetLocationAlert = ({ setOpenAlert }) => {
       justifyContent="center"
       alignItems="center"
       spacing={2}
+      sx={{maxWidth:"437px"}}
     >
       <CustomImageContainer
         src={locationImage.src}
@@ -43,10 +44,10 @@ const GetLocationAlert = ({ setOpenAlert }) => {
         textAlign="center"
       >
         {t(
-          "Please add you delivery location so that we can review if the restaurant is available to deliver in your area or not  "
+          "Please add your  delivery location so we can check whether the store delivers to your area.  "
         )}
       </Typography>
-      <Button variant="outlined" onClick={(e) => handleOpen(e)}>
+      <Button variant="contained" onClick={(e) => handleOpen(e)}>
         {t("Pick from Map")}
       </Button>
 

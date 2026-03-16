@@ -20,6 +20,13 @@ import {
 } from "../../../redux/slices/digiWalletSlice";
 import { digiWalletApi } from "../../../api-manage/api-call-functions/digiWalletApi";
 import { getToken } from "../../../helper-functions/getToken";
+import {
+  getDigiWalletErrorMessage,
+  resolveDigiWalletConfirmation,
+  resolveDigiWalletInitiation,
+  resolveDigiWalletPollStatus,
+  resolveDigiWalletResend,
+} from "./digiWalletState";
 
 const DigiWalletPayment = () => {
   const theme = useTheme();
@@ -65,35 +72,29 @@ const DigiWalletPayment = () => {
     const initiate = async () => {
       dispatch(setStatus("initiating"));
       dispatch(setError(""));
-    try {
-      const { data } = await digiWalletApi.initiate(paymentId);
-      if (data?.status === "OTP_SENT") {
-        dispatch(setRequestId(data.request_id));
-        dispatch(setMessage(data.message || t("OTP sent successfully.")));
-        dispatch(setStatus("otp_sent"));
-        setResendCooldown(60);
-        return;
+      try {
+        const { data } = await digiWalletApi.initiate(paymentId);
+        const result = resolveDigiWalletInitiation(data, t);
+
+        if (result.requestId) {
+          dispatch(setRequestId(result.requestId));
+        }
+        dispatch(setMessage(result.message));
+        dispatch(setError(result.error));
+        dispatch(setStatus(result.nextStatus));
+        setResendCooldown(result.resendCooldown);
+      } catch (err) {
+        dispatch(
+          setError(
+            getDigiWalletErrorMessage(
+              err,
+              t("Unable to start DigiWallet payment.")
+            )
+          )
+        );
+        dispatch(setStatus("failed"));
       }
-      const fallbackError =
-        data?.message ||
-        data?.errors?.[0]?.message ||
-        data?.error ||
-        data?.status;
-      dispatch(
-        setError(fallbackError || t("Unable to start DigiWallet payment."))
-      );
-      dispatch(setStatus("failed"));
-    } catch (err) {
-      const fallbackError =
-        err?.response?.data?.message ||
-        err?.response?.data?.errors?.[0]?.message ||
-        err?.message;
-      dispatch(
-        setError(fallbackError || t("Unable to start DigiWallet payment."))
-      );
-      dispatch(setStatus("failed"));
-    }
-  };
+    };
     initiate();
   }, [dispatch, paymentId, status, t]);
 
@@ -103,30 +104,16 @@ const DigiWalletPayment = () => {
     const poll = async () => {
       try {
         const { data } = await digiWalletApi.getStatus(paymentId);
-        const rawStatus =
-          typeof data?.digiwallet_status === "string"
-            ? data.digiwallet_status
-            : data?.digiwallet_status?.status;
-        const normalized = (rawStatus || "").toUpperCase();
-        const successStates = ["SUCCESS", "COMPLETED", "PAID", "APPROVED"];
-        const failedStates = ["FAILED", "ERROR", "REJECTED", "CANCELLED"];
+        const result = resolveDigiWalletPollStatus({
+          data,
+          pollCount: pollCount.current,
+          t,
+        });
 
-        if (successStates.includes(normalized)) {
-          dispatch(setMessage(t("Payment completed successfully.")));
-          dispatch(setStatus("success"));
-          return;
-        }
-        if (failedStates.includes(normalized)) {
-          dispatch(setError(t("Payment failed. Please try again.")));
-          dispatch(setStatus("failed"));
-          return;
-        }
-
-        pollCount.current += 1;
-        if (pollCount.current > 30) {
-          dispatch(setMessage(t("Payment is still pending. Please check again later.")));
-          dispatch(setStatus("pending"));
-        }
+        pollCount.current = result.pollCount;
+        dispatch(setMessage(result.message));
+        dispatch(setError(result.error));
+        dispatch(setStatus(result.nextStatus));
       } catch (err) {
         dispatch(setError(t("Unable to check payment status.")));
         dispatch(setStatus("failed"));
@@ -146,24 +133,21 @@ const DigiWalletPayment = () => {
         request_id: requestId,
         otp,
       });
-      const apiStatus = (data?.status || "").toUpperCase();
-      if (apiStatus === "SUCCESS") {
-        dispatch(setMessage(data?.message || t("Payment completed successfully.")));
-        dispatch(setStatus("success"));
-        return;
-      }
-      if (apiStatus === "PENDING") {
-        dispatch(setMessage(data?.message || t("Payment is pending.")));
-        dispatch(setStatus("polling"));
-        return;
-      }
-      dispatch(setError(data?.message || t("Payment failed. Please try again.")));
-      dispatch(setStatus("failed"));
+      const result = resolveDigiWalletConfirmation(data, t);
+
+      dispatch(setMessage(result.message));
+      dispatch(setError(result.error));
+      dispatch(setStatus(result.nextStatus));
     } catch (err) {
-      const message =
-        err?.response?.data?.message || t("Unable to verify OTP. Please try again.");
-      dispatch(setError(message));
-      dispatch(setStatus("failed"));
+      dispatch(
+        setError(
+          getDigiWalletErrorMessage(
+            err,
+            t("Unable to verify OTP. Please try again.")
+          )
+        )
+      );
+      dispatch(setStatus("otp_sent"));
     }
   };
 
@@ -173,19 +157,25 @@ const DigiWalletPayment = () => {
     dispatch(setError(""));
     try {
       const { data } = await digiWalletApi.resendOtp(paymentId);
-      if (data?.status === "OTP_SENT") {
-        dispatch(setRequestId(data.request_id));
-        dispatch(setMessage(data?.message || t("OTP sent successfully.")));
-        dispatch(setStatus("otp_sent"));
-        setResendCooldown(60);
-        setOtp("");
-        return;
+      const result = resolveDigiWalletResend(data, t);
+
+      if (result.requestId) {
+        dispatch(setRequestId(result.requestId));
       }
-      dispatch(setError(data?.message || t("Unable to resend OTP.")));
-      dispatch(setStatus("failed"));
+      dispatch(setMessage(result.message));
+      dispatch(setError(result.error));
+      dispatch(setStatus(result.nextStatus));
+      setResendCooldown(result.resendCooldown);
+      if (result.clearOtp) {
+        setOtp("");
+      }
     } catch (err) {
-      dispatch(setError(t("Unable to resend OTP.")));
-      dispatch(setStatus("failed"));
+      dispatch(
+        setError(
+          getDigiWalletErrorMessage(err, t("Unable to resend OTP."))
+        )
+      );
+      dispatch(setStatus("otp_sent"));
     }
   };
 
