@@ -1,9 +1,8 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import PropTypes from "prop-types";
 import AppleLogin from "react-apple-login";
 import { Typography, useMediaQuery, useTheme } from "@mui/material";
 import { useTranslation } from "react-i18next";
-import { appleLoginCredential } from "utils/staticCredential";
 import { CustomGoogleButton } from "components/auth/sign-in/social-login/GoogleLoginComp";
 import CustomImageContainer from "components/CustomImageContainer";
 import appleLogo from "../../asset/Apple Logo.svg";
@@ -27,19 +26,11 @@ const AppleLoginComp = (props) => {
   } = props;
   const theme = useTheme();
   const isSmall = useMediaQuery(theme.breakpoints.down("md"));
-  const credentials = appleLoginCredential;
   const { t } = useTranslation();
-  const [appleSdkLoaded, setAppleSdkLoaded] = useState(false);
   const [loginValue, setLoginValue] = useState(null);
-  // client_id
-  // Load Apple SDK
-  useEffect(() => {
-    if (typeof AppleID !== "undefined") {
-      setAppleSdkLoaded(true);
-    } else {
-      console.warn("Apple SDK not loaded");
-    }
-  }, []); // Only runs once when the component mounts
+  const appleClientId = item?.client_id || configData?.apple_login?.[0]?.client_id;
+  const appleRedirectUri =
+    item?.redirect_url_react || configData?.apple_login?.[0]?.redirect_url_react;
 
   const handleToken = (token) => {
     if (token) {
@@ -197,10 +188,10 @@ const AppleLoginComp = (props) => {
           socialLength === 3 && state?.status !== "social" ? "45px" : "100%",
       }}
     >
-      {appleSdkLoaded ? (
+      {appleClientId && appleRedirectUri ? (
         <AppleLogin
-          clientId={configData?.apple_login[0]?.client_id}
-          redirectURI={configData?.apple_login[0]?.redirect_url_react}
+          clientId={appleClientId}
+          redirectURI={appleRedirectUri}
           responseType="code"
           responseMode="form_post"
           usePopup={true}
@@ -211,7 +202,7 @@ const AppleLoginComp = (props) => {
           ) => <>{handleView(renderProps.onClick)}</>}
         />
       ) : (
-        <Typography>{t("Loading Apple Login...")}</Typography>
+        <Typography>{t("Apple Login is not configured.")}</Typography>
       )}
     </div>
   );
