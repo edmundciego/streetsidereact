@@ -8,6 +8,9 @@ import { alpha, Typography, useMediaQuery, useTheme } from "@mui/material";
 import googleLatest from "../../asset/Google_Logo.png";
 import { t } from "i18next";
 import { getGuestId } from "helper-functions/getToken";
+import { getSocialLoginClientId } from "utils/socialLoginConfig";
+
+const GOOGLE_SCRIPT_SRC = "https://accounts.google.com/gsi/client";
 
 export const CustomGoogleButton = styled(Stack)(({ theme, width, height }) => ({
   width: width,
@@ -26,6 +29,7 @@ export const CustomGoogleButton = styled(Stack)(({ theme, width, height }) => ({
 const GoogleLoginComp = (props) => {
   const {
     handleSuccess,
+    configData,
     socialLength,
     state,
     setJwtToken,
@@ -40,10 +44,12 @@ const GoogleLoginComp = (props) => {
   const [openModal, setOpenModal] = useState(false);
   const [openOtpModal, setOpenOtpModal] = useState(false);
   const [otpData, setOtpData] = useState({ phone: "" });
+  const [isGoogleSdkLoaded, setIsGoogleSdkLoaded] = useState(false);
   const buttonDiv = useRef(null);
   const isSmall = useMediaQuery(theme.breakpoints.down("md"));
   const [buttonWidth, setButtonWidth] = useState(isSmall ? "300px" : "350px"); // Default width
-  const clientId = google_client_id;
+  const clientId =
+    getSocialLoginClientId(configData, "google") || google_client_id;
 
   // Update button size based on socialLength
   useEffect(() => {
@@ -78,6 +84,38 @@ const GoogleLoginComp = (props) => {
       setOpenOtpModal(true);
     }
   }, [otpData]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return undefined;
+    }
+
+    if (window.google?.accounts?.id) {
+      setIsGoogleSdkLoaded(true);
+
+      return undefined;
+    }
+
+    const existingScript = document.querySelector(
+      `script[src="${GOOGLE_SCRIPT_SRC}"]`
+    );
+    const handleLoad = () => setIsGoogleSdkLoaded(true);
+
+    if (existingScript) {
+      existingScript.addEventListener("load", handleLoad);
+
+      return () => existingScript.removeEventListener("load", handleLoad);
+    }
+
+    const script = document.createElement("script");
+    script.src = GOOGLE_SCRIPT_SRC;
+    script.async = true;
+    script.defer = true;
+    script.addEventListener("load", handleLoad);
+    document.body.appendChild(script);
+
+    return () => script.removeEventListener("load", handleLoad);
+  }, []);
 
   const handlePostRequestOnSuccess = (response) => {
     const res = response;
@@ -128,19 +166,26 @@ const GoogleLoginComp = (props) => {
     };
   };
   useEffect(() => {
-    // Initialize Google button
-    if (typeof window !== undefined) {
-      window?.google?.accounts?.id?.initialize({
-        client_id: clientId,
-        callback: handleCallBackResponse,
-      });
-      window?.google?.accounts?.id?.renderButton(buttonDiv.current, {
-        theme: "outline",
-        size: "large", // Set button size to 'large' for better scaling
-        logo_alignment: "left",
-      });
+    if (
+      !isGoogleSdkLoaded ||
+      !clientId ||
+      !buttonDiv.current ||
+      !window?.google?.accounts?.id
+    ) {
+      return;
     }
-  }, []);
+
+    buttonDiv.current.innerHTML = "";
+    window.google.accounts.id.initialize({
+      client_id: clientId,
+      callback: handleCallBackResponse,
+    });
+    window.google.accounts.id.renderButton(buttonDiv.current, {
+      theme: "outline",
+      size: "large",
+      logo_alignment: "left",
+    });
+  }, [clientId, isGoogleSdkLoaded]);
 
   const handleView = () => {
     // Handle conditional rendering for social login button style
@@ -247,7 +292,8 @@ const GoogleLoginComp = (props) => {
         <div
           style={{
             position: "absolute",
-
+            inset: 0,
+            height: "100%",
             width: "100%",
             filter: "opacity(0)",
             zIndex: 9999,

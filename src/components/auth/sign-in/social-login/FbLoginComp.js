@@ -20,6 +20,7 @@ import OtpForm from "../../sign-up/OtpForm";
 import { CustomGoogleButton } from "components/auth/sign-in/social-login/GoogleLoginComp";
 import googleLatest from "../../asset/Facebook.png";
 import { getGuestId } from "helper-functions/getToken";
+import { getSocialLoginClientId } from "utils/socialLoginConfig";
 
 const FbLoginComp = (props) => {
   const {
@@ -43,7 +44,7 @@ const FbLoginComp = (props) => {
   const [otpData, setOtpData] = useState({ phone: "" });
   const [mainToken, setMainToken] = useState(null);
   const dispatch = useDispatch();
-  const appId = fb_app_id;
+  const appId = getSocialLoginClientId(configData, "facebook") || fb_app_id;
   const { mutate } = usePostEmail();
   const handleToken = (response) => {
     if (response?.token) {
