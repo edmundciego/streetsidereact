@@ -9,6 +9,7 @@ import appleLogo from "../../asset/Apple Logo.svg";
 import jwt_decode from "jwt-decode";
 import { getGuestId } from "helper-functions/getToken";
 import { onErrorResponse } from "api-manage/api-error-response/ErrorResponses";
+import { getAppleNameParts } from "utils/socialUserName";
 
 const AppleLoginComp = (props) => {
   const {
@@ -59,12 +60,17 @@ const AppleLoginComp = (props) => {
   const handleAppleResponse = async (res) => {
     if (res.authorization?.id_token) {
       const userObj = jwt_decode(res.authorization?.id_token);
+      const nameParts = getAppleNameParts(res, userObj);
+      const socialUserInfo = {
+        ...userObj,
+        ...nameParts,
+      };
 
       setJwtToken({
         credential: res?.authorization?.id_token,
         clientId: res?.authorization?.code,
       });
-      setUserInfo(userObj);
+      setUserInfo(socialUserInfo);
       const tempValue = {
         email: res?.email ?? userObj?.email,
         token: res.authorization?.id_token,
@@ -72,6 +78,7 @@ const AppleLoginComp = (props) => {
         medium: res?.medium ?? "apple",
         login_type: res?.login_type ?? "social",
         guest_id: loginValue?.guest_id ?? getGuestId(),
+        ...nameParts,
       };
       //setLoginValue(tempValue);
       // const tempValue = {
@@ -87,6 +94,7 @@ const AppleLoginComp = (props) => {
           handlePostRequestOnSuccess({
             ...res,
             email: userObj?.email,
+            ...nameParts,
           }),
         onError: onErrorResponse,
       });

@@ -61,8 +61,8 @@ const AuthModal = ({ modalFor, open, handleClose, setModalFor }) => {
   const [jwtToken, setJwtToken] = useState(null);
   const [medium, setMedium] = useState("");
   const [verificationId, setVerificationId] = useState(null);
-  const user = medium === "google" ? userInfo : fbUserInfo;
-  const jwt = medium === "google" ? jwtToken : fbJwtToken;
+  const user = medium === "facebook" ? fbUserInfo : userInfo;
+  const jwt = medium === "facebook" ? fbJwtToken : jwtToken;
   const dispatch = useDispatch();
   const recaptchaWrapperRef = useRef(null);
   const { mutate, isLoading } = useUpdateUserInfo();
@@ -124,10 +124,10 @@ const AuthModal = ({ modalFor, open, handleClose, setModalFor }) => {
       tempValues = {
         verified: value,
         login_type: loginInfo?.login_type,
-        email: userInfo?.email,
+        email: user?.email,
         guest_id: getGuestId(),
-        token: jwtToken?.credential,
-        unique_id: jwtToken?.clientId,
+        token: jwt?.credential,
+        unique_id: jwt?.clientId,
         medium: medium,
       };
     } else {
@@ -226,7 +226,7 @@ const AuthModal = ({ modalFor, open, handleClose, setModalFor }) => {
             formSubmitHandler={handleUpdateUserInfo}
             loginInfo={loginInfo}
             isLoading={isLoading}
-            userInfo={userInfo}
+            userInfo={user}
           />
         );
       case "is_exist_user":

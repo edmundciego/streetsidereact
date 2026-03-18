@@ -17,6 +17,7 @@ import { useSelector } from "react-redux";
 import { getGuestId } from "helper-functions/getToken";
 import { styled } from "@mui/system";
 import { getLanguage } from "helper-functions/getLanguage";
+import { buildFullName, resolveNameParts } from "utils/socialUserName";
 export const CustomSignUpTextField = styled(TextField)(({ theme }) => ({
   "& .MuiInputBase-input": {
     padding: "12.5px 0px !important",
@@ -56,23 +57,29 @@ export const CustomSignUpTextField = styled(TextField)(({ theme }) => ({
 const AddUserInfo = ({ formSubmitHandler, loginInfo, isLoading, userInfo }) => {
   const { configData } = useSelector((state) => state.configData);
   const lanDirection = getLanguage() ? getLanguage() : "ltr";
+  const initialNameParts = resolveNameParts({
+    firstName: userInfo?.f_name ?? loginInfo?.f_name,
+    lastName: userInfo?.l_name ?? loginInfo?.l_name,
+    fullName: userInfo?.name ?? loginInfo?.name,
+  });
   const userInfoFormik = useFormik({
+    enableReinitialize: true,
     initialValues: {
-      name: userInfo?.name ? userInfo?.name : "",
+      f_name: initialNameParts.f_name,
+      l_name: initialNameParts.l_name,
       email: "",
       ref_code: "",
       phone: "",
     },
     validationSchema: Yup.object({
-      // phone: Yup.string()
-      //     .required(t('Please give a phone number'))
-      //     .min(10, 'number must be 10 digits'),
+      f_name: Yup.string().required(t("First name is required")),
     }),
 
     onSubmit: async (values, helpers) => {
       try {
         formSubmitHandler({
           ...values,
+          name: buildFullName(values.f_name, values.l_name),
           login_type: loginInfo.login_type,
           phone: loginInfo?.is_email ? values?.phone : loginInfo.phone,
           email: loginInfo?.is_email ? loginInfo?.email : values?.email,
@@ -112,39 +119,76 @@ const AddUserInfo = ({ formSubmitHandler, loginInfo, isLoading, userInfo }) => {
             style={{ width: "100%" }}
           >
             <CustomStackFullWidth gap="36px">
-              <CustomSignUpTextField
-                required
-                fullWidth
-                id="name"
-                label={t("Name")}
-                placeholder={t("Name")}
-                name="name"
-                autoComplete="name"
-                value={userInfoFormik.values.name}
-                onChange={userInfoFormik.handleChange}
-                error={
-                  userInfoFormik.touched.name &&
-                  Boolean(userInfoFormik.errors.name)
-                }
-                helperText={
-                  userInfoFormik.touched.name && userInfoFormik.errors.name
-                }
-                touched={userInfoFormik.touched.name}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <AccountCircleIcon
-                        sx={{
-                          fontSize: "1.2rem",
-                          color: (theme) =>
-                            alpha(theme.palette.neutral[400], 0.5),
-                        }}
-                      />
-                    </InputAdornment>
-                  ),
-                }}
-                //  autoFocus
-              />
+              <CustomStackFullWidth
+                direction={{ xs: "column", sm: "row" }}
+                spacing={2}
+              >
+                <CustomSignUpTextField
+                  required
+                  fullWidth
+                  id="f_name"
+                  label={t("First Name")}
+                  placeholder={t("First Name")}
+                  name="f_name"
+                  autoComplete="given-name"
+                  value={userInfoFormik.values.f_name}
+                  onChange={userInfoFormik.handleChange}
+                  error={
+                    userInfoFormik.touched.f_name &&
+                    Boolean(userInfoFormik.errors.f_name)
+                  }
+                  helperText={
+                    userInfoFormik.touched.f_name &&
+                    userInfoFormik.errors.f_name
+                  }
+                  touched={userInfoFormik.touched.f_name}
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <AccountCircleIcon
+                          sx={{
+                            fontSize: "1.2rem",
+                            color: (theme) =>
+                              alpha(theme.palette.neutral[400], 0.5),
+                          }}
+                        />
+                      </InputAdornment>
+                    ),
+                  }}
+                />
+                <CustomSignUpTextField
+                  fullWidth
+                  id="l_name"
+                  label={t("Last Name")}
+                  placeholder={t("Last Name")}
+                  name="l_name"
+                  autoComplete="family-name"
+                  value={userInfoFormik.values.l_name}
+                  onChange={userInfoFormik.handleChange}
+                  error={
+                    userInfoFormik.touched.l_name &&
+                    Boolean(userInfoFormik.errors.l_name)
+                  }
+                  helperText={
+                    userInfoFormik.touched.l_name &&
+                    userInfoFormik.errors.l_name
+                  }
+                  touched={userInfoFormik.touched.l_name}
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <AccountCircleIcon
+                          sx={{
+                            fontSize: "1.2rem",
+                            color: (theme) =>
+                              alpha(theme.palette.neutral[400], 0.5),
+                          }}
+                        />
+                      </InputAdornment>
+                    ),
+                  }}
+                />
+              </CustomStackFullWidth>
               {loginInfo?.is_email ? (
                 <CustomPhoneInput
                   value={userInfoFormik.values.phone}

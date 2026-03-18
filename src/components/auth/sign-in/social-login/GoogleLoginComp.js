@@ -9,6 +9,7 @@ import googleLatest from "../../asset/Google_Logo.png";
 import { t } from "i18next";
 import { getGuestId } from "helper-functions/getToken";
 import { getSocialLoginClientId } from "utils/socialLoginConfig";
+import { getGoogleNameParts } from "utils/socialUserName";
 
 const GOOGLE_SCRIPT_SRC = "https://accounts.google.com/gsi/client";
 
@@ -134,9 +135,14 @@ const GoogleLoginComp = (props) => {
   };
   const handleCallBackResponse = (res) => {
     const userObj = jwt_decode(res.credential);
+    const nameParts = getGoogleNameParts(userObj);
+    const socialUserInfo = {
+      ...userObj,
+      ...nameParts,
+    };
 
     setJwtToken(res);
-    setUserInfo(userObj);
+    setUserInfo(socialUserInfo);
     const tempValue = {
       email: res?.email ?? userObj.email,
       token: res?.token ?? res.credential,
@@ -144,6 +150,7 @@ const GoogleLoginComp = (props) => {
       medium: res?.medium ?? "google",
       login_type: res?.login_type ?? "social",
       guest_id: loginValue?.guest_id ?? getGuestId(),
+      ...nameParts,
     };
     setLoginValue(tempValue);
     loginMutation(tempValue, {
@@ -151,6 +158,7 @@ const GoogleLoginComp = (props) => {
         handlePostRequestOnSuccess({
           ...res,
           email: userObj.email,
+          ...nameParts,
         }),
       onError: (error) => {
         error?.response?.data?.errors?.forEach((item) =>

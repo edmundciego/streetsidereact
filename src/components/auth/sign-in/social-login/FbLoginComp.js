@@ -3,16 +3,14 @@ import { Stack, Typography, useMediaQuery, useTheme } from "@mui/material";
 import FacebookLogin from "react-facebook-login/dist/facebook-login-render-props";
 import { toast } from "react-hot-toast";
 import { useTranslation } from "react-i18next";
-import { useDispatch, useSelector } from "react-redux";
+import { useDispatch } from "react-redux";
 import { onErrorResponse } from "api-manage/api-error-response/ErrorResponses";
 import { useVerifyPhone } from "api-manage/hooks/react-query/forgot-password/useVerifyPhone";
 import { usePostEmail } from "api-manage/hooks/react-query/social-login/useEmailPost";
-import { getLanguage } from "helper-functions/getLanguage";
 import {
   setJwtTokenByDispatch,
   setUserInfoByDispatch,
 } from "redux/slices/fbCredentials";
-import { CustomStackFullWidth } from "../../../../styled-components/CustomStyles.style";
 import { fb_app_id } from "utils/staticCredential";
 import CustomImageContainer from "../../../CustomImageContainer";
 import CustomModal from "../../../modal";
@@ -21,6 +19,7 @@ import { CustomGoogleButton } from "components/auth/sign-in/social-login/GoogleL
 import googleLatest from "../../asset/Facebook.png";
 import { getGuestId } from "helper-functions/getToken";
 import { getSocialLoginClientId } from "utils/socialLoginConfig";
+import { getFacebookNameParts } from "utils/socialUserName";
 
 const FbLoginComp = (props) => {
   const {
@@ -32,10 +31,8 @@ const FbLoginComp = (props) => {
     setMedium,
     loginMutation,
     setLoginInfo,
+    setUserInfo,
   } = props;
-  const { userInfo, jwtToken } = useSelector(
-    (state) => state.fbCredentialsStore
-  );
   const theme = useTheme();
   const isSmall = useMediaQuery(theme.breakpoints.down("md"));
   const [loginValue, setLoginValue] = useState(null);
@@ -86,8 +83,15 @@ const FbLoginComp = (props) => {
     }
   };
   const responseFacebook = async (res) => {
-    dispatch(setUserInfoByDispatch(res));
+    const nameParts = getFacebookNameParts(res);
+    const socialUserInfo = {
+      ...res,
+      ...nameParts,
+    };
+
+    dispatch(setUserInfoByDispatch(socialUserInfo));
     dispatch(setJwtTokenByDispatch(res));
+    setUserInfo(socialUserInfo);
     if (res?.status !== "unknown") {
       const tempValue = {
         email: res?.email,
@@ -97,12 +101,17 @@ const FbLoginComp = (props) => {
         phone: res?.phone,
         login_type: "social",
         guest_id: getGuestId(),
+        ...nameParts,
       };
       setLoginValue(tempValue);
       await mutate(tempValue, {
         onSuccess: (res) =>
           handlePostRequestOnSuccess({
             ...res,
+            data: {
+              ...res?.data,
+              ...nameParts,
+            },
           }),
         onError: (error) => {
           error?.response?.data?.errors?.forEach((item) =>
@@ -221,7 +230,6 @@ const FbLoginComp = (props) => {
     }
   };
   const { t } = useTranslation();
-  const lanDirection = getLanguage() ? getLanguage() : "ltr";
   return (
     <>
       <FacebookLogin
