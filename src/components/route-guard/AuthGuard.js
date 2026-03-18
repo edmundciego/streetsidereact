@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import { useSelector } from "react-redux";
+import { canAccessProtectedRoute } from "./authGuardRules";
 
 const AuthGuard = (props) => {
   const { children, from } = props;
@@ -15,9 +16,14 @@ const AuthGuard = (props) => {
       }
       const token = localStorage.getItem("token");
       const guest = localStorage.getItem("guest_id");
-      if ((token || guest) && orderId) {
-        setChecked(true);
-      } else if (guest && configData?.guest_checkout_status === 1) {
+      if (
+        canAccessProtectedRoute({
+          token,
+          guest,
+          orderId,
+          guestCheckoutStatus: configData?.guest_checkout_status,
+        })
+      ) {
         setChecked(true);
       } else {
         router.push(
