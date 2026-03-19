@@ -511,6 +511,52 @@ const ItemCheckout = (props) => {
 	const prevCartRef = useRef(null);
 	const prevCouponRef = useRef(null);
 
+	const initiateDigitalPayment = async ({
+		orderId: createdOrderId,
+		customerId,
+		callbackUrl,
+	}) => {
+		const initiatePayload = {
+			order_id: createdOrderId,
+			customer_id: customerId,
+			payment_platform: "web",
+			callback: callbackUrl,
+			payment_method: paymentMethod,
+		};
+		const { data } = await OrderApi.initiatePayment(initiatePayload);
+
+		if (!data?.redirect_url || !data?.payment_id) {
+			throw new Error("Missing payment redirect.");
+		}
+
+		if (createdOrderId) {
+			localStorage.setItem(
+				`pending_payment_${createdOrderId}`,
+				data.payment_id
+			);
+		}
+
+		const isDigiWallet =
+			String(paymentMethod).toLowerCase() === "digiwallet";
+		if (isDigiWallet) {
+			await Router.push(
+				{
+					pathname: "/digiwallet-payment",
+					query: {
+						payment_id: data.payment_id,
+						order_id: createdOrderId,
+						callback: callbackUrl,
+					},
+				},
+				undefined,
+				{ shallow: true }
+			);
+			return;
+		}
+
+		await Router.push(data.redirect_url, undefined, { shallow: true });
+	};
+
 	useEffect(() => {
 		if ((!cartList || !storeData) && !storeId) return;
 
@@ -628,21 +674,28 @@ const ItemCheckout = (props) => {
 							paymentMethod !== "cash_on_delivery" &&
 							paymentMethod !== "offline_payment"
 						) {
-							const payment_platform = "web";
 							const page = "my-orders";
 							const callBackUrl = token
 								? `${window.location.origin}/profile?page=${page}`
 								: `${window.location.origin}/home`;
-							const url = `${baseUrl}/payment-mobile?order_id=${response?.data?.order_id
-								}&customer_id=${customerData?.data?.id ?? response?.data?.user_id
-									? response?.data?.user_id
-									: guest_id
-								}&payment_platform=${payment_platform}&callback=${callBackUrl}&payment_method=${paymentMethod}`;
 							localStorage.setItem("totalAmount", totalAmount);
 							dispatch(setGuestUserInfo(null));
 							dispatch(setOrderDetailsModal(true));
-							//dispatch(setClearCart());
-							Router.push(url, undefined, { shallow: true });
+							const customerId =
+								customerData?.data?.id ??
+								response?.data?.user_id ??
+								guest_id;
+							initiateDigitalPayment({
+								orderId: response?.data?.order_id,
+								customerId,
+								callbackUrl: callBackUrl,
+							}).catch((error) => {
+								const message =
+									error?.response?.data?.message ||
+									error?.message ||
+									t("Unable to initiate payment.");
+								toast.error(message);
+							});
 						} else if (paymentMethod === "offline_payment") {
 							toast.success("Order is successful placed", {
 								id: paymentMethod,
