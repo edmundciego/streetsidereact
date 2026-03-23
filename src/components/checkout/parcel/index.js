@@ -55,6 +55,7 @@ import { useGetTax } from "api-manage/hooks/react-query/order-place/useGetTax";
 import deliveryFree from "components/checkout/DeliveryFree";
 import { onErrorResponse } from "api-manage/api-error-response/ErrorResponses";
 import { useGetSurgePrice } from "api-manage/hooks/react-query/order-place/useGetSurgePrice";
+import { getInitiatedPaymentData } from "utils/paymentRedirect";
 import InfoIcon from "@mui/icons-material/Info";
 import AddIcon from "@mui/icons-material/Add";
 import CloseIcon from "@mui/icons-material/Close";
@@ -392,23 +393,29 @@ const ParcelCheckout = () => {
             };
             OrderApi.initiatePayment(initiatePayload)
               .then(({ data }) => {
-                if (!data?.redirect_url || !data?.payment_id) {
+                const { paymentId, redirectUrl } =
+                  getInitiatedPaymentData(data);
+
+                if (!redirectUrl) {
                   throw new Error("Missing payment redirect.");
-                }
-                if (res?.order_id) {
-                  localStorage.setItem(
-                    `pending_payment_${res.order_id}`,
-                    data.payment_id
-                  );
                 }
                 const isDigiWallet =
                   String(paymentMethod).toLowerCase() === "digiwallet";
+                if (isDigiWallet && !paymentId) {
+                  throw new Error("Missing DigiWallet payment id.");
+                }
+                if (res?.order_id && paymentId) {
+                  localStorage.setItem(
+                    `pending_payment_${res.order_id}`,
+                    paymentId
+                  );
+                }
                 if (isDigiWallet) {
                   router.push(
                     {
                       pathname: "/digiwallet-payment",
                       query: {
-                        payment_id: data.payment_id,
+                        payment_id: paymentId,
                         order_id: res?.order_id,
                         callback: callBackUrl,
                       },
@@ -417,7 +424,7 @@ const ParcelCheckout = () => {
                     { shallow: true }
                   );
                 } else {
-                  router.push(data.redirect_url, undefined, { shallow: true });
+                  router.push(redirectUrl, undefined, { shallow: true });
                 }
               })
               .catch((error) => {

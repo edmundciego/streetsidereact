@@ -73,6 +73,43 @@ describe("paymentFailureHandler", () => {
     })
   })
 
+  it("falls back to the payment id embedded in the redirect URL for PlaceToPay", async () => {
+    const router = { push: jest.fn().mockResolvedValue(true) }
+    const storage = { setItem: jest.fn() }
+
+    OrderApi.initiatePayment.mockResolvedValue({
+      data: {
+        redirect_url:
+          "https://base.streetsideapp.com/payment/placetoPay/pay/?payment_id=embedded-456",
+      },
+    })
+
+    const result = await initiateFailedPaymentRedirect({
+      paymentMethod: "placetopay",
+      orderId: 52,
+      customerId: 9,
+      router,
+      storage,
+      origin: "https://streetside.test",
+    })
+
+    expect(storage.setItem).toHaveBeenCalledWith(
+      "pending_payment_52",
+      "embedded-456"
+    )
+    expect(router.push).toHaveBeenCalledWith(
+      "https://base.streetsideapp.com/payment/placetoPay/pay/?payment_id=embedded-456",
+      undefined,
+      { shallow: true }
+    )
+    expect(result).toEqual({
+      callback: "https://streetside.test/profile?page=my-orders",
+      paymentId: "embedded-456",
+      redirectUrl:
+        "https://base.streetsideapp.com/payment/placetoPay/pay/?payment_id=embedded-456",
+    })
+  })
+
   it("keeps the DigiWallet branch separate from the PlaceToPay redirect flow", async () => {
     const router = { push: jest.fn().mockResolvedValue(true) }
 

@@ -1,6 +1,7 @@
 import { t } from "i18next"
 import toast from "react-hot-toast"
 import { OrderApi } from "../api-manage/another-formated-api/orderApi"
+import { getInitiatedPaymentData } from "./paymentRedirect"
 import { cod_exceeds_message } from "./toasterMessages"
 
 export const buildFailedPaymentCallbackUrl = (origin = "") =>
@@ -35,21 +36,27 @@ export const initiateFailedPaymentRedirect = async ({
 
   try {
     const { data } = await orderApi.initiatePayment(initiatePayload)
-    if (!data?.redirect_url || !data?.payment_id) {
+    const { paymentId, redirectUrl } = getInitiatedPaymentData(data)
+
+    if (!redirectUrl) {
       throw new Error("Missing payment redirect.")
     }
 
-    if (orderId && storage?.setItem) {
-      storage.setItem(`pending_payment_${orderId}`, data.payment_id)
+    const isDigiWallet = String(paymentMethod).toLowerCase() === "digiwallet"
+    if (isDigiWallet && !paymentId) {
+      throw new Error("Missing DigiWallet payment id.")
     }
 
-    const isDigiWallet = String(paymentMethod).toLowerCase() === "digiwallet"
+    if (orderId && paymentId && storage?.setItem) {
+      storage.setItem(`pending_payment_${orderId}`, paymentId)
+    }
+
     if (isDigiWallet) {
       await router.push(
         {
           pathname: "/digiwallet-payment",
           query: {
-            payment_id: data.payment_id,
+            payment_id: paymentId,
             order_id: orderId,
             callback,
           },
@@ -58,13 +65,13 @@ export const initiateFailedPaymentRedirect = async ({
         { shallow: true }
       )
     } else {
-      await router.push(data.redirect_url, undefined, { shallow: true })
+      await router.push(redirectUrl, undefined, { shallow: true })
     }
 
     return {
       callback,
-      paymentId: data.payment_id,
-      redirectUrl: data.redirect_url,
+      paymentId,
+      redirectUrl,
     }
   } catch (error) {
     const message =

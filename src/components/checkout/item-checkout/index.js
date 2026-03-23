@@ -72,6 +72,7 @@ import { deliveryInstructions, productUnavailableData } from "./demoData";
 import OfflineForm from "./offline-payment/OfflineForm";
 import useGetCashBackAmount from "api-manage/hooks/react-query/cashback/useGetCashBackAmount";
 import { ModuleTypes } from "helper-functions/moduleTypes";
+import { getInitiatedPaymentData } from "utils/paymentRedirect";
 import {
 	setGuestUserInfo,
 	setGuestUserOrderId,
@@ -524,26 +525,31 @@ const ItemCheckout = (props) => {
 			payment_method: paymentMethod,
 		};
 		const { data } = await OrderApi.initiatePayment(initiatePayload);
+		const { paymentId, redirectUrl } = getInitiatedPaymentData(data);
 
-		if (!data?.redirect_url || !data?.payment_id) {
+		if (!redirectUrl) {
 			throw new Error("Missing payment redirect.");
-		}
-
-		if (createdOrderId) {
-			localStorage.setItem(
-				`pending_payment_${createdOrderId}`,
-				data.payment_id
-			);
 		}
 
 		const isDigiWallet =
 			String(paymentMethod).toLowerCase() === "digiwallet";
+		if (isDigiWallet && !paymentId) {
+			throw new Error("Missing DigiWallet payment id.");
+		}
+
+		if (createdOrderId && paymentId) {
+			localStorage.setItem(
+				`pending_payment_${createdOrderId}`,
+				paymentId
+			);
+		}
+
 		if (isDigiWallet) {
 			await Router.push(
 				{
 					pathname: "/digiwallet-payment",
 					query: {
-						payment_id: data.payment_id,
+						payment_id: paymentId,
 						order_id: createdOrderId,
 						callback: callbackUrl,
 					},
@@ -554,7 +560,7 @@ const ItemCheckout = (props) => {
 			return;
 		}
 
-		await Router.push(data.redirect_url, undefined, { shallow: true });
+		await Router.push(redirectUrl, undefined, { shallow: true });
 	};
 
 	useEffect(() => {
