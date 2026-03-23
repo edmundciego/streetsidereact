@@ -49,4 +49,15 @@ describe("digiWalletEligibility", () => {
       })
     ).toEqual(methods)
   })
+
+  it("accepts a react-query customer info response shape", () => {
+    expect(
+      isBelizeDigiWalletEligible({
+        data: {
+          is_phone_verified: 1,
+          phone: "+5016205821",
+        },
+      })
+    ).toBe(true)
+  })
 })

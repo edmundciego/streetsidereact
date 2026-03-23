@@ -221,6 +221,7 @@ const OtherModulePayment = (props) => {
   );
   const paymentMethods = filterDigiWalletMethods(
     configData?.active_payment_method_list,
+    customerData,
     profileInfo
   );
 

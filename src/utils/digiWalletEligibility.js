@@ -1,4 +1,32 @@
-export const isBelizeDigiWalletEligible = (profileInfo) => {
+const normalizeProfileSource = (profileSource) => {
+  if (!profileSource) {
+    return null
+  }
+
+  if (profileSource?.data && typeof profileSource.data === "object") {
+    return profileSource.data
+  }
+
+  return profileSource
+}
+
+const resolveEligibilityProfile = (profileSources) => {
+  const normalizedSources = profileSources
+    .map(normalizeProfileSource)
+    .filter(Boolean)
+
+  return (
+    normalizedSources.find(
+      (profile) =>
+        profile?.phone ||
+        profile?.is_phone_verified !== undefined ||
+        profile?.is_phone_verified !== null
+    ) || normalizedSources[0] || null
+  )
+}
+
+export const isBelizeDigiWalletEligible = (...profileSources) => {
+  const profileInfo = resolveEligibilityProfile(profileSources)
   if (!profileInfo) {
     return false
   }
@@ -17,12 +45,12 @@ export const isBelizeDigiWalletEligible = (profileInfo) => {
   return belizeDigits.startsWith("501") && belizeDigits.length === 10
 }
 
-export const filterDigiWalletMethods = (methods, profileInfo) => {
+export const filterDigiWalletMethods = (methods, ...profileSources) => {
   if (!Array.isArray(methods)) {
     return methods
   }
 
-  const allowDigiWallet = isBelizeDigiWalletEligible(profileInfo)
+  const allowDigiWallet = isBelizeDigiWalletEligible(...profileSources)
   return methods.filter((method) => {
     const gateway = String(method?.gateway ?? "").toLowerCase()
     if (gateway !== "digiwallet") {
