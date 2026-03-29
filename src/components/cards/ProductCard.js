@@ -1150,7 +1150,12 @@ const ProductCard = (props) => {
       <Stack sx={{ position: "relative" }}>
 
         {wishlistcard === "true" && (
-          <HeartWrapper onClick={() => setOpenModal(true)} top="5px" right="5px">
+          <HeartWrapper
+            onClick={() => setOpenModal(true)}
+            top="5px"
+            right="5px"
+            aria-label={t("Delete from wishlist")}
+          >
             <DeleteIcon style={{ color: theme.palette.error.light }} />
           </HeartWrapper>
         )}

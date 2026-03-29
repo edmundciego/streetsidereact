@@ -114,13 +114,23 @@ const StoresInfoCard = (props) => {
   return (
     <Stack sx={{ position: "relative", height: "100%" }}>
       {wishlistcard === "true" ? (
-        <HeartWrapper onClick={() => setOpenModal(true)} top="4%" right="5%">
+        <HeartWrapper
+          onClick={() => setOpenModal(true)}
+          top="4%"
+          right="5%"
+          aria-label={t("Delete from wishlist")}
+        >
           <DeleteIcon style={{ color: theme.palette.error.light }} />
         </HeartWrapper>
       ) : (
         <>
           {!isInList(id) && (
-            <HeartWrapper onClick={addToFavorite} top="4%" right="5%">
+            <HeartWrapper
+              onClick={addToFavorite}
+              top="4%"
+              right="5%"
+              aria-label={t("Add to wishlist")}
+            >
               <FavoriteBorderIcon />
             </HeartWrapper>
           )}
@@ -129,6 +139,7 @@ const StoresInfoCard = (props) => {
               onClick={() => deleteWishlistStore(id)}
               top="4%"
               right="5%"
+              aria-label={t("Remove from wishlist")}
             >
               <FavoriteIcon />
             </HeartWrapper>
