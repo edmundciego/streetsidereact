@@ -1,22 +1,26 @@
 import MainApi from "api-manage/MainApi";
 import { useQuery } from "react-query";
-
+import { getModuleId } from "helper-functions/getModuleId";
 import { onSingleErrorResponse } from "api-manage/api-error-response/ErrorResponses";
 import { provider_details_banner } from "../../../ApiRoutes";
 
-// Define a standalone fetcher function
-const fetchProviderDetails = async (id) => {
-  if(id){ 
-    const { data } = await MainApi.get(`${provider_details_banner}/${id}`);
-    return data;
-  }
-  return null;
+const fetchProviderDetails = async (id, moduleId) => {
+  console.log({moduleId});
+  
+  if (!id || !moduleId) return null;
+  const { data } = await MainApi.get(`${provider_details_banner}/${id}`);
+  return data;
 };
 
 // Use the fetcher function in useQuery
 export const useGetProviderDetails = (id) => {
-  return useQuery(["provider-details", id], () => fetchProviderDetails(id), {
-    onError: onSingleErrorResponse,
-    enabled: !!id // Only run query if id exists
-  });
+  const moduleId = getModuleId();
+  return useQuery(
+    ["provider-details", id, moduleId],
+    () => fetchProviderDetails(id, moduleId),
+    {
+      onError: onSingleErrorResponse,
+      enabled: !!id && !!moduleId, // Only run the query if id and moduleId are available
+    }
+  );
 };

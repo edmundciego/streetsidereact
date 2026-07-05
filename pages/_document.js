@@ -10,20 +10,58 @@ class CustomDocument extends Document {
     return (
       <Html lang="en">
         <Head>
-          {/* Favicon - use your own static favicon */}
-          <link rel="icon" href="/favicon.ico" sizes="any" />
-          <link rel="icon" href="/Streetside Stores-app-icon.png" type="image/png" />
-          
-          {/* PWA Meta Tags */}
-          <link rel="manifest" href="/manifest.json" />
-          <link rel="apple-touch-icon" href="/Streetside Stores-app-icon.png" />
-          <meta name="apple-mobile-web-app-capable" content="yes" />
-          <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-          <meta name="apple-mobile-web-app-title" content="StreetSide" />
-          <meta name="mobile-web-app-capable" content="yes" />
-          <meta name="application-name" content="StreetSide" />
-          <meta name="msapplication-TileColor" content="#111827" />
-          
+          <script
+            dangerouslySetInnerHTML={{
+              __html: `
+                (function () {
+                  try {
+                    var mode = "light";
+                    var cookieMatch = document.cookie.match(/(?:^|;\\s*)themeMode=(dark|light)(?:;|$)/);
+
+                    if (cookieMatch && cookieMatch[1]) {
+                      mode = cookieMatch[1];
+                    } else {
+                      var stored = localStorage.getItem("settings");
+                      if (stored) {
+                        var parsed = JSON.parse(stored);
+                        if (parsed && parsed.theme === "dark") mode = "dark";
+                      } else if (
+                        window.matchMedia &&
+                        window.matchMedia("(prefers-color-scheme: dark)").matches
+                      ) {
+                        mode = "dark";
+                      }
+                    }
+
+                    var root = document.documentElement;
+                    var pageBackground = mode === "dark" ? "#0B0F19" : "#FFFFFF";
+                    root.setAttribute("data-theme", mode);
+                    root.style.colorScheme = mode;
+                    root.style.backgroundColor = pageBackground;
+                  } catch (e) {}
+                })();
+              `,
+            }}
+          />
+          {/* Fonts */}
+          <link rel="preconnect" href="https://fonts.googleapis.com" />
+          <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
+          <link
+            href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Rubik:wght@300;400;500;600;700&display=swap"
+            rel="stylesheet"
+          />
+
+          {/* Social login scripts */}
+          <script
+            type="application/javascript"
+            src="https://accounts.google.com/gsi/client"
+            async
+          />
+          <script
+            type="text/javascript"
+            src="https://appleid.cdn-apple.com/appleauth/static/jsapi/appleid/1/en_US/appleid.auth.js"
+            async
+          />
           <meta name="theme-color" content="#111827" />
 
           {/* ✅ Analytics scripts */}

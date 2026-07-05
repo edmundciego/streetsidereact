@@ -2,9 +2,9 @@ import cookie from "js-cookie";
 import { getGuestId, getToken } from "helper-functions/getToken";
 import { updateDestinationLocations } from "components/home/module-wise-components/rental/components/utils/bookingHepler";
 
-export const formattedDate= (isoString) => {
+export const formattedDate = (isoString) => {
   const date = new Date(isoString);
-  const updatedDate = new Date(date.getTime() + 6 * 60 * 60 * 1000); // Add 6 hours
+  const updatedDate = new Date(date.getTime()); // Add 6 hours
 
   const pad = (num) => num.toString().padStart(2, '0');
 
@@ -40,12 +40,12 @@ export const bookingConfirm = ({
       location_name: searchKey2,
     },
     rental_type: tripType,
-    estimated_hours: tripType==="day_wise"?durationValue*24:durationValue,
+    estimated_hours: tripType === "day_wise" ? durationValue * 24 : durationValue,
     pickup_time: formattedDate(userDate),
-    destination_time:  Number(data?.duration?.replace('s', '')) / (60 * 60),
-    distance:Math.floor(
+    destination_time: Number(data?.duration?.replace('s', '')) / (60 * 60),
+    distance: Math.floor(
       data?.distanceMeters
-    )/ 1000,
+    ) / 1000,
     guest_id: getToken() ? null : getGuestId(),
   };
 

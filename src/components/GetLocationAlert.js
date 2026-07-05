@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { CustomStackFullWidth } from "styled-components/CustomStyles.style";
 import CustomImageContainer from "./CustomImageContainer";
-import locationImage from "../../public/static/locationSelect.png";
+import locationImage from "../../public/static/fi_854878.svg";
 import { Button, Typography, useTheme } from "@mui/material";
 import { t } from "i18next";
 import { useGeolocated } from "react-geolocated";
@@ -22,6 +22,8 @@ const GetLocationAlert = ({ setOpenAlert }) => {
     setOpen(true);
     //setOpenAlert(false);
   };
+  console.log({coords});
+  
   return (
     <CustomStackFullWidth
       p="1rem"
@@ -58,6 +60,7 @@ const GetLocationAlert = ({ setOpenAlert }) => {
           coords={coords}
           disableAutoFocus
           fromStore
+          //selectedLocation={coords}
         />
       )}
     </CustomStackFullWidth>

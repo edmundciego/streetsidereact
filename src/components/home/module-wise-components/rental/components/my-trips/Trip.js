@@ -1,302 +1,226 @@
-import StarBorderSharpIcon from "@mui/icons-material/StarBorderSharp";
 import {
+  Box,
   Button,
-  Chip,
-  Grid,
+  Stack,
   Typography,
-  alpha,
   useMediaQuery,
   useTheme,
 } from "@mui/material";
 import { styled } from "@mui/material/styles";
-import { Stack } from "@mui/system";
+import { CustomPaperBigCard } from "styled-components/CustomStyles.style";
 import { useRouter } from "next/router";
-import React, { useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { useTranslation } from "react-i18next";
 import { getAmountWithSign } from "helper-functions/CardHelpers";
 import { setDeliveryManInfoByDispatch } from "redux/slices/searchFilter";
-import {
-  CustomPaperBigCard,
-  CustomStackFullWidth,
-  StoreImageBox,
-} from "styled-components/CustomStyles.style";
-import trackOrderIcon1 from "../../../rental/components/my-trips/assets/Maskroup.svg";
-import trackOrderIcon from "../../components/my-trips/assets/trackOrderIcon.png";
-import { hasChatAndReview } from "components/my-orders/order-details/other-order/StoreDetails";
-import { toast } from "react-hot-toast";
-import { no_chatting_plan, no_review_plan } from "utils/toasterMessages";
+import StatusBadge from "components/common/StatusBadge";
 import CustomImageContainer from "components/CustomImageContainer";
 import CustomFormatedDateTime from "components/date/CustomFormatedDateTime";
-import {
-  DateTypography,
-  TrackOrderButton,
-} from "components/my-orders/myorders.style";
 
 export const CustomPaper = styled(CustomPaperBigCard)(({ theme }) => ({
   padding: "10px",
-  backgroundColor: alpha(theme.palette.neutral[300], 0.4),
+  backgroundColor: "transparent",
   boxShadow: "none",
-  cursor: "pointer",
-  "&:hover": {
-    backgroundColor: theme.palette.neutral[100],
-    boxShadow: " 0px 4px 12px rgba(88, 110, 125, 0.1)",
-  },
-  [theme.breakpoints.down("md")]: {
-    backgroundColor: theme.palette.neutral[100],
-    boxShadow: " 0px 4px 12px rgba(88, 110, 125, 0.1)",
-  },
-}));
-const OrderStatusTypography = styled(Typography)(({ theme, color }) => ({
-  color: color,
-  fontWeight: 600,
-  fontSize: "14px",
-  textTransform: "capitalize",
-  [theme.breakpoints.down("md")]: {
-    fontSize: "12px",
-  },
 }));
 
-const Trip = (props) => {
+const RUNNING_STATUSES = ["pending", "confirmed", "picked_up", "ongoing"];
+
+const Trip = ({ order }) => {
+  const { t } = useTranslation();
   const theme = useTheme();
-  const { order, t, configData, dispatch, index } = props;
-
-  const [sideDrawerOpen, setSideDrawerOpen] = useState(false);
-  const isXSmall = useMediaQuery(theme.breakpoints.down("sm"));
-
   const router = useRouter();
+  const dispatch = useDispatch();
+  const { modules } = useSelector((state) => state.configData);
+  const isMobile = useMediaQuery(theme.breakpoints.down("md"));
 
-  const handleRateButtonClick = (e) => {
-    if (hasChatAndReview(order?.store)?.isReview === 1) {
-      e.stopPropagation();
-      router.push(`/rate-and-review/${order?.id}`, undefined, {
-        shallow: true,
-      });
-    } else {
-      toast.error(no_review_plan);
-    }
-  };
-  const handleClickTrackOrder = (e) => {
-    e.stopPropagation();
-    if (order?.delivery_man) {
-      e.stopPropagation();
-      dispatch(setDeliveryManInfoByDispatch(order?.delivery_man));
-    }
-    if (order?.module_type === "rental") {
-      e.stopPropagation();
-      setSideDrawerOpen(true);
-    } else {
-      router.push(
-        {
-          pathname: "profile",
-          query: {
-            page: "my-orders",
-            orderId: order?.id,
-            tab: "track-order",
-          },
-        },
-        undefined,
-        { shallow: true }
-      );
-    }
+  const status = order?.trip_status ?? "";
+  const isRunning = RUNNING_STATUSES.includes(status);
+
+  // When this card is shown inside the orders rental tab, forward the rental
+  // module id so the trip-status page's back button can return to that exact
+  // list + tab. Resolve from the URL first, then fall back to the rental module.
+  const rentalModuleId =
+    router.query.orderTabModule ??
+    modules?.find((m) => m.module_type === "rental")?.id;
+  const cameFromOrders = router.query.page === "my-orders";
+  const tripStatusTarget = {
+    pathname: `/rental/trip-status/${order?.id}`,
+    query:
+      cameFromOrders && rentalModuleId
+        ? { orderTabModule: rentalModuleId }
+        : {},
   };
 
-  const color = () => {
-    if (
-      order?.trip_status === "pending" ||
-      order?.trip_status === "failed" ||
-      order?.trip_status === "canceled"
-    ) {
-      return alpha(theme.palette.error.main, 0.8);
-    }
-    if (
-      order?.trip_status === "confirmed" ||
-      order?.trip_status === "picked_up" ||
-      order?.trip_status === "delivered" ||
-      order?.trip_status === "ongoing"
-    ) {
-      return theme.palette.primary.main;
-    }
+  const goToDetails = () => {
+    router.push(tripStatusTarget);
   };
 
-  const deliveredInformation = () => (
-    <>
-      {hasChatAndReview(order?.store)?.isReview === 1 && (
-        <Button
-          onClick={(e) => handleRateButtonClick(e)}
-          variant="outlined"
-          startIcon={
-            <StarBorderSharpIcon
-              sx={{
-                width: { xs: "19px", sm: "19px", md: "20px" },
-                height: "23px",
-                paddingBottom: "3px",
-              }}
-            />
-          }
-          sx={{
-            p: {
-              xs: "5px 10px 5px 10px",
-              sm: "8px 15px 8px 15px",
-              md: "7px 15px 7px 15px",
-            },
-            fontSize: {
-              xs: "12px",
-              sm: "12px",
-              md: "14px",
-            },
-            "&:hover": {
-              backgroundColor: (theme) => theme.palette.primary.dark,
-              color: (theme) => theme.palette.whiteContainer.main,
-            },
-          }}
-        >
-          {t("Review")}
-        </Button>
-      )}
-    </>
-  );
+  const handleTrack = (e) => {
+    e?.stopPropagation?.();
+    if (order?.delivery_man) dispatch(setDeliveryManInfoByDispatch(order.delivery_man));
+    router.push(tripStatusTarget);
+  };
 
-  const notDeliveredInformation = () => (
-    <>
-      {order?.order_status !== "delivered" &&
-        order?.order_status !== "failed" &&
-        order?.order_status !== "canceled" &&
-        order?.order_status !== "refund_requested" &&
-        order?.order_status !== "refund_request_canceled" &&
-        order?.order_status !== "refunded" && (
-          <Stack
-            flexWrap="wrap"
-            paddingRight={{ xs: "0px", md: "20px" }}
-            alignItems="center"
-          >
-            <TrackOrderButton
-              variant="outlined"
-              size="small"
-              onClick={(e) => handleClickTrackOrder(e)}
-              endIcon={
-                <CustomImageContainer
-                  src={isXSmall ? trackOrderIcon1.src : trackOrderIcon.src}
-                  width="20px"
-                  height="20px"
-                  smWidth="15px"
-                  smHeight="15px"
-                  alt="icon"
-                />
-              }
-            >
-              {t("Track Order")}
-            </TrackOrderButton>
-          </Stack>
-        )}
-    </>
-  );
+  const actionLabel = isRunning ? t("Track Order") : t("View Details");
 
   return (
-    <CustomPaper
-      onClick={(e) => {
-        router.push(`rental/trip-status/${order?.id}`);
+    <Box
+      onClick={goToDetails}
+      sx={{
+        cursor: "pointer",
+        display: "grid",
+        gridTemplateColumns: { xs: "1fr 1fr", md: "2fr 2fr 1fr 1fr" },
+        gridTemplateAreas: {
+          xs: `"col1 col1" "col2 col2" "col3 col4"`,
+          md: `"col1 col2 col3 col4"`,
+        },
+        gap: { xs: "10px", md: "16px" },
+        alignItems: "center",
+        width: "100%",
       }}
     >
-      <Stack direction="row" gap={{xs: 1, sm: 2}}>
-          <StoreImageBox
-            borderraduis="10px"
-            padding="2px"
-            border={`1px solid ${alpha(theme.palette.neutral[400], 0.2)}`}
+      {/* Col 1: Provider image + Trip # + Status */}
+      <Stack spacing={isMobile ? "4px" : "6px"} sx={{ minWidth: 0, gridArea: "col1" }}>
+        <Stack direction="row" alignItems="center" gap="10px">
+          <Box
+            sx={{
+              width: { xs: 40, md: 52 },
+              height: { xs: 40, md: 52 },
+              borderRadius: "8px",
+              overflow: "hidden",
+              flexShrink: 0,
+              border: "1px solid",
+              borderColor: "divider",
+              backgroundColor: "background.secondary",
+            }}
           >
-            {order?.module_type === "rental" && (
-              <Stack
-                sx={{
-                  position: "absolute",
-                  top: "5px",
-                  zIndex: 2,
-                  left: "1%",
-                }}
-              >
-                <Chip
-                  label={order?.module_type}
-                  color="primary"
-                  style={{
-                    borderRadius: "2px",
-                    textTransform: "capitalize",
-                  }}
-                />
-              </Stack>
-            )}
-
             <CustomImageContainer
               src={order?.provider?.logo_full_url}
-              width="70px"
-              height="70px"
-              smWidth="43px"
-              smHeight="43px"
+              width="52px"
+              height="52px"
+              smWidth="40px"
+              smHeight="40px"
               objectfit="cover"
             />
-          </StoreImageBox>
-          <Stack
-              flexGrow={1}
-              width="0"
-            direction={{ xs: "column", md: "row" }}
-            spacing={{ xs: 0, md: 2 }}
-            alignItems={{ xs: "flex-start", md: "center" }}
-            justifyContent="space-between"
-            paddingLeft={{ xs: "10px", md: "0px" }}
-          >
-            <Stack justifyContent="flex-start">
-              <Typography
-                fontWeight="600"
-                fontSize={{ xs: "12px", md: "14px" }}
-              >
-                {t("Trip")}
-                <Typography
-                  fontWeight="600"
-                  component="span"
-                  marginLeft="5px"
-                  fontSize={{ xs: "12px", md: "14px" }}
-                >
-                  {"#"}
-                  {order?.id}
-                </Typography>
-                <Typography component="span" marginLeft="5px" fontSize="12px">
-                  {order?.trip_type !== "rental" &&
-                    `( ${order?.quantity} ${t("Vehicles")} )`}
-                </Typography>
-              </Typography>
-              {order?.trip_status == "delivered" ? (
-                <OrderStatusTypography color={color}>
-                  {t("Delivered")}
-                </OrderStatusTypography>
-              ) : (
-                <OrderStatusTypography color={color}>
-                  {order?.trip_status === "failed"
-                    ? t("Payment Failed")
-                    : t(order?.trip_status).replaceAll("_", " ")}
-                </OrderStatusTypography>
-              )}
-              <DateTypography>
-                {order?.trip_status == "delivered" ? (
-                  <CustomFormatedDateTime date={order?.delivered} />
-                ) : (
-                  <CustomFormatedDateTime date={order?.created_at} />
-                )}
-              </DateTypography>
-            </Stack>
-            <Stack
-              direction="row"
-              justifyContent="space-between"
-              gap="30px"
-              alignItems="center"
-              width={{ xs: "100%", md: "auto" }}
+          </Box>
+          <Stack spacing="4px" sx={{ minWidth: 0 }}>
+            <Typography
+              sx={{
+                fontSize: { xs: "16px", md: "18px" },
+                fontWeight: 700,
+                color: "neutral.1050",
+                lineHeight: 1.1,
+                letterSpacing: "-0.54px",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+              }}
             >
+              {order?.provider?.name}
+            </Typography>
+            <Stack direction="row" alignItems="center" gap="8px" flexWrap="wrap">
               <Typography
-                fontSize="16px"
-                fontWeight="500"
-                textAlign={isXSmall ? "left" : "center"}
+                sx={{
+                  fontSize: "14px",
+                  fontWeight: 400,
+                  color: "neutral.500",
+                  lineHeight: 1.3,
+                  whiteSpace: "nowrap",
+                }}
               >
-                {getAmountWithSign(order?.trip_amount)}
+                {t("Trip")} #{order?.id}
               </Typography>
+              <StatusBadge
+                status={status}
+                label={status.replaceAll("_", " ").replace(/\b\w/g, (c) => c.toUpperCase())}
+              />
             </Stack>
           </Stack>
+        </Stack>
       </Stack>
-    </CustomPaper>
+
+      {/* Col 2: Vehicles + date */}
+      <Stack spacing="4px" sx={{ minWidth: 0, gridArea: "col2" }}>
+        {order?.trip_type !== "rental" && (
+          <Typography
+            sx={{
+              fontSize: { xs: "12px", md: "14px" },
+              fontWeight: 400,
+              color: "neutral.500",
+              lineHeight: 1.3,
+            }}
+          >
+            {order?.quantity} {t("Vehicles")}
+          </Typography>
+        )}
+        <Typography
+          sx={{
+            fontSize: { xs: "12px", md: "13px" },
+            color: "neutral.500",
+            lineHeight: 1.3,
+          }}
+        >
+          <CustomFormatedDateTime date={order?.created_at} />
+        </Typography>
+      </Stack>
+
+      {/* Col 3: Amount */}
+      <Box
+        sx={{
+          minWidth: 0,
+          gridArea: "col3",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: { xs: "flex-start", md: "flex-end" },
+        }}
+      >
+        <Typography
+          sx={{
+            fontSize: { xs: "18px", md: "20px" },
+            fontWeight: 700,
+            color: "neutral.1050",
+            lineHeight: 1.1,
+            letterSpacing: "-0.6px",
+            fontVariantNumeric: "tabular-nums",
+          }}
+        >
+          {getAmountWithSign(order?.trip_amount)}
+        </Typography>
+      </Box>
+
+      {/* Col 4: Action button */}
+      <Box
+        sx={{
+          gridArea: "col4",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "flex-end",
+        }}
+      >
+        <Button
+          variant="contained"
+          size="small"
+          onClick={(e) => {
+            e.stopPropagation();
+            isRunning ? handleTrack(e) : goToDetails();
+          }}
+          sx={{
+            height: "36px",
+            px: "16px",
+            borderRadius: "8px",
+            textTransform: "none",
+            fontSize: "14px",
+            fontWeight: 600,
+            letterSpacing: "-0.42px",
+            flexShrink: 0,
+            boxShadow: "none",
+            "&:hover": { boxShadow: "none" },
+          }}
+        >
+          {actionLabel}
+        </Button>
+      </Box>
+    </Box>
   );
 };
 

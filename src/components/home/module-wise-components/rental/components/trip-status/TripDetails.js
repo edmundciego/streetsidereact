@@ -1,4 +1,5 @@
 import React from "react";
+import { formatNumber } from "helper-functions/CardHelpers";
 import RentalCardWrapper from "../global/RentalCardWrapper";
 import { Box, Grid, Stack, Typography } from "@mui/material";
 import H3 from "components/typographies/H3";
@@ -241,7 +242,7 @@ const TripDetails = ({ tripDetails, setModalType, setOpenModal,checkOut,setOpenT
                       color: (theme) => theme.palette.neutral[400],
                     }}
                   >
-                    {t("Estimated")} {tripDetails?.estimated_hours} hr
+                    {t("Estimated")} {formatNumber(tripDetails?.estimated_hours)} hr
                   </Typography>
                 )}
                 {tripDetails?.estimated_hours > 0 && tripDetails?.trip_type === "day_wise" && (
@@ -253,7 +254,7 @@ const TripDetails = ({ tripDetails, setModalType, setOpenModal,checkOut,setOpenT
                       color: (theme) => theme.palette.neutral[400],
                     }}
                   >
-                    {t("Estimated")} {tripDetails?.estimated_hours/24} days
+                    {t("Estimated")} {formatNumber(tripDetails?.estimated_hours / 24)} days
                   </Typography>
                 )}
 
@@ -267,7 +268,7 @@ const TripDetails = ({ tripDetails, setModalType, setOpenModal,checkOut,setOpenT
                         color: (theme) => theme.palette.neutral[400],
                       }}
                     >
-                      {tripDetails?.distance?.toFixed(3)} Km
+                      {formatNumber(tripDetails?.distance)} Km
                     </Typography>
                   )}
               </Box>

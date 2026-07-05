@@ -8,14 +8,16 @@ import StarIcon from "@mui/icons-material/Star";
 import { CustomBoxFullWidth } from "styled-components/CustomStyles.style";
 import { Box } from "@mui/system";
 import DepartureBoardIcon from "@mui/icons-material/DepartureBoard";
-import { useRouter } from "next/navigation";
+import { useRouter } from "next/router";
 
 const VisitVendor = ({ vehicleDetails }) => {
 	const router = useRouter();
 
 	const handleVisitVendorClick = () => {
+		const moduleId = router?.query?.module || router?.query?.module_id;
 		router.push({
-			pathname: `/rental/provider-details/${vehicleDetails?.provider?.id}`,
+			pathname: `/rental/provider/${vehicleDetails?.provider?.slug || vehicleDetails?.provider?.id}`,
+			query: moduleId ? { module: moduleId } : {},
 		});
 	};
 

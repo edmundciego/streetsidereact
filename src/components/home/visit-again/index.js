@@ -1,19 +1,28 @@
-import { alpha, useMediaQuery, useTheme, Card, Skeleton, Box, Grid, Typography } from "@mui/material";
+import {
+  alpha,
+  useMediaQuery,
+  useTheme,
+  Card,
+  Skeleton,
+  Box,
+  Grid,
+  Typography,
+} from "@mui/material";
 import { getCurrentModuleType } from "helper-functions/getCurrentModuleType";
 import { getToken } from "helper-functions/getToken";
 import { ModuleTypes } from "helper-functions/moduleTypes";
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import Slider from "react-slick";
 import {
   CustomStackFullWidth,
   SliderCustom,
   CustomBoxFullWidth,
 } from "styled-components/CustomStyles.style";
-import VisitAgainCard from "../../cards/VisitAgainCard";
-import CustomContainer from "../../container";
 import H1 from "../../typographies/H1";
 import Subtitle1 from "../../typographies/Subtitle1";
-import { createEnhancedArrows } from "../../common/EnhancedSliderArrows";
+import ExpressStoreCard from "components/cards/newCard/ExpressStoreCard";
+import SliderSectionHeader from "components/common/SliderSectionHeader";
 
 const VisitAgainShimmerCard = () => {
   const theme = useTheme();
@@ -58,56 +67,83 @@ const VisitAgainShimmerCard = () => {
 };
 
 const VisitAgain = ({ configData, visitedStores, isVisited, isLoading }) => {
+  const { t } = useTranslation();
   const theme = useTheme();
   const token = getToken();
-  const isSmallScreen = useMediaQuery('(min-width:600px)');
-  const [isSliderHovered, setIsSliderHovered] = useState(false);
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+  const [currentSlide, setCurrentSlide] = useState(0);
+  const sliderRef = useRef(null);
+
+  // Re-render slider when data changes
+  useEffect(() => {
+    if (sliderRef.current && !isLoading) {
+      setTimeout(() => {
+        sliderRef.current?.slickGoTo?.(0);
+      }, 0);
+    }
+  }, [isLoading, visitedStores]);
 
   const getModuleWiseData = () => {
     switch (getCurrentModuleType()) {
       case ModuleTypes.GROCERY:
         return {
           mainPosition: "flex-start",
-          heading: isVisited ? "Visit Again!" : "Whats New",
-          subHeading:
+          heading: isVisited ? t("Visit Again!") : t("Whats New"),
+          subHeading: t(
             "Get your recent purchase from the shop you recently ordered",
-          bgColor:
-            theme.palette.mode === "dark"
-              ? "rgba(3, 157, 85, 0.05)"
-              : alpha(theme.palette.primary.main, 0.2),
+          ),
+          bgColor: "transparent",
+          titleSx: {
+            fontSize: { xs: "18px", md: "24px" },
+            color: "neutral.1050",
+            lineHeight: 1.1,
+            letterSpacing: "-1.2px",
+          },
         };
       case ModuleTypes.PHARMACY:
         return {
           mainPosition: !isVisited ? "flex-start" : "center",
-          heading: isVisited ? "Visit Again!" : "Whats New",
-          subHeading:
+          heading: isVisited ? t("Visit Again!") : t("Whats New"),
+          subHeading: t(
             "Get your recent medicine from the store you recently ordered",
-          bgColor:
-            theme.palette.mode === "dark"
-              ? "rgba(3, 157, 85, 0.05)"
-              : alpha(theme.palette.primary.main, 0.2),
+          ),
+          bgColor: "transparent",
+          titleSx: {
+            fontSize: { xs: "18px", md: "24px" },
+            color: "neutral.1050",
+            lineHeight: 1.1,
+            letterSpacing: "-1.2px",
+          },
         };
       case ModuleTypes.ECOMMERCE:
         return {
           mainPosition: "flex-start",
-          heading: isVisited ? "Visit Again!" : "Whats New",
-          subHeading:
+          heading: isVisited ? t("Visit Again!") : t("Whats New"),
+          subHeading: t(
             "Get your recent purchase from the shop you recently ordered",
-          bgColor:
-            theme.palette.mode === "dark"
-              ? "rgba(3, 157, 85, 0.05)"
-              : alpha(theme.palette.primary.main, 0.2),
+          ),
+          bgColor: "transparent",
+          titleSx: {
+            fontSize: { xs: "18px", md: "24px" },
+            color: "neutral.1050",
+            lineHeight: 1.1,
+            letterSpacing: "-1.2px",
+          },
         };
       case ModuleTypes.FOOD:
         return {
           mainPosition: "flex-start",
-          heading: isVisited ? "Wanna Try  Again!!" : "Whats New",
-          subHeading:
+          heading: isVisited ? t("Wanna Try  Again!!") : t("Whats New"),
+          subHeading: t(
             "Get your recent food from the restaurant you recently ordered",
-          bgColor:
-            theme.palette.mode === "dark"
-              ? "rgba(3, 157, 85, 0.05)"
-              : alpha(theme.palette.primary.main, 0.2),
+          ),
+          bgColor: "transparent",
+          titleSx: {
+            fontSize: { xs: "18px", md: "24px" },
+            color: "neutral.1050",
+            lineHeight: 1.1,
+            letterSpacing: "-1.2px",
+          },
         };
     }
   };
@@ -116,47 +152,48 @@ const VisitAgain = ({ configData, visitedStores, isVisited, isLoading }) => {
     return null;
   }
 
-  // Enhanced slider settings with hover arrows
   const enhancedSettings = {
     dots: false,
     infinite: false,
     speed: 500,
-    slidesToShow: 4,
+    slidesToShow: 3.3,
     slidesToScroll: 1,
-    ...createEnhancedArrows(isSliderHovered, {
-      displayNoneOnMobile: true,
-      variant: "white"
-    }),
+    swipeToSlide: true,
+    arrows: false,
     responsive: [
       {
         breakpoint: 1450,
         settings: {
-          slidesToShow: 4,
-          slidesToScroll: 3,
+          slidesToShow: 3.3,
+          slidesToScroll: 1,
+          swipeToSlide: true,
           infinite: false,
         },
       },
       {
         breakpoint: 1250,
         settings: {
-          slidesToShow: 3.5,
-          slidesToScroll: 2,
+          slidesToShow: 2.8,
+          slidesToScroll: 1,
+          swipeToSlide: true,
           infinite: false,
         },
       },
       {
         breakpoint: 1150,
         settings: {
-          slidesToShow: 3,
-          slidesToScroll: 2,
+          slidesToShow: 3.1,
+          slidesToScroll: 1,
+          swipeToSlide: true,
           infinite: false,
         },
       },
       {
         breakpoint: 800,
         settings: {
-          slidesToShow: 2.7,
+          slidesToShow: 2.2,
           slidesToScroll: 2,
+          swipeToSlide: true,
           infinite: false,
         },
       },
@@ -165,6 +202,7 @@ const VisitAgain = ({ configData, visitedStores, isVisited, isLoading }) => {
         settings: {
           slidesToShow: 2.5,
           slidesToScroll: 2,
+          swipeToSlide: true,
           initialSlide: 2,
         },
       },
@@ -173,6 +211,7 @@ const VisitAgain = ({ configData, visitedStores, isVisited, isLoading }) => {
         settings: {
           slidesToShow: 2.1,
           slidesToScroll: 2,
+          swipeToSlide: true,
           initialSlide: 2,
         },
       },
@@ -181,116 +220,104 @@ const VisitAgain = ({ configData, visitedStores, isVisited, isLoading }) => {
         settings: {
           slidesToShow: 2,
           slidesToScroll: 1,
+          swipeToSlide: true,
         },
       },
       {
         breakpoint: 479,
         settings: {
-          slidesToShow: 1.8,
+          slidesToShow: 1.4,
           slidesToScroll: 1,
+          swipeToSlide: true,
         },
       },
       {
         breakpoint: 450,
         settings: {
-          slidesToShow: 1.6,
+          slidesToShow: 1.3,
           slidesToScroll: 1,
+          swipeToSlide: true,
         },
       },
       {
-        breakpoint: 400,
+        breakpoint: 375,
         settings: {
-          slidesToShow: 1.5,
+          slidesToShow: 1.15,
           slidesToScroll: 1,
+          swipeToSlide: true,
         },
       },
+
       {
         breakpoint: 350,
         settings: {
           slidesToShow: 1,
           slidesToScroll: 1,
-        },
-      },
-      {
-        breakpoint: 310,
-        settings: {
-          slidesToShow: 1,
-          slidesToScroll: 1,
+          swipeToSlide: true,
         },
       },
     ],
   };
 
-  return (
-    <>
-      <CustomStackFullWidth
-        alignItems={getModuleWiseData?.()?.mainPosition}
-        justyfyContent={getModuleWiseData?.()?.mainPosition}
-        mt={isSmallScreen ? "2px" : "16px"}
-        spacing={{ xs: 2, md: 1 }}
-        paddingX={{ xs: 2, md: 0 }}
+  const moduleData = getModuleWiseData?.();
 
-      >
-        {isSmallScreen ? (
-          <CustomContainer>
-            <CustomStackFullWidth
-              alignItems={getModuleWiseData?.()?.mainPosition}
-              justyfyContent={getModuleWiseData?.()?.mainPosition}
-              mt="10px"
-              spacing={1}
-            >
-              <H1 text={getModuleWiseData?.()?.heading} component="h2" />
-              {isVisited && (
-                <Subtitle1
-                  textAlign={getModuleWiseData?.()?.mainPosition}
-                  text={getModuleWiseData?.()?.subHeading}
-                  component="p"
-                />
-              )}
-            </CustomStackFullWidth>
-          </CustomContainer>
-        ) : (
-          <>
-            <H1 text={getModuleWiseData?.()?.heading} component="h2" />
+  return (
+    <CustomStackFullWidth
+      alignItems="flex-start"
+      spacing={{ xs: 1.5, md: 1 }}
+      paddingX={{ xs: 0, md: 0 }}
+    >
+      <SliderSectionHeader
+        sliderRef={sliderRef}
+        currentSlide={currentSlide}
+        totalSlides={visitedStores?.length ?? 0}
+        slidesToShow={3.2}
+        heading={
+          <Box>
+            <H1
+              text={moduleData?.heading}
+              component="h2"
+              sx={{ ...moduleData?.titleSx, textAlign: "left" }}
+            />
             {isVisited && (
               <Subtitle1
-                text={getModuleWiseData?.()?.subHeading}
+                textAlign="left"
+                text={moduleData?.subHeading}
                 component="p"
               />
             )}
-          </>
-        )}
-        <SliderCustom
-          nopadding="true"
-          sx={{
-            backgroundColor: getModuleWiseData?.()?.bgColor,
-            padding: { xs: "0px", md: "17px" },
-            minHeight: "200px"
-          }}
-          onMouseEnter={() => setIsSliderHovered(true)}
-          onMouseLeave={() => setIsSliderHovered(false)}
+          </Box>
+        }
+      />
+      <SliderCustom
+        nopadding="true"
+        sx={{
+          "& .slick-track": { marginLeft: 0 },
+          "& .slick-slide": { paddingRight: "16px" },
+          "& .slick-slide:first-child": { paddingLeft: 0 },
+        }}
+      >
+        <Slider
+          ref={sliderRef}
+          {...enhancedSettings}
+          afterChange={(idx) => setCurrentSlide(idx)}
         >
-          <Slider {...enhancedSettings}>
-            {isLoading ? (
-              [...Array(5)].map((_, index) => (
+          {isLoading
+            ? [...Array(5)].map((_, index) => (
                 <VisitAgainShimmerCard key={index} />
               ))
-            ) : (
-              visitedStores?.map((item, index) => {
-                return (
-                  <VisitAgainCard
-                    key={index}
-                    item={item}
-                    configData={configData}
-                    isVisited={isVisited}
-                  />
-                );
-              })
-            )}
-          </Slider>
-        </SliderCustom>
-      </CustomStackFullWidth>
-    </>
+            : visitedStores?.map((item, index) => (
+                <ExpressStoreCard
+                  key={index}
+                  store={item}
+                  showProducts={false}
+                  width="100%"
+                  noShadow
+                />
+              ))}
+        </Slider>
+      </SliderCustom>
+    </CustomStackFullWidth>
   );
 };
 

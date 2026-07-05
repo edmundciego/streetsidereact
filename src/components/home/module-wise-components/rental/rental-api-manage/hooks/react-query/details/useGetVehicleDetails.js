@@ -13,8 +13,14 @@ const fetchVehicleDetails = async (id) => {
 };
 
 // Use the fetcher function in useQuery
-export const useGetVehicleDetails = (id) => {
-  return useQuery(["vehicle-details", id], () => fetchVehicleDetails(id), {
+export const useGetVehicleDetails = (id, options = {}) => {
+  const defaultOptions = {
     onError: onSingleErrorResponse,
+    enabled: Boolean(id),
+  };
+
+  return useQuery(["vehicle-details", id], () => fetchVehicleDetails(id), {
+    ...defaultOptions,
+    ...options,
   });
 };

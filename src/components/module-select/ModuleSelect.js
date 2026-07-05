@@ -7,6 +7,7 @@ import { useSelector } from "react-redux";
 import { useRouter } from "next/router";
 import { setFeaturedCategories, setRecommendedStores } from "redux/slices/storedData";
 import { saveModuleParam, getModuleIdentifier } from "../../utils/moduleParamManager";
+import { filterOutRiderShareModules } from "helper-functions/moduleFilter";
 
 const Container = styled(Stack)(({ theme }) => ({
   position: "fixed",
@@ -65,7 +66,7 @@ export const zoneWiseModule = (data) => {
       }
     }
   }
-  return data?.filter((moduleItem) => {
+  return filterOutRiderShareModules(data)?.filter((moduleItem) => {
     const zoneIds = moduleItem?.zones?.map((zone) => zone.id);
     return currentZoneIds?.some((id) => zoneIds?.includes(id));
   });
@@ -113,7 +114,6 @@ const ModuleSelect = ({
       { shallow: true }
     );
   };
-  console.log({ existingModuleId });
 
   let currentZoneIds = undefined;
   if (typeof window !== "undefined") {
@@ -128,7 +128,10 @@ const ModuleSelect = ({
     }
   }
   console.log("vvvv", data);
-  const modulesToShow = currentZoneIds ? zoneWiseModule(data) : data;
+  const filteredModules = filterOutRiderShareModules(data);
+  const modulesToShow = currentZoneIds
+    ? zoneWiseModule(filteredModules)
+    : filteredModules;
   return (
     <Container p=".8rem" spacing={2}>
       {data ? (

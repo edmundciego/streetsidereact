@@ -17,10 +17,8 @@ export default function useGetFeatureCategoriesProducts(pageParams,handleDataSuc
     {
       enabled: !!pageParams.categoryId,
       onError: onSingleErrorResponse,
-      staleTime: 1000 * 60 * 10, // 10 minutes
-      cacheTime: 1000 * 60 * 30, // 30 minutes
-      refetchOnWindowFocus: false,
-      refetchOnMount: false,
+      staleTime: 60 * 1000, // Data stays fresh for 1 minute
+      cacheTime: 60 * 1000,
       onSuccess: handleDataSuccess,
     }
   );

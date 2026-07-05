@@ -8,6 +8,8 @@ const RentalPriceRange = ({ minMax, setMinMax, rentalPriceFilterRange }) => {
 	const handleMinMax = (value) => {
 		setMinMax(value);
 	};
+	console.log({rentalPriceFilterRange,minMax});
+	
 
 	return (
 		<>

@@ -1,6 +1,7 @@
 import { useInfiniteQuery } from "react-query";
 import MainApi from "api-manage/MainApi";
 import { onSingleErrorResponse } from "api-manage/api-error-response/ErrorResponses";
+import { getModuleId } from "helper-functions/getModuleId";
 
 const getSearch = async (pageParams) => {
   const {
@@ -41,6 +42,10 @@ const getSearch = async (pageParams) => {
 };
 
 export default function useGetRentalSearch(pageParams,handleAPiCallOnSuccess) {
+  const moduleId = getModuleId();
+  const isProviderVehiclesEndpoint =
+    pageParams?.api_endpoint === "/api/v1/rental/vehicle/get-provider-vehicles";
+
   return useInfiniteQuery(
     [
       "hello",
@@ -61,16 +66,12 @@ export default function useGetRentalSearch(pageParams,handleAPiCallOnSuccess) {
       pageParams?.top_rated,
       pageParams?.provider_id,
       pageParams?.api_endpoint,
+      moduleId,
       pageParams?.pickup_location,
       pageParams?.all_category
     ],
     ({ pageParam = 1 }) => getSearch({ ...pageParams, pageParam }),
     {
-      // getNextPageParam: (lastPage, allPages) => {
-      //   const maxPages = lastPage.total_size / pageParams?.limit;
-      //   const nextPage = allPages.length + 1;
-      //   return lastPage?.vehicles?.length > 0 ? nextPage : undefined;
-      // },
       getNextPageParam: (lastPage, allPages) => {
         if (!lastPage || !pageParams?.limit) return undefined;
 
@@ -83,7 +84,9 @@ export default function useGetRentalSearch(pageParams,handleAPiCallOnSuccess) {
           : undefined;
       },
       retry: 1,
-      enabled: pageParams?.api_endpoint==="/api/v1/rental/vehicle/get-provider-vehicles" ? pageParams?.provider_id ? true : false : true,
+      enabled:
+        Boolean(moduleId) &&
+        (isProviderVehiclesEndpoint ? Boolean(pageParams?.provider_id) : true),
       onError: onSingleErrorResponse,
       cacheTime: "0",
       onSuccess:handleAPiCallOnSuccess

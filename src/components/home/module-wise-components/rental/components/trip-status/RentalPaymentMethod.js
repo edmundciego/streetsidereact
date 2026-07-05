@@ -84,7 +84,7 @@ const RentalPaymentMethod = ({
       <Stack gap={1} marginTop="1rem" width="100%">
         {configData?.customer_wallet_status === 1 &&
           configData?.partial_payment_status === 1 &&
-          customerData?.data?.wallet_balance > 0 &&
+          customerData?.data?.wallet_balance > payableAmount &&
           getToken() && (
             <Grid item md={12} xs={12}>
               <PartialPayment

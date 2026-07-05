@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { Button, Skeleton } from "@mui/material";
+import { Button, Skeleton, Typography } from "@mui/material";
 import Slider from "react-slick";
 import { getLanguage } from "helper-functions/getLanguage";
 import {
@@ -18,7 +18,6 @@ import RentalCategory from "components/home/module-wise-components/rental/compon
 import { useGetCategoryVehicleLists } from "../../rental-api-manage/hooks/react-query/category/useGetCategoryLists";
 import { useRouter } from "next/router";
 
-
 const VehicleCategories = () => {
   const { t } = useTranslation();
   const router = useRouter();
@@ -26,9 +25,11 @@ const VehicleCategories = () => {
   const [showLeftArrow, setShowLeftArrow] = useState(false);
   const [showRightArrow, setShowRightArrow] = useState(true);
   const sliderRef = useRef(null); // Ref for the slider
-  const { data: categories, isFetching ,isLoading} = useGetCategoryVehicleLists();
-
-  
+  const {
+    data: categories,
+    isFetching,
+    isLoading,
+  } = useGetCategoryVehicleLists();
 
   // Update arrow visibility based on the current slide
   const updateArrowVisibility = (currentSlide) => {
@@ -49,14 +50,17 @@ const VehicleCategories = () => {
   const handleSeeAllClick = () => {
     router.push({
       pathname: "/rental/vehicle-search",
-      query: { all_category: 1 },
+      query: {
+        all_category: 1,
+        ...(router.query.module ? { module: router.query.module } : {}),
+      },
     });
   };
 
   const settings = {
     dots: false,
     infinite: false,
-    slidesToShow: 4.5,
+    slidesToShow: 6.5,
     cssEase: "ease-in-out",
     autoplay: false,
     speed: 800,
@@ -76,7 +80,7 @@ const VehicleCategories = () => {
       {
         breakpoint: 576,
         settings: {
-          slidesToShow: 1,
+          slidesToShow: 2,
           swipeToSlide: true,
         },
       },
@@ -91,7 +95,7 @@ const VehicleCategories = () => {
       {isLoading ? (
         <HomeComponentsWrapper
           sx={{
-            mb: "63px",
+            mt: "-4S0px",
             cursor: "pointer",
             ".slick-slide": {
               padding: "10px",
@@ -104,7 +108,6 @@ const VehicleCategories = () => {
           <CustomStackFullWidth
             alignItems="center"
             justyfyContent="center"
-            mb={3}
             spacing={1}
           >
             <CustomStackFullWidth
@@ -137,8 +140,11 @@ const VehicleCategories = () => {
           onMouseEnter={() => setIsHover(true)}
           onMouseLeave={() => setIsHover(false)}
           sx={{
-            mb: "63px",
             cursor: "pointer",
+            pl: 0,
+            ".slick-list": {
+              marginLeft: "-10px",
+            },
             ".slick-slide": {
               padding: "10px",
               ".MuiBox-root": {
@@ -150,7 +156,6 @@ const VehicleCategories = () => {
           <CustomStackFullWidth
             alignItems="center"
             justyfyContent="center"
-            mb={3}
             spacing={1}
             onMouseEnter={() => setIsHover(true)}
             onMouseLeave={() => setIsHover(false)}
@@ -160,7 +165,19 @@ const VehicleCategories = () => {
               justifyContent="space-between"
               direction="row"
             >
-              <H2 text={t("Vehicle Categories")} component="h2" />
+              <Typography
+                sx={{
+                  fontSize: { xs: "18px", md: "24px" },
+                  fontWeight: 700,
+                  color: "neutral.1050",
+                  lineHeight: 1.1,
+                  letterSpacing: "-1.2px",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {t("Vehicle Categories")}
+              </Typography>
+
               <Button
                 variant="text"
                 onClick={handleSeeAllClick}

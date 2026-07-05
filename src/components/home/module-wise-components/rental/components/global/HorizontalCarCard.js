@@ -1,4 +1,5 @@
 import React, { use } from "react";
+import { useRouter } from "next/router";
 import { CustomCarCard } from "../Rental.style";
 import { alpha, Box } from "@mui/system";
 import CustomImageContainer from "components/CustomImageContainer";
@@ -44,14 +45,28 @@ const HorizontalCarCard = ({
   isWishlisted,
   data,
   setOpenModal,
+  hideRentButton = false,
 }) => {
+  const router = useRouter();
+
+  const handleClick = () =>
+    router.push({
+      pathname: `/rental/vehicle/${data?.slug || data?.id}`,
+      query: {
+        from: router?.query?.from,
+        module: router?.query?.module || router?.query?.module_id,
+      },
+    });
+
   return (
     <CustomCarCard
+      onClick={handleClick}
       sx={{
         borderRadius: "10px",
         display: "flex",
         justifyContent: "space-between",
         flexDirection: { xs: "column", md: "row" },
+        cursor: "pointer",
       }}
     >
       <InformationSection
@@ -74,6 +89,7 @@ const HorizontalCarCard = ({
         updateLoading={updateLoading}
         removeItemCart={removeItemCart}
         fromSearch={fromSearch}
+        hideRentButton={hideRentButton}
       />
     </CustomCarCard>
   );
@@ -90,7 +106,7 @@ const InformationSection = ({
   isWishlisted,
 }) => {
   const theme = useTheme();
-  
+
   return (
     <Box
       sx={{
@@ -103,34 +119,18 @@ const InformationSection = ({
       }}
     >
       <Box sx={{ position: "relative", borderRadius: "10px" }}>
-      {handleBadgeRental(data)}
-      {data?.new_tag === 1 ? (
-                  <CustomBadge
-                    top={30}
-                    bg_color={theme.palette.error.light}
-                    text={t("New Arrival")}
-                    fontSize="12px"
-                  />
-                ) : null}
+        {handleBadgeRental(data)}
+        {data?.new_tag === 1 ? (
+          <CustomBadge
+            top={30}
+            bg_color={theme.palette.error.light}
+            text={t("New Arrival")}
+            fontSize="12px"
+          />
+        ) : null}
         <Box>
-          <CustomOverLay border_radius="10px">
-            <QuickView
-              sx={{ mt: "50px" }}
-              addToWishlistHandler={addToWishlistHandler}
-              removeFromWishlistHandler={removeFromWishlistHandler}
-              isWishlisted={isWishlisted}
-              quickViewHandleClick={() => {
-                setOpenModal(true);
-                setCarDetails(data);
-              }}
-              // quickViewHandleClick={quickViewHandleClick}
-              // item={item}
-              // showAddtocart={showAddtocart}
-              // handleCart={handleAddToCardFromQuickview}
-            />
-          </CustomOverLay>
           <CustomImageContainer
-            src={data?.thumbnail_full_url|| ""}
+            src={data?.thumbnail_full_url || ""}
             width={{ xs: "100%", sm: "100%", md: "270px" }}
             height={{
               xs: "100%",
@@ -165,14 +165,17 @@ const InformationSection = ({
               },
             }}
           >
-            <Typography variant="body2" component="div" className="infoText" sx={{pt:"2px"}}>
-             
+            <Typography
+              variant="body2"
+              component="div"
+              className="infoText"
+              sx={{ pt: "2px" }}
+            >
               <Typography
                 sx={{ mx: "3px" }}
                 variant="body2"
                 fontWeight="bold"
                 component="strong"
-                
               >
                 {data?.total_vehicle_count}
               </Typography>
@@ -191,44 +194,48 @@ const InformationSection = ({
             gap: "4px",
           }}
         >
-          {data?.total_reviews > 0 ?( <Box
-            sx={{
-              justifyContent: "center",
+          {data?.total_reviews > 0 ? (
+            <Box
+              sx={{
+                justifyContent: "center",
 
-              display: "flex",
-              alignItems: "center",
-              borderRadius: "5px",
-              background: (theme) => alpha(theme.palette.primary.main, 0.2),
-              gap: "4px",
-              py: "2px",
-              px: "10px",
-            }}
-          >
-            <StarIcon
-              sx={{
-                fontSize: "16px",
-                color: (theme) => theme.palette.primary.main,
-              }}
-            />
-            <Typography
-              sx={{
-                fontSize: "13px",
-                fontWeight: "500",
-                color: (theme) => theme.palette.primary.main,
+                display: "flex",
+                alignItems: "center",
+                borderRadius: "5px",
+                background: (theme) => alpha(theme.palette.primary.main, 0.2),
+                gap: "4px",
+                py: "2px",
+                px: "10px",
               }}
             >
-              {data?.avg_rating}
-            </Typography>
-          </Box>):null}
-            {data?.total_reviews > 0 ?( <Typography
-            sx={{
-              fontSize: "12px",
-              fontWeight: "normal",
-              color: (theme) => theme.palette.neutral[400],
+              <StarIcon
+                sx={{
+                  fontSize: "16px",
+                  color: (theme) => theme.palette.primary.main,
+                }}
+              />
+              <Typography
+                sx={{
+                  fontSize: "13px",
+                  fontWeight: "500",
+                  color: (theme) => theme.palette.primary.main,
+                }}
+              >
+                {data?.avg_rating}
+              </Typography>
+            </Box>
+          ) : null}
+          {data?.total_reviews > 0 ? (
+            <Typography
+              sx={{
+                fontSize: "12px",
+                fontWeight: "normal",
+                color: (theme) => theme.palette.neutral[400],
               }}
-          >
-            {data?.total_reviews} {t("Reviews")}
-          </Typography>):null}
+            >
+              {data?.total_reviews} {t("Reviews")}
+            </Typography>
+          ) : null}
         </Box>
 
         <Box sx={{ mt: "20px" }}>
@@ -263,7 +270,7 @@ const InformationSection = ({
               <Stack direction="row" spacing={1} alignItems="center">
                 <GroupIcon />
                 <Typography
-                  sx={{ whiteSpace: "nowrap" , textTransform:"capitalize"       }}
+                  sx={{ whiteSpace: "nowrap", textTransform: "capitalize" }}
                   variant="body2"
                   component="div"
                 >
@@ -275,7 +282,7 @@ const InformationSection = ({
               <Stack direction="row" spacing={1} alignItems="center">
                 <DirectionsCarFilledIcon />
                 <Typography
-                  sx={{ whiteSpace: "nowrap" , textTransform:"capitalize"     }}
+                  sx={{ whiteSpace: "nowrap", textTransform: "capitalize" }}
                   variant="body2"
                   component="div"
                   mt={1}
@@ -288,7 +295,7 @@ const InformationSection = ({
               <Stack direction="row" spacing={1} alignItems="center">
                 <AirIcon />
                 <Typography
-                  sx={{ whiteSpace: "nowrap" , textTransform:"capitalize"     }}
+                  sx={{ whiteSpace: "nowrap", textTransform: "capitalize" }}
                   variant="body2"
                   component="div"
                   mt={1}
@@ -302,7 +309,7 @@ const InformationSection = ({
               <Stack direction="row" spacing={1} alignItems="center">
                 <ManageHistoryIcon />
                 <Typography
-                  sx={{ whiteSpace: "nowrap" , textTransform:"capitalize"   }}
+                  sx={{ whiteSpace: "nowrap", textTransform: "capitalize" }}
                   variant="body2"
                   component="div"
                   mt={1}
@@ -316,12 +323,12 @@ const InformationSection = ({
               <Stack direction="row" spacing={1} alignItems="center">
                 <EvStationIcon />
                 <Typography
-                  sx={{ whiteSpace: "nowrap" , textTransform:"capitalize"}}
+                  sx={{ whiteSpace: "nowrap", textTransform: "capitalize" }}
                   variant="body2"
                   component="div"
                   mt={1}
                 >
-                  {data?.fuel_type?.replace("_", " ") }
+                  {data?.fuel_type?.replace("_", " ")}
                 </Typography>
               </Stack>
             )}
@@ -357,6 +364,7 @@ const PriceSection = ({
   updateLoading,
   removeItemCart,
   fromSearch,
+  hideRentButton = false,
 
   data,
 }) => {
@@ -387,12 +395,12 @@ const PriceSection = ({
             textDecoration: "line-through",
           }}
         >
-            {getAmountWithSign(mainPrice(data,rentalSearch?.tripType))}
+          {getAmountWithSign(mainPrice(data, rentalSearch?.tripType))}
         </Typography>
         <Typography variant="h6" component="div">
           {getAmountWithSign(
             getDiscountedAmount(
-              mainPrice(data,rentalSearch?.tripType),
+              mainPrice(data, rentalSearch?.tripType),
               data?.discount_price,
               data?.discount_type,
               data?.provider?.discount?.discount
@@ -400,23 +408,25 @@ const PriceSection = ({
           )}
         </Typography>
       </Stack>
-      <RentWithIncrementDecrement
-        addToCartHandler={addToCartHandler}
-        variations={variations}
-        isProductExist={isProductExist}
-        count={count}
-        handleIncrement={handleIncrement}
-        itemId={itemId}
-        handleDecrement={handleDecrement}
-        updateLoading={updateLoading}
-        removeItemCart={removeItemCart}
-        fromSearch={fromSearch}
-        borderRadius="5px"
-        paddingLeft="43px"
-        paddingRight="43px"
-        paddingBottom="9px"
-        paddingTop="9px"
-      />
+      {!hideRentButton && (
+        <RentWithIncrementDecrement
+          addToCartHandler={addToCartHandler}
+          variations={variations}
+          isProductExist={isProductExist}
+          count={count}
+          handleIncrement={handleIncrement}
+          itemId={itemId}
+          handleDecrement={handleDecrement}
+          updateLoading={updateLoading}
+          removeItemCart={removeItemCart}
+          fromSearch={fromSearch}
+          borderRadius="5px"
+          paddingLeft="43px"
+          paddingRight="43px"
+          paddingBottom="9px"
+          paddingTop="9px"
+        />
+      )}
     </Box>
   );
 };

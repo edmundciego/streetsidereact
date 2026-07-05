@@ -5,7 +5,6 @@ import {
   handlePurchasedAmount,
 } from "utils/CustomFunctions";
 
-
 export const calculateTotalDiscount = (cartList, tripCost) => {
   if (!cartList?.carts?.length) return 0;
 
@@ -16,15 +15,15 @@ export const calculateTotalDiscount = (cartList, tripCost) => {
       rentalType === "hourly"
         ? item?.vehicle?.hourly_price
         : rentalType === "day_wise"
-          ? item?.vehicle?.day_wise_price
-          : item?.vehicle?.distance_price;
+        ? item?.vehicle?.day_wise_price
+        : item?.vehicle?.distance_price;
 
     const itemType =
       rentalType === "hourly"
         ? cartList?.user_data?.estimated_hours || 0
         : rentalType === "day_wise"
-          ? cartList?.user_data?.estimated_hours/24 || 0
-          : cartList?.user_data?.distance || 0;
+        ? cartList?.user_data?.estimated_hours / 24 || 0
+        : cartList?.user_data?.distance || 0;
 
     const { vehicle, provider, quantity } = item || {};
     const { discount_type, discount_price } = vehicle || {};
@@ -87,7 +86,8 @@ export const getTotalAmount = (cartList) => {
     return 0;
   }
 
-  const { rental_type, estimated_hours, estimated_days, distance } = cartList?.user_data || {};
+  const { rental_type, estimated_hours, estimated_days, distance } =
+    cartList?.user_data || {};
   const tripCost = cartList.carts.reduce((totalCost, item) => {
     let vehicleCost = 0;
     let multiplier = 0;
@@ -97,7 +97,7 @@ export const getTotalAmount = (cartList) => {
       multiplier = estimated_hours || 1;
     } else if (rental_type === "day_wise") {
       vehicleCost = item?.vehicle?.day_wise_price || 0;
-      multiplier = estimated_hours/24 || 1;
+      multiplier = estimated_hours / 24 || 1;
     } else {
       // default: distance-based
       vehicleCost = item?.vehicle?.distance_price || 0;
@@ -122,7 +122,6 @@ export const rentalCouponDiscount = (couponDiscount, storeData, cartList) => {
         case "zone_wise":
           let zoneId = JSON.parse(localStorage.getItem("zoneid"));
           if (couponDiscount && couponDiscount.discount_type === "amount") {
-
             if (couponDiscount.max_discount === 0) {
               return couponDiscount.discount;
             } else {
@@ -170,6 +169,7 @@ export const rentalCouponDiscount = (couponDiscount, storeData, cartList) => {
             return 0;
           }
           break;
+        case "pro_customer":
         case "default":
           if (couponDiscount && couponDiscount.discount_type === "amount") {
             if (couponDiscount.max_discount === 0) {
@@ -197,10 +197,13 @@ export const rentalCouponDiscount = (couponDiscount, storeData, cartList) => {
     }
   }
 };
-export const getRentalSubTotalPrice = (cartList, rentalCoupon,tripCost,tripDiscount ) => {
-  return (
-    tripCost - tripDiscount - rentalCoupon  
-  );
+export const getRentalSubTotalPrice = (
+  cartList,
+  rentalCoupon,
+  tripCost,
+  tripDiscount
+) => {
+  return tripCost - tripDiscount - rentalCoupon;
 };
 export const getVat = (items, storeData, referDiscount, rentalCoupon) => {
   let tax = storeData?.tax || 0;
@@ -226,7 +229,7 @@ export const getTotalPrice = (
   tripDiscount
 ) => {
   return (
-    getRentalSubTotalPrice(cartList, rentalCoupon,tripCost,tripDiscount) +
+    getRentalSubTotalPrice(cartList, rentalCoupon, tripCost, tripDiscount) +
     isIncluded +
     additional_charge
   );
@@ -237,8 +240,8 @@ export const cartItemPrice = (item, rental_type, estimated_hours, distance) => {
     rental_type === "hourly"
       ? item?.vehicle?.hourly_price
       : rental_type === "day_wise"
-        ? item?.vehicle?.day_wise_price
-        : item?.vehicle?.distance_price;
+      ? item?.vehicle?.day_wise_price
+      : item?.vehicle?.distance_price;
 
   const quantity = item?.quantity || 0;
 
@@ -246,8 +249,8 @@ export const cartItemPrice = (item, rental_type, estimated_hours, distance) => {
     rental_type === "hourly"
       ? estimated_hours || 1
       : rental_type === "day_wise"
-        ? estimated_hours/24 || 1
-        : distance || 0;
+      ? estimated_hours / 24 || 1
+      : distance || 0;
 
   return vehicleCost * quantity * multiplier;
 };
@@ -263,15 +266,15 @@ export const cartItemDiscount = (
     rental_type === "hourly"
       ? item?.vehicle?.hourly_price
       : rental_type === "day_wise"
-        ? item?.vehicle?.day_wise_price
-        : item?.vehicle?.distance_price;
+      ? item?.vehicle?.day_wise_price
+      : item?.vehicle?.distance_price;
 
   let itemType =
     rental_type === "hourly"
       ? estimated_hours
       : rental_type === "day_wise"
-        ? estimated_hours/24
-        : distance;
+      ? estimated_hours / 24
+      : distance;
 
   const { vehicle } = item;
   const { discount_type, discount_price } = vehicle;
@@ -281,12 +284,12 @@ export const cartItemDiscount = (
     if (discount_type === "amount") {
       discount = discount_price * (item?.quantity || 1);
     } else if (discount_type === "percent") {
-      discount = ((itemPrice * discount_price) / 100) * itemType * (item?.quantity || 1);
+      discount =
+        ((itemPrice * discount_price) / 100) * itemType * (item?.quantity || 1);
     }
   }
   return discount;
 };
-
 
 export const isCurrentTime = (cartList) => {
   if (cartList?.user_data?.pickup_time) {

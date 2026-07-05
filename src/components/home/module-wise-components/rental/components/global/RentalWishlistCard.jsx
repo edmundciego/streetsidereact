@@ -264,7 +264,7 @@ const RentalWishListCard = ({ item }) => {
         <Stack width="0px" flexGrow="1" justifyContent="center" spacing={0.5}>
           <Typography fontWeight="500" fontSize="14px"  onClick={() =>
             router.push({
-              pathname: `/rental/vehicle-details/${item?.id}`,
+              pathname: `/rental/vehicle/${item?.slug|| item?.id}`,
               query: {
                 from: "",
               },

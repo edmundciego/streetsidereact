@@ -55,12 +55,12 @@ const RecentAddresses = ({
     lng: coords?.longitude,
   });
 
-  const uniqueAddresses = recentlyAddress?.filter((address, index, self) =>
-    index === self?.findIndex((a) => a.location_name === address.location_name) && 
-    ((address.latitude && address.longitude) || (address.lat && address.lng))
+  const uniqueAddresses = recentlyAddress?.filter(
+    (address, index, self) =>
+      index ===
+        self?.findIndex((a) => a.location_name === address.location_name) &&
+      ((address.latitude && address.longitude) || (address.lat && address.lng))
   );
-
-
 
   const renderAddressList = (addresses, isMyAddress = false) => {
     if (!addresses || addresses.length === 0) {
@@ -189,7 +189,7 @@ const RecentAddresses = ({
           </List>
         </>
       )}
-      {fromHome && (
+      {fromHome && typeof setOpenMap === "function" && (
         <>
           <Divider sx={{ marginTop: "10px" }} />
 

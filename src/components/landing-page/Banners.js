@@ -148,6 +148,7 @@ const Banners = ({ promotionalBanner, isSmall, feature }) => {
     infinite: infiniteManage(),
     slidesToShow: slidesToShowManage(),
     slidesToScroll: 1,
+    swipeToSlide: true,
     autoplay: true,
     speed: 2000,
     autoplaySpeed: 3000,
@@ -158,6 +159,7 @@ const Banners = ({ promotionalBanner, isSmall, feature }) => {
         settings: {
           slidesToShow: 2,
           slidesToScroll: 1,
+          swipeToSlide: true,
         },
       },
       {
@@ -165,6 +167,7 @@ const Banners = ({ promotionalBanner, isSmall, feature }) => {
         settings: {
           slidesToShow: 1,
           slidesToScroll: 1,
+          swipeToSlide: true,
           initialSlide: 1,
         },
       },
@@ -173,6 +176,7 @@ const Banners = ({ promotionalBanner, isSmall, feature }) => {
         settings: {
           slidesToShow: 1,
           slidesToScroll: 1,
+          swipeToSlide: true,
         },
       },
     ],

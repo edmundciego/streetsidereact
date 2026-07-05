@@ -81,7 +81,7 @@ const CartContentCart = ({ item, userData ,isPriceShow}) => {
 					gap: "12px",
 				}}
 			>
-				<Link href={`/rental/vehicle-details/${item?.vehicle?.id}`} passHref>
+				<Link href={`/rental/vehicle/${item?.vehicle?.slug|| item?.vehicle?.id}`} passHref>
 				<Stack>
 					<CustomRentalCard.image
 						itemImage={item?.vehicle?.thumbnail_full_url}

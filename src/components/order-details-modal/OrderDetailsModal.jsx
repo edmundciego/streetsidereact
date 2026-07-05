@@ -20,7 +20,6 @@ import jwt from "base-64";
 import CheckoutFailed from "../checkout/CheckoutFailed";
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import { setOrderDetailsModal } from "redux/slices/offlinePaymentData";
-import MainApi from "../../api-manage/MainApi";
 
 const OrderDetailsModal = ({ orderDetailsModalOpen }) => {
   const dispatch = useDispatch();
@@ -39,9 +38,6 @@ const OrderDetailsModal = ({ orderDetailsModalOpen }) => {
     (state) => state.offlinePayment
   );
   const { orderInformation } = useSelector((state) => state.utilsData);
-  const [pendingPaymentId, setPendingPaymentId] = useState(null);
-  const [paymentStatus, setPaymentStatus] = useState(null);
-  const [polling, setPolling] = useState(false);
   const handleOrderDetailsClose = () => {
     dispatch(setOrderDetailsModal(false));
     dispatch(setOrderDetailsModalOpen(false));
@@ -80,50 +76,6 @@ const OrderDetailsModal = ({ orderDetailsModalOpen }) => {
       console.error("Token is missing.");
     }
   }, [token]);
-
-  const orderIdForPayment = guestUserOrderId || order_id || attributeId;
-  const failureStatuses = ["REJECTED", "FAILED", "CANCELLED", "PARTIAL_EXPIRED"];
-  const successStatuses = ["APPROVED", "PAID"];
-  const isPendingPayment = paymentStatus === "PENDING";
-  const isFailedPayment = failureStatuses.includes(paymentStatus || "");
-
-  const checkPaymentStatus = async () => {
-    if (!pendingPaymentId) return;
-    try {
-      const { data } = await MainApi.get(
-        `/api/v1/payment/status/${pendingPaymentId}`
-      );
-      const status = String(data?.status || "").toUpperCase();
-      if (status) {
-        setPaymentStatus(status);
-      }
-      if (successStatuses.includes(status) || failureStatuses.includes(status)) {
-        localStorage.removeItem(`pending_payment_${orderIdForPayment}`);
-        setPolling(false);
-      }
-    } catch (error) {
-      // keep polling; status fetch can fail transiently
-    }
-  };
-
-  useEffect(() => {
-    if (!orderIdForPayment || typeof window === "undefined") return;
-    const storedPaymentId = localStorage.getItem(
-      `pending_payment_${orderIdForPayment}`
-    );
-    if (storedPaymentId) {
-      setPendingPaymentId(storedPaymentId);
-      setPaymentStatus("PENDING");
-      setPolling(true);
-    }
-  }, [orderIdForPayment]);
-
-  useEffect(() => {
-    if (!pendingPaymentId || !polling) return;
-    checkPaymentStatus();
-    const timer = setInterval(checkPaymentStatus, 8000);
-    return () => clearInterval(timer);
-  }, [pendingPaymentId, polling]);
   return (
     <CustomModal
       openModal={orderDetailsModalOpen}
@@ -153,30 +105,12 @@ const OrderDetailsModal = ({ orderDetailsModalOpen }) => {
           <CloseIcon sx={{ fontSize: "24px", fontWeight: "500" }} />
         </IconButton>
       </CustomStackFullWidth>
-      {(flag && flag === "fail") || flag === "cancel" || isFailedPayment ? (
+      {(flag && flag === "fail") || flag === "cancel" ? (
         <CheckoutFailed
           id={order_id ? order_id : attributeId}
           configData={configData}
           handleOrderDetailsClose={handleOrderDetailsClose}
         />
-      ) : isPendingPayment ? (
-        <CustomStackFullWidth
-          padding={{ xs: "40px 15px", md: "45px 45px 40px" }}
-          alignItems="center"
-          gap="16px"
-        >
-          <Typography fontSize="18px" fontWeight="700">
-            {t("Payment Pending")}
-          </Typography>
-          <Typography fontWeight="400" textAlign="center" maxWidth="380px">
-            {t(
-              "Your payment is still being processed. We will update the order once it is confirmed."
-            )}
-          </Typography>
-          <Button variant="contained" onClick={checkPaymentStatus}>
-            {t("Check Status")}
-          </Button>
-        </CustomStackFullWidth>
       ) : (
         <CustomStackFullWidth
           padding={{ xs: "40px 15px", md: "45px 45px 40px" }}

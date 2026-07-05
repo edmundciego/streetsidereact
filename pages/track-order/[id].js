@@ -1,7 +1,7 @@
 import React from "react";
 import CssBaseline from "@mui/material/CssBaseline";
 import MainLayout from "../../src/components/layout/MainLayout";
-import { getServerSideProps } from "../../src/utils/server-side-props";
+import { getServerSideProps } from "../index";
 import TrackOrder from "../../src/components/track-order";
 import { NoSsr } from "@mui/material";
 import SEO from "../../src/components/seo";

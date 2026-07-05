@@ -29,6 +29,7 @@ import RentalCarReviewModal from "../global/RentalReviewModal";
 import CloseIcon from "components/icons/CloseIcon";
 import ClosedNowScheduleWise from "components/closed-now/ClosedNowScheduleWise";
 import {ImageWrapper} from "components/cards/VerticalCard";
+import VerifiedStoreBadge from "components/cards/VerifiedStoreBadge";
 const RentalCarVehicleRating = ({ data, configData }) => {
   const theme = useTheme();
   const dispatch = useDispatch();
@@ -151,20 +152,25 @@ const RentalCarVehicleRating = ({ data, configData }) => {
             <Box>
             </Box>
             <Box>
-              <H3
-                text={name}
-                sx={{
-                  fontWeight: "700",
-                  textTransform: "capitalize",
-                  color: (theme) =>
-                    theme.palette.neutral[100],
-                  mt: "10px",
-                  display: "-webkit-box",
-                  WebkitLineClamp: 1,
-                  WebkitBoxOrient: "vertical",
-                  overflow: "hidden"
-                }}
-              />
+              <Stack direction="row" alignItems="center" spacing={0.6} sx={{ mt: "10px" }}>
+                <H3
+                  text={name}
+                  sx={{
+                    fontWeight: "700",
+                    textTransform: "capitalize",
+                    color: (theme) => theme.palette.neutral[100],
+                    display: "-webkit-box",
+                    WebkitLineClamp: 1,
+                    WebkitBoxOrient: "vertical",
+                    overflow: "hidden"
+                  }}
+                />
+                <VerifiedStoreBadge
+                  verified={data?.verified_seller}
+                  color="#0b17f3f1"
+                  fontSize="20px"
+                />
+              </Stack>
               <Typography
                 variant="body2"
                 sx={{

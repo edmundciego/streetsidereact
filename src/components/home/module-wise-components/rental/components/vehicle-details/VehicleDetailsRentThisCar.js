@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { formatNumber } from "helper-functions/CardHelpers";
 import RentalCardWrapper from "../global/RentalCardWrapper";
 import { borderRadius, Box, display } from "@mui/system";
 import {
@@ -52,9 +53,17 @@ const CarBookingModal = dynamic(() =>
     "components/home/module-wise-components/rental/components/global/CarBookingModal"
   )
 );
-const ModalWithCloseButton = ({ openModal, handleClose, children, maxWidth }) => (
-
-  <CustomModal openModal={openModal} handleClose={handleClose} maxWidth={maxWidth}>
+const ModalWithCloseButton = ({
+  openModal,
+  handleClose,
+  children,
+  maxWidth,
+}) => (
+  <CustomModal
+    openModal={openModal}
+    handleClose={handleClose}
+    maxWidth={maxWidth}
+  >
     <IconButton
       onClick={handleClose}
       sx={{ position: "absolute", top: 0, right: 0 }}
@@ -78,11 +87,11 @@ const VehicleDetailsRentThisCar = ({
   selectedPricing,
   from,
   handleClose,
-  openCarBookingModal,  
+  openCarBookingModal,
   handleIncrementFromCard,
-  handleDecrementFromCard ,
-  addToCartHandler:addToCartHandlerFromCard,
-  fullWidth
+  handleDecrementFromCard,
+  addToCartHandler: addToCartHandlerFromCard,
+  fullWidth,
 }) => {
   const theme = useTheme();
   const dispatch = useDispatch();
@@ -96,15 +105,16 @@ const VehicleDetailsRentThisCar = ({
   const [ids, setIds] = React.useState(null);
   const [openHourDiffModal, setOpenHourDiffModal] = useState(false);
   const [updateOrAdd, setUpdateOrAdd] = useState({
-    type: 'add',
-    quantity: 0
+    type: "add",
+    quantity: 0,
   });
   const [updateCartObject, setUpdateCartObject] = React.useState({});
   const isSmall = useMediaQuery(theme.breakpoints.down("sm"));
-  const rentalSearch = useSelector((state) => state?.rentalSearch?.rentalSearch);
+  const rentalSearch = useSelector(
+    (state) => state?.rentalSearch?.rentalSearch
+  );
   const { cartList } = useSelector((state) => state.cart);
-  const distance =
-    rentalSearch?.distanceData?.distanceMeters / 1000;
+  const distance = rentalSearch?.distanceData?.distanceMeters / 1000;
   const isDifferentProvider = cartList?.carts?.some(
     (cart) => cart.provider?.id !== vehicleDetails?.provider?.id
   );
@@ -118,13 +128,15 @@ const VehicleDetailsRentThisCar = ({
         userData?.rental_type === "hourly"
           ? userData?.estimated_hours
           : userData?.rental_type === "day_wise"
-            ? userData?.estimated_hours /24
-            : userData?.distance
+          ? userData?.estimated_hours / 24
+          : userData?.distance
       );
     } else {
       if (rentalSearch) {
         setDistanceOrHours(
-          rentalSearch?.tripType==="day_wise" ? rentalSearch?.duration/24 :rentalSearch?.tripType === "hourly"
+          rentalSearch?.tripType === "day_wise"
+            ? rentalSearch?.duration / 24
+            : rentalSearch?.tripType === "hourly"
             ? rentalSearch?.duration
             : distance
         );
@@ -132,7 +144,8 @@ const VehicleDetailsRentThisCar = ({
     }
   }, [userData, rentalSearch]);
 
-  const { mutate: confirmMutate, isLoading: confirmIsLoading } = useConfirmBooking();
+  const { mutate: confirmMutate, isLoading: confirmIsLoading } =
+    useConfirmBooking();
   const { mutate: updateMutate, isLoading: updateIsLoading } =
     useUpdateBookingCart();
   const { mutate: userDataUpdateMutate, isLoading: userDataIsLoading } =
@@ -143,9 +156,9 @@ const VehicleDetailsRentThisCar = ({
   const { mutate } = useDeleteItemFromBooking();
 
   const handleIncrement = (cartItem) => {
-    if(handleIncrementFromCard){
+    if (handleIncrementFromCard) {
       handleIncrementFromCard(cartItem);
-    }else{
+    } else {
       const updateQuantity = cartItem?.quantity + 1;
       if (vehicleDetails?.total_vehicles < updateQuantity) {
         toast.error(
@@ -154,8 +167,11 @@ const VehicleDetailsRentThisCar = ({
           )
         );
       } else {
-        if(from === "from_search"){
-          if(Number(rentalSearch?.duration) === Number(cartList?.user_data?.estimated_hours)){
+        if (from === "from_search") {
+          if (
+            Number(rentalSearch?.duration) ===
+            Number(cartList?.user_data?.estimated_hours)
+          ) {
             updateCart(
               cartItem,
               cartList?.user_data,
@@ -164,15 +180,15 @@ const VehicleDetailsRentThisCar = ({
               updateQuantity,
               updateMutate
             );
-          }else{
+          } else {
             setUpdateOrAdd({
-              type: 'update',
+              type: "update",
               quantity: updateQuantity,
-              cartItem: cartItem
+              cartItem: cartItem,
             });
             setOpenHourDiffModal(true);
           }
-        }else{
+        } else {
           updateCart(
             cartItem,
             cartList?.user_data,
@@ -182,20 +198,20 @@ const VehicleDetailsRentThisCar = ({
             updateMutate
           );
         }
-        
       }
     }
-    
   };
 
   const handleDecrement = (cartItem) => {
-    if(handleDecrementFromCard){
-      
+    if (handleDecrementFromCard) {
       handleDecrementFromCard(cartItem);
-    }else{
+    } else {
       const updateQuantity = cartItem?.quantity - 1;
-      if(from === "from_search"){
-        if(Number(rentalSearch?.duration) === Number(cartList?.user_data?.estimated_hours) ){
+      if (from === "from_search") {
+        if (
+          Number(rentalSearch?.duration) ===
+          Number(cartList?.user_data?.estimated_hours)
+        ) {
           updateCart(
             cartItem,
             cartList?.user_data,
@@ -204,15 +220,15 @@ const VehicleDetailsRentThisCar = ({
             updateQuantity,
             updateMutate
           );
-        }else{
+        } else {
           setUpdateOrAdd({
-            type: 'update',
+            type: "update",
             quantity: updateQuantity,
-            cartItem: cartItem
+            cartItem: cartItem,
           });
           setOpenHourDiffModal(true);
         }
-      }else{
+      } else {
         updateCart(
           cartItem,
           cartList?.user_data,
@@ -220,10 +236,9 @@ const VehicleDetailsRentThisCar = ({
           setCartList,
           updateQuantity,
           updateMutate
-          );
+        );
       }
     }
-    
   };
 
   useEffect(() => {
@@ -241,6 +256,11 @@ const VehicleDetailsRentThisCar = ({
     };
   }, []);
 
+  // When the user came from the search flow we always show totals built from
+  // the search-bar selection (type-price × distance/hours), even if the
+  // vehicle isn't in the cart yet.
+  const isFromSearch = from === "from_search";
+
   const calculatePrice = () => {
     if (isProductExist) {
       return cardTotalPrice(
@@ -248,14 +268,16 @@ const VehicleDetailsRentThisCar = ({
         distanceOrHours,
         isProductExist.quantity
       );
-    } else {
-      return mainPrice(vehicleDetails, rentalSearch?.tripType);
     }
+    if (isFromSearch && typeWisePrice != null) {
+      return cardTotalPrice(typeWisePrice, distanceOrHours, 1);
+    }
+    return mainPrice(vehicleDetails, rentalSearch?.tripType);
   };
 
   const priceWithDiscount = () => {
     if (isProductExist) {
-      return  cardDiscount(
+      return cardDiscount(
         typeWisePrice,
         distanceOrHours,
         isProductExist.quantity,
@@ -263,24 +285,40 @@ const VehicleDetailsRentThisCar = ({
         vehicleDetails?.discount_type,
         vehicleDetails?.provider?.discount?.discount,
         vehicleDetails?.provider?.discount?.max_discount
-      )
-    } else {
-      return getDiscountedAmount(
-        mainPrice(vehicleDetails, rentalSearch?.tripType),
+      );
+    }
+    if (isFromSearch && typeWisePrice != null) {
+      return cardDiscount(
+        typeWisePrice,
+        distanceOrHours,
+        1,
         vehicleDetails?.discount_price,
         vehicleDetails?.discount_type,
-        vehicleDetails?.provider?.discount,
-        1,
+        vehicleDetails?.provider?.discount?.discount,
         vehicleDetails?.provider?.discount?.max_discount
       );
     }
+    return getDiscountedAmount(
+      mainPrice(vehicleDetails, rentalSearch?.tripType),
+      vehicleDetails?.discount_price,
+      vehicleDetails?.discount_type,
+      vehicleDetails?.provider?.discount,
+      1,
+      vehicleDetails?.provider?.discount?.max_discount
+    );
   };
 
   const handleSameProvider = (bookingDetails) => {
-    if(cartList?.carts?.length>0 ){
+    if (cartList?.carts?.length > 0) {
       if (rentalSearch?.tripType === cartList?.user_data?.rental_type) {
-        if(cartList?.user_data?.rental_type === "hourly" || cartList?.user_data?.rental_type==="day_wise"){
-          if ( Number(rentalSearch?.duration) === Number(cartList?.user_data?.estimated_hours)) {
+        if (
+          cartList?.user_data?.rental_type === "hourly" ||
+          cartList?.user_data?.rental_type === "day_wise"
+        ) {
+          if (
+            Number(rentalSearch?.duration) ===
+            Number(cartList?.user_data?.estimated_hours)
+          ) {
             bookingConfirm({
               ...bookingDetails,
               confirmMutate,
@@ -290,10 +328,10 @@ const VehicleDetailsRentThisCar = ({
               handleClose: null,
               onErrorResponse,
             });
-          }else{
+          } else {
             setOpenHourDiffModal(true);
           }
-        }else{
+        } else {
           bookingConfirm({
             ...bookingDetails,
             confirmMutate,
@@ -304,7 +342,6 @@ const VehicleDetailsRentThisCar = ({
             onErrorResponse,
           });
         }
-
       } else {
         setUpdateCartObject?.({
           ...bookingDetails,
@@ -314,7 +351,7 @@ const VehicleDetailsRentThisCar = ({
         setIsSameOpen?.(true);
         handleClose?.();
       }
-    }else{
+    } else {
       bookingConfirm({
         ...bookingDetails,
         confirmMutate,
@@ -325,7 +362,6 @@ const VehicleDetailsRentThisCar = ({
         onErrorResponse,
       });
     }
-    
   };
 
   const handleDifferentProvider = (bookingDetails) => {
@@ -346,9 +382,9 @@ const VehicleDetailsRentThisCar = ({
     data: rentalSearch?.distanceData,
   };
   const addToCartHandler = () => {
-    if(addToCartHandlerFromCard){
-      addToCartHandlerFromCard()
-    }else{
+    if (addToCartHandlerFromCard) {
+      addToCartHandlerFromCard();
+    } else {
       if (from === "from_search") {
         if (isDifferentProvider) {
           handleDifferentProvider(bookingDetails);
@@ -363,14 +399,12 @@ const VehicleDetailsRentThisCar = ({
         }
       }
     }
-   
   };
 
   const removeItemCart = (cartItem) => {
     removeItemFromCart(cartItem, mutate, dispatch, setCartList);
   };
   const handleChangePrvTripType = () => {
-
     const tempUpdateCartObject = {
       userId: updateCartObject?.userId,
       pickup_location: updateCartObject?.locations?.pickup,
@@ -379,9 +413,10 @@ const VehicleDetailsRentThisCar = ({
       estimated_hours: updateCartObject?.durationValue,
       pickup_time: updateCartObject?.dateValue,
       destination_time: Math.floor(
-        updateCartObject?.data?.distanceMeters  / (60 * 60)
+        updateCartObject?.data?.distanceMeters / (60 * 60)
       ),
-      distance:Number(updateCartObject?.data?.duration?.replace('s', ''))/ 1000,
+      distance:
+        Number(updateCartObject?.data?.duration?.replace("s", "")) / 1000,
       guest_id: getToken() ? null : getGuestId(),
     };
 
@@ -410,9 +445,8 @@ const VehicleDetailsRentThisCar = ({
     });
   };
 
-  const handleHourDiffModal = (bookingDetails,updateOrAdd) => {
-
-   if(updateOrAdd?.type === 'add'){
+  const handleHourDiffModal = (bookingDetails, updateOrAdd) => {
+    if (updateOrAdd?.type === "add") {
       bookingConfirm({
         ...bookingDetails,
         confirmMutate,
@@ -422,21 +456,22 @@ const VehicleDetailsRentThisCar = ({
         handleClose: () => setOpenHourDiffModal(false),
         onErrorResponse,
       });
-    }else{
-      const tempUserData = {...cartList?.user_data,
+    } else {
+      const tempUserData = {
+        ...cartList?.user_data,
         estimated_hours: rentalSearch?.duration,
-      }
+      };
       updateCart(
         updateOrAdd?.cartItem,
         tempUserData,
         dispatch,
         setCartList,
         updateOrAdd?.quantity,
-        updateMutate  
-      )
+        updateMutate
+      );
       setOpenHourDiffModal(false);
     }
-    };
+  };
 
   return (
     <RentalCardWrapper
@@ -465,12 +500,11 @@ const VehicleDetailsRentThisCar = ({
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          flexDirection: {xs:"column",md:"row"},
-         
+          flexDirection: { xs: "column", md: "row" },
         }}
       >
         <Box sx={{ display: "flex", alignItems: "center", gap: "5px" }}>
-          {isProductExist ? (
+          {isProductExist || isFromSearch ? (
             <Typography
               sx={{
                 fontSize: "12px",
@@ -480,12 +514,15 @@ const VehicleDetailsRentThisCar = ({
             >
               {t("Estimated")} (
               {selectedPricing === "hourly"
-                ? `${userData?.estimated_hours || rentalSearch?.duration} hr`
+                ? `${formatNumber(
+                    userData?.estimated_hours ?? rentalSearch?.duration
+                  )} hr`
                 : selectedPricing === "day_wise"
-                  ? `${userData?.estimated_hours/24 || rentalSearch?.duration/24} days`
-                  : `${userData?.distance?.toFixed(3)} km`}
+                ? `${formatNumber(
+                    (userData?.estimated_hours ?? rentalSearch?.duration) / 24
+                  )} days`
+                : `${formatNumber(userData?.distance ?? distance)} km`}
               )
-
             </Typography>
           ) : (
             <Typography
@@ -498,19 +535,42 @@ const VehicleDetailsRentThisCar = ({
           )}
           <Typography
             sx={{
-              fontSize:vehicleDetails?.discount_type!=="amount" ?"14px":"18px",
-              textDecoration:vehicleDetails?.discount_type!=="amount"? "line-through":null,
-              color: (theme) =>vehicleDetails?.discount_type!=="amount"? theme.palette.neutral[500]:theme.palette.neutral[1000],
-              fontWeight:vehicleDetails?.discount_type!=="amount"?  "400":"600",
+              fontSize:
+                vehicleDetails?.discount_type !== "amount" ? "14px" : "18px",
+              textDecoration:
+                vehicleDetails?.discount_type !== "amount"
+                  ? "line-through"
+                  : null,
+              color: (theme) =>
+                vehicleDetails?.discount_type !== "amount"
+                  ? theme.palette.neutral[500]
+                  : theme.palette.neutral[1000],
+              fontWeight:
+                vehicleDetails?.discount_type !== "amount" ? "400" : "600",
             }}
           >
-            {(vehicleDetails?.discount_price > 0 ||
-              vehicleDetails?.provider?.discount?.discount > 0) ?
-              (vehicleDetails?.discount_type === "amount"
-                ?isProductExist? getAmountWithSign(Math.max((calculatePrice() || 0) - (vehicleDetails?.discount_price || 0), 0)):getAmountWithSign(mainPrice(vehicleDetails, rentalSearch?.tripType))
-                : getAmountWithSign(calculatePrice())):getAmountWithSign(mainPrice(vehicleDetails, rentalSearch?.tripType))}
+            {vehicleDetails?.discount_price > 0 ||
+            vehicleDetails?.provider?.discount?.discount > 0
+              ? vehicleDetails?.discount_type === "amount"
+                ? isProductExist || isFromSearch
+                  ? getAmountWithSign(
+                      Math.max(
+                        (calculatePrice() || 0) -
+                          (vehicleDetails?.discount_price || 0),
+                        0
+                      )
+                    )
+                  : getAmountWithSign(
+                      mainPrice(vehicleDetails, rentalSearch?.tripType)
+                    )
+                : getAmountWithSign(calculatePrice())
+              : isProductExist || isFromSearch
+              ? getAmountWithSign(calculatePrice())
+              : getAmountWithSign(
+                  mainPrice(vehicleDetails, rentalSearch?.tripType)
+                )}
           </Typography>
-          {vehicleDetails?.discount_type==="amount" ? null :(
+          {vehicleDetails?.discount_type === "amount" ? null : (
             <Typography
               sx={{
                 fontSize: "16px",
@@ -521,15 +581,14 @@ const VehicleDetailsRentThisCar = ({
               {getAmountWithSign(priceWithDiscount())}
             </Typography>
           )}
-
         </Box>
-        <Box sx={{width:{xs:"100%",md:"auto"}}}>
+        <Box sx={{ width: { xs: "100%", md: "auto" } }}>
           <RentWithIncrementDecrement
             text={isSmall ? t("Rent") : t("Rent This Car")}
             borderRadius="5px"
             fontSize="14px"
             addToCartHandler={addToCartHandler}
-            isProductExist={isProductExist}
+            isProductExist={isFromSearch ? null : isProductExist}
             count={isProductExist?.quantity}
             itemId={isProductExist?.id}
             quantity={isProductExist?.quantity || 1}
@@ -583,11 +642,12 @@ const VehicleDetailsRentThisCar = ({
         }}
         maxWidth="380px"
       >
-        <ChangeTripType cartList={cartList}
-                        setIsSameOpen={setIsSameOpen}
-                        userDataIsLoading={userDataIsLoading}
-                        handleChangePrvTripType={handleChangePrvTripType}
-                        updateCartObject={updateCartObject}
+        <ChangeTripType
+          cartList={cartList}
+          setIsSameOpen={setIsSameOpen}
+          userDataIsLoading={userDataIsLoading}
+          handleChangePrvTripType={handleChangePrvTripType}
+          updateCartObject={updateCartObject}
         />
       </ModalWithCloseButton>
 
@@ -615,17 +675,20 @@ const VehicleDetailsRentThisCar = ({
 
       <ModalWithCloseButton
         openModal={openHourDiffModal}
-        handleClose={()=>{setOpenHourDiffModal(false)}} maxWidth="380px">
-          <ChangeTripHours
-            rentalSearch={rentalSearch}
-            setOpenHourDiffModal={setOpenHourDiffModal}
-            confirmIsLoading={confirmIsLoading}
-            handleHourDiffModal={handleHourDiffModal}
-            bookingDetails={bookingDetails}
-            updateOrAdd={updateOrAdd}
-          />
+        handleClose={() => {
+          setOpenHourDiffModal(false);
+        }}
+        maxWidth="380px"
+      >
+        <ChangeTripHours
+          rentalSearch={rentalSearch}
+          setOpenHourDiffModal={setOpenHourDiffModal}
+          confirmIsLoading={confirmIsLoading}
+          handleHourDiffModal={handleHourDiffModal}
+          bookingDetails={bookingDetails}
+          updateOrAdd={updateOrAdd}
+        />
       </ModalWithCloseButton>
-
     </RentalCardWrapper>
   );
 };

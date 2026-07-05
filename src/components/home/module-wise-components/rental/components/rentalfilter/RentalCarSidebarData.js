@@ -47,10 +47,7 @@ const RentalCarSidebarData = ({
 					sx={{ display: { xs: "none", md: "block" } }}
 				>
 					<Box
-						// sx={{
-						// 	position: "sticky",
-						// 	top: isSearchPage ? "235px" : "170px",
-						// }}
+						
 					>
 						<RentalFilter
 							minMax={minMax}
@@ -67,11 +64,6 @@ const RentalCarSidebarData = ({
 				<Grid item xs={12} sm={12} md={9} lg={9} spacing={2.5}>
 					<Stack
 						sx={{
-							// position: "sticky",
-							// top:
-							// 	data?.pages[0]?.total_size === 0
-							// 		? "200px"
-							// 		: "135px",
 							paddingBottom: "40px",
 						}}
 					>

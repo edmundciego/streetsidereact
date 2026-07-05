@@ -41,6 +41,7 @@ const VehicleDetailsTopSection = ({
   typeWisePrice,
   userData,
   from,
+  
 }) => {
   const theme=useTheme()
   const isSmall = useMediaQuery(theme.breakpoints.down("sm"));

@@ -30,14 +30,18 @@ const RentalCarFilterSection = ({ isSticky, api_endpoint }) => {
   const router = useRouter();
   const scrolling = useScrollTrigger();
   const topRated = router?.query?.top_rated;
-  const all_category=router?.query?.all_category
-  const categoryId=router?.query?.categoryId
+  const all_category = router?.query?.all_category;
+  const categoryId = router?.query?.categoryId;
+  const moduleId = router?.query?.module || router?.query?.module_id;
   const id = router.query?.id;
   const from = router.query?.from;
   const [offset, setOffset] = useState(1);
   const [limit, setLimit] = useState(12);
   const [minMax, setMinMax] = React.useState([0, 0]);
-  const [rentalPriceFilterRange, setRentalPriceFilterRange] = React.useState([null, null]);
+  const [rentalPriceFilterRange, setRentalPriceFilterRange] = React.useState([
+    null,
+    null,
+  ]);
   const [selectedCategoryIds, setSelectedCategoryIds] = useState([]);
   const [selectedBrandIds, setSelectedBrandIds] = useState([]);
   const [selectedSeats, setSelectedSeats] = useState([]);
@@ -49,23 +53,22 @@ const RentalCarFilterSection = ({ isSticky, api_endpoint }) => {
   const [sideDrawerOpen, setSideDrawerOpen] = useState(false);
   const [inViewport, setInViewport] = useState(false);
   const rentalSearch = useSelector(
-    (state) => state?.rentalSearch?.rentalSearch
+    (state) => state?.rentalSearch?.rentalSearch,
   );
   const { rentalCategories } = useSelector(
-		(state) => state?.rentalCategoriesLists
-	);
+    (state) => state?.rentalCategoriesLists,
+  );
 
-  
   useEffect(() => {
-    if(categoryId){
+    if (categoryId) {
       setSelectedCategoryIds([categoryId]);
     }
-  }, [categoryId]); 
+  }, [categoryId]);
 
   useEffect(() => {
-    if(all_category==="1"){
-      const ids=rentalCategories?.map((item)=>item?.id)
-      setSelectedCategoryIds(ids)
+    if (all_category === "1") {
+      const ids = rentalCategories?.map((item) => item?.id);
+      setSelectedCategoryIds(ids);
     }
   }, [all_category]);
   const closeHandler = () => {
@@ -79,20 +82,35 @@ const RentalCarFilterSection = ({ isSticky, api_endpoint }) => {
       : false;
 
   const handleAPiCallOnSuccess = (res) => {
-    if (res?.pages[0]?.min_price && res?.pages[0]?.max_price && minMax[0] === 0 && minMax[1] === 0) {
-      setRentalPriceFilterRange([res?.pages[0]?.min_price, res?.pages[0]?.max_price]);
+    console.log({ res });
+
+    if (res?.pages[0]?.max_price) {
+      setRentalPriceFilterRange([
+        res?.pages[0]?.min_price,
+        res?.pages[0]?.max_price,
+      ]);
     }
   };
 
   const min_price = minMax[0];
   const max_price = minMax[1];
 
-
   const { data, hasNextPage, fetchNextPage, isFetching } = useGetRentalSearch(
     {
       name: searchKey,
-      date: (router.pathname === "/rental/vehicle-search" && topRated !=="1") && (router.pathname === "/rental/vehicle-search" && !categoryId) && (router.pathname === "/rental/vehicle-search" && all_category!=='1') ? fTime(selectedDate) : null,
-      tripType:api_endpoint==="/api/v1/rental/vehicle/get-provider-vehicles" ? "provider_wise" : tripType,
+      date:
+        router.pathname === "/rental/vehicle-search" &&
+        topRated !== "1" &&
+        router.pathname === "/rental/vehicle-search" &&
+        !categoryId &&
+        router.pathname === "/rental/vehicle-search" &&
+        all_category !== "1"
+          ? fTime(selectedDate)
+          : null,
+      tripType:
+        api_endpoint === "/api/v1/rental/vehicle/get-provider-vehicles"
+          ? "provider_wise"
+          : tripType,
       duration,
       min_price,
       max_price,
@@ -108,22 +126,25 @@ const RentalCarFilterSection = ({ isSticky, api_endpoint }) => {
       sort_by: sortBy,
       top_rated: topRated,
       pickup_location,
-      all_category
+      all_category,
     },
-    handleAPiCallOnSuccess
+    handleAPiCallOnSuccess,
   );
-  useEffect(()=>{
-    if(api_endpoint==="/api/v1/rental/vehicle/get-provider-vehicles" && id){
-      setRentalPriceFilterRange([data?.pages[0]?.min_price, data?.pages[0]?.max_price]);
+  useEffect(() => {
+    if (api_endpoint === "/api/v1/rental/vehicle/get-provider-vehicles" && id) {
+      setRentalPriceFilterRange([
+        data?.pages[0]?.min_price,
+        data?.pages[0]?.max_price,
+      ]);
     }
-  },[api_endpoint,id])
-
+  }, [api_endpoint, id]);
 
   useEffect(() => {
+    if (!moduleId) return;
     if (inViewport && hasNextPage) {
       fetchNextPage();
     }
-  }, [inViewport]);
+  }, [inViewport, moduleId]);
 
   useEffect(() => {
     setOffset(1);
@@ -148,6 +169,8 @@ const RentalCarFilterSection = ({ isSticky, api_endpoint }) => {
   ]);
   const isSearchPage = router.pathname === "/vehicle-search";
 
+  console.log({ rentalPriceFilterRange, minMax });
+
   return (
     <Box>
       <CustomBoxFullWidth
@@ -163,7 +186,7 @@ const RentalCarFilterSection = ({ isSticky, api_endpoint }) => {
             top: {
               xs: "50px",
               sm: isSticky ? "140px" : "64px",
-              md: isSticky ? (scrolling ? "140px" : "170px") : "64px",
+              md: isSticky ? (scrolling ? "145px" : "145px") : "64px",
             },
             height: "fit-content",
             zIndex: 1099,

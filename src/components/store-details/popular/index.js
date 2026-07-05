@@ -1,6 +1,7 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 import { alpha, useTheme } from "@mui/material";
 import React, { useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import Slider from "react-slick";
 import usePopularProductsInStore from "../../../api-manage/hooks/react-query/product-details/usePopularProductsInStore";
 import { getCurrentModuleType } from "helper-functions/getCurrentModuleType";
@@ -15,8 +16,9 @@ import { settings } from "./settings";
 import ProductCard from "../../cards/ProductCard";
 import useGetCommonConditionStore from "../../../api-manage/hooks/react-query/common-conditions/useGetCommonConditionStore";
 
-const PopularInTheStore = ({ id, storeShare }) => {
+const PopularInTheStore = ({ id, storeShare, sortBy, type }) => {
   const theme = useTheme();
+  const { t } = useTranslation();
   const offset = 1;
   const limit = 10;
   const getBG = () => {
@@ -25,22 +27,22 @@ const PopularInTheStore = ({ id, storeShare }) => {
         case ModuleTypes.GROCERY:
           return {
             bgColor: alpha(theme.palette.primary.main, 0.2),
-            title: "Recommended for you",
+            title: t("Recommended for you"),
           };
         case ModuleTypes.PHARMACY:
           return {
             bgColor: alpha(theme.palette.info.custom1, 0.1),
-            title: "Common Conditions!",
+            title: t("Common Conditions!"),
           };
         case ModuleTypes.ECOMMERCE:
           return {
             bgColor: alpha(theme.palette.info.blue, 0.1),
-            title: "Recommended for you",
+            title: t("Recommended for you"),
           };
         case ModuleTypes.FOOD:
           return {
             bgColor: alpha(theme.palette.moduleTheme.food, 0.1),
-            title: "Recommended for you",
+            title: t("Recommended for you"),
           };
       }
     } else {
@@ -48,22 +50,22 @@ const PopularInTheStore = ({ id, storeShare }) => {
         case ModuleTypes.GROCERY:
           return {
             bgColor: alpha(theme.palette.primary.main, 0.2),
-            title: "Popular in this store!",
+            title: t("Popular in this store!"),
           };
         case ModuleTypes.PHARMACY:
           return {
             bgColor: alpha(theme.palette.info.custom1, 0.2),
-            title: "Common Conditions!",
+            title: t("Common Conditions!"),
           };
         case ModuleTypes.ECOMMERCE:
           return {
             bgColor: alpha(theme.palette.info.blue, 0.1),
-            title: "Popular in this store!",
+            title: t("Popular in this store!"),
           };
         case ModuleTypes.FOOD:
           return {
             bgColor: alpha(theme.palette.moduleTheme.food, 0.1),
-            title: "Popular in this Restaurant!",
+            title: t("Popular in this Restaurant!"),
           };
       }
     }
@@ -71,6 +73,8 @@ const PopularInTheStore = ({ id, storeShare }) => {
 
   const { data, refetch, isLoading } = usePopularProductsInStore({
     id,
+    sortBy,
+    type,
     ...storeShare,
   });
   const {
@@ -88,6 +92,13 @@ const PopularInTheStore = ({ id, storeShare }) => {
     refetchCommonCondition();
     refetch();
   }, []);
+
+  // Refetch popular items whenever the active sort/type filter changes
+  // so the section reflects the current selection.
+  useEffect(() => {
+    refetch();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sortBy, type]);
 
   return (
     <CustomBoxFullWidth>

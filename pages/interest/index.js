@@ -3,7 +3,7 @@ import ZoneGuard from "../../src/components/route-guard/ZoneGuard";
 import CssBaseline from "@mui/material/CssBaseline";
 import MainLayout from "../../src/components/layout/MainLayout";
 import InterestOptions from "../../src/components/interest/InterestOptions";
-import { getServerSideProps } from "../../src/utils/server-side-props";
+import { getServerSideProps } from "../index";
 import CustomContainer from "../../src/components/container";
 import { useDispatch, useSelector } from "react-redux";
 import { useGetConfigData } from "../../src/api-manage/hooks/useGetConfigData";

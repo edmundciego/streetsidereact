@@ -21,7 +21,7 @@ import wishListReducer from "../slices/wishList";
 import storeResDataReducer from "../slices/storeRegistrationData";
 import rentalCategoriesLists from "../slices/rentalCategories";
 import rentalSearch from "../slices/rentalSearch";
-import digiWalletReducer from "../slices/digiWalletSlice";
+import searchProductModalReducer from "../slices/searchProductModal";
 
 //register all reducers here
 export const rootReducer = combineReducers({
@@ -47,5 +47,5 @@ export const rootReducer = combineReducers({
   storeRegData: storeResDataReducer,
   rentalCategoriesLists: rentalCategoriesLists,
   rentalSearch: rentalSearch,
-  digiWallet: digiWalletReducer,
+  searchProductModal: searchProductModalReducer,
 });

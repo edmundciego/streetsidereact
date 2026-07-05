@@ -121,8 +121,8 @@ const CarBookingModal = (props) => {
   const { configData } = useSelector((state) => state.configData);
   const [locations, setLocations] = useState({
     pickup: {
-      lat: JSON.parse(configData?.default_location?.lat),
-      lng: JSON.parse(configData?.default_location?.lng),
+      lat: configData && JSON.parse(configData?.default_location?.lat),
+      lng:configData && JSON.parse(configData?.default_location?.lng),
     },
     // destination: calculateDestination(configData?.default_location),
     destination: null,

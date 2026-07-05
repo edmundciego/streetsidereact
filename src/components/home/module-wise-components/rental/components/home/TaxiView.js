@@ -26,11 +26,25 @@ import {
   calculateTotalDiscount,
   getTotalAmount,
 } from "components/home/module-wise-components/rental/components/rental-checkout/checkoutHeplerFunction";
+import { useSelector } from "react-redux";
+import { toast } from "react-hot-toast";
+import { getToken } from "helper-functions/getToken";
+import { getAmountWithSign } from "helper-functions/CardHelpers";
+import useGetProActiveOffer from "api-manage/hooks/react-query/pro-plans/useGetProActiveOffer";
+import useSubscribeProPlan from "api-manage/hooks/react-query/pro-plans/useSubscribeProPlan";
+import ProPlanBanner from "components/pro-plan/ProPlanBanner";
+import ProSavingsBanner from "components/pro-plan/ProSavingsBanner";
 
 const CarBookingModal = dynamic(() =>
   import(
     "components/home/module-wise-components/rental/components/global/CarBookingModal"
   )
+);
+const ProPlanSubscriptionModal = dynamic(() =>
+  import("components/pro-plan/ProPlanSubscriptionModal")
+);
+const ProPlanPaymentModal = dynamic(() =>
+  import("components/pro-plan/ProPlanPaymentModal")
 );
 
 const TaxiView = (props) => {
@@ -39,14 +53,141 @@ const TaxiView = (props) => {
   const [ids, setIds] = React.useState(null);
   const [updateCartObject, setUpdateCartObject] = React.useState({});
   const theme = useTheme();
-  const { sideDrawerOpen, setSideDrawerOpen, cartList, refetch, isLoading } = props;
+  const {
+    sideDrawerOpen,
+    setSideDrawerOpen,
+    cartList,
+    refetch,
+    isLoading,
+    configData: configDataProp,
+  } = props;
   const router = useRouter();
-  
+
   const closeHandler = () => {
     setSideDrawerOpen(false);
   };
-  
+
   const currentTime = new Date().toLocaleTimeString();
+
+  // Prefer the prop passed down from the navbar (always populated from
+  // the page-level configData) and fall back to the redux slice for
+  // pages that don't pass it explicitly.
+  const { configData: configDataFromStore } = useSelector(
+    (state) => state.configData
+  );
+  const configData = configDataProp || configDataFromStore;
+  const proFeatureEnabled = configData?.pro_member_status === 1;
+  const hasToken = !!getToken();
+  const { data: activeOfferRaw, isLoading: activeOfferLoading } =
+    useGetProActiveOffer({
+      enabled: proFeatureEnabled && hasToken,
+    });
+  const activeOffer = activeOfferRaw?.data ?? activeOfferRaw ?? null;
+  const isProMember =
+    Number(activeOffer?.plan_details?.days_remaining) > 0 ||
+    Boolean(activeOffer?.plan_details?.plan_name);
+  const isProActive = activeOffer?.status === true;
+  const proBenefit = activeOffer?.benefit ?? null;
+  // While the offer is still loading we don't yet know if the user is a
+  // member — render neither banner instead of flashing the "Subscribe Now"
+  // CTA at someone who is already subscribed.
+  const proOfferResolved =
+    !(proFeatureEnabled && hasToken) || !activeOfferLoading;
+  const proSavingsMessage = (() => {
+    if (!proBenefit) return undefined;
+    const offerActive = isProActive;
+    if (!offerActive) return undefined;
+
+    const benefitType = proBenefit?.type;
+    const offerType = proBenefit?.offer_type;
+    const benefitPercentage = Number(proBenefit?.percentage) || 0;
+    const benefitMaxAmount = Number(proBenefit?.max_amount) || 0;
+    const chargeDiscountPct =
+      Number(proBenefit?.charge_discount_percentage) || 0;
+    const minOrderStatus = Number(proBenefit?.min_order_status) === 1;
+    const minOrderAmount = Number(proBenefit?.min_order_amount) || 0;
+
+    // Rental "cart subtotal" = trip cost minus provider/vehicle discounts.
+    // Matches the value the backend uses to gate the Pro benefit.
+    const tripCostNow = getTotalAmount(cartList) || 0;
+    const tripDiscountNow = calculateTotalDiscount(cartList, tripCostNow) || 0;
+    const cartSubtotal = Math.max(0, tripCostNow - tripDiscountNow);
+
+    const qualifiesForOffer =
+      !minOrderStatus || minOrderAmount <= 0 || cartSubtotal >= minOrderAmount;
+    const amountToReachMin = Math.max(0, minOrderAmount - cartSubtotal);
+
+    if (!qualifiesForOffer) {
+      const amountToReachText = getAmountWithSign(amountToReachMin);
+      return `${t("Add")} ${amountToReachText} ${t(
+        "more to save with Pro Plan"
+      )}`;
+    }
+    if (benefitType === "discount") {
+      const rawDiscount = (cartSubtotal * benefitPercentage) / 100;
+      const savedAmount =
+        benefitMaxAmount > 0
+          ? Math.min(rawDiscount, benefitMaxAmount)
+          : rawDiscount;
+      if (savedAmount > 0) {
+        const savedText = getAmountWithSign(savedAmount);
+        return `${t("You save")} ${savedText} ${t("with Pro Plan")}`;
+      }
+      return undefined;
+    }
+    if (benefitType === "delivery_fee") {
+      if (offerType === "full_free" || offerType === "free") {
+        return t("Free delivery as a Pro member");
+      }
+      if (offerType === "partial_free" && chargeDiscountPct > 0) {
+        return `${chargeDiscountPct}% ${t("off delivery as a Pro member")}`;
+      }
+      return undefined;
+    }
+    if (benefitType === "coupon") {
+      return t("Pro coupon benefit unlocked");
+    }
+    return undefined;
+  })();
+  const [proModalOpen, setProModalOpen] = React.useState(false);
+  const [proPaymentOpen, setProPaymentOpen] = React.useState(false);
+  const [proSelectedPlan, setProSelectedPlan] = React.useState(null);
+  const subscribeProMutation = useSubscribeProPlan();
+  const handleProSubscribe = (plan) => {
+    if (!plan) return;
+    if (plan.price === 0) {
+      subscribeProMutation.mutate(
+        {
+          plan_id: plan.id,
+          payment_type: "free_trial",
+          payment_method: "free_trial",
+          callback_url:
+            typeof window !== "undefined" ? window.location.href : "",
+        },
+        {
+          onSuccess: (res) => {
+            const redirect = res?.redirect_link ?? res?.data?.redirect_link;
+            if (redirect && typeof window !== "undefined") {
+              window.location.href = redirect;
+              return;
+            }
+            toast.success(t("Subscribed successfully"));
+            setProModalOpen(false);
+          },
+          onError: (err) => {
+            toast.error(
+              err?.response?.data?.message || t("Subscription failed")
+            );
+          },
+        }
+      );
+      return;
+    }
+    setProSelectedPlan(plan);
+    setProModalOpen(false);
+    setProPaymentOpen(true);
+  };
+  console.log({ proFeatureEnabled, configData, configDataProp, cartList });
 
   return (
     <>
@@ -70,7 +211,7 @@ const TaxiView = (props) => {
             justifyContent="start"
             gap={0}
             sx={{
-              position: "relative", 
+              position: "relative",
               top: "0px",
               height: "100vh",
             }}
@@ -160,13 +301,15 @@ const TaxiView = (props) => {
                     }
                     sx={{
                       position: "relative",
-                      borderBottom: (theme) => `1px solid ${theme.palette.neutral[200]}`,
+                      borderBottom: (theme) =>
+                        `1px solid ${theme.palette.neutral[200]}`,
                     }}
                   >
                     <Box
                       sx={{
                         width: "1px",
-                        borderLeft: (theme) => `1px dashed ${theme.palette.neutral[400]}`,
+                        borderLeft: (theme) =>
+                          `1px dashed ${theme.palette.neutral[400]}`,
                         height: "50%",
                         position: "absolute",
                         top: "-15px",
@@ -192,11 +335,14 @@ const TaxiView = (props) => {
                           textOverflow: "ellipsis",
                         }}
                       >
-                        {cartList.user_data?.destination_location?.location_name}
+                        {
+                          cartList.user_data?.destination_location
+                            ?.location_name
+                        }
                       </Typography>
                     </Box>
                   </CardDetailsSingleCard>
-                  
+
                   <CardDetailsSingleCard
                     isShowEdit={false}
                     icon={
@@ -208,7 +354,8 @@ const TaxiView = (props) => {
                       />
                     }
                     sx={{
-                      borderBottom: (theme) => `1px solid ${theme.palette.neutral[200]}`,
+                      borderBottom: (theme) =>
+                        `1px solid ${theme.palette.neutral[200]}`,
                     }}
                   >
                     <Box
@@ -225,11 +372,13 @@ const TaxiView = (props) => {
                           fontSize: "14px",
                         }}
                       >
-                        {cartList?.user_data?.pickup_time ? (
-                          new Date(cartList.user_data.pickup_time).getTime() <= new Date().getTime()
+                        {cartList?.user_data?.pickup_time
+                          ? new Date(
+                            cartList.user_data.pickup_time
+                          ).getTime() <= new Date().getTime()
                             ? t("Pickup Now")
                             : t("Schedule at")
-                        ) : t("Pickup Now")}
+                          : t("Pickup Now")}
                       </Typography>
                       <Typography
                         sx={{
@@ -238,11 +387,12 @@ const TaxiView = (props) => {
                           fontSize: "12px",
                         }}
                       >
-                        - {FormatedDateWithTime(cartList.user_data?.pickup_time)}
+                        -{" "}
+                        {FormatedDateWithTime(cartList.user_data?.pickup_time)}
                       </Typography>
                     </Box>
                   </CardDetailsSingleCard>
-                  
+
                   <CardDetailsSingleCard
                     isShowEdit={false}
                     sx={{ pb: "0px" }}
@@ -295,11 +445,13 @@ const TaxiView = (props) => {
                           </>
                         ) : cartList?.user_data?.rental_type === "day_wise" ? (
                           <>
-                            (<b>{cartList?.user_data?.estimated_hours/24}</b> Days)
+                            (<b>{(cartList?.user_data?.estimated_hours / 24).toFixed(2)}</b>{" "}
+                            Days)
                           </>
                         ) : (
                           <>
-                            (<b>{cartList?.user_data?.distance?.toFixed(3)}</b> Km)
+                            (<b>{cartList?.user_data?.distance?.toFixed(3)}</b>{" "}
+                            Km)
                           </>
                         )}
                       </Typography>
@@ -324,7 +476,9 @@ const TaxiView = (props) => {
                   cartList={cartList?.carts}
                   setSideDrawerOpen={setSideDrawerOpen}
                   text={t("Continue Booking")}
-                  subTitle={t("No vehicles added in your cart. Please add vehicle to your cart list.")}
+                  subTitle={t(
+                    "No vehicles added in your cart. Please add vehicle to your cart list."
+                  )}
                   icon={
                     <DirectionsCarFilledIcon
                       sx={{
@@ -341,8 +495,10 @@ const TaxiView = (props) => {
             {cartList?.carts?.length > 0 && (
               <RentalProceedtoCheckout
                 rentalUserData={cartList}
-                totalAmount={Math.max(getTotalAmount(cartList) - calculateTotalDiscount(cartList), 0)
-              }
+                totalAmount={Math.max(
+                  getTotalAmount(cartList) - calculateTotalDiscount(cartList),
+                  0
+                )}
                 sx={{
                   backgroundColor: (theme) => theme.palette.background.paper,
                   position: "sticky",
@@ -359,7 +515,47 @@ const TaxiView = (props) => {
                   setSideDrawerOpen(false);
                   router.push("/rental/cart");
                 }}
-              />
+              >
+                {proFeatureEnabled &&
+                  (() => {
+                    // Active offer with a rental-applicable benefit.
+                    const hasRentalBenefit =
+                      isProActive && proBenefit?.type !== "delivery_fee";
+                    if (hasRentalBenefit) {
+                      return (
+                        <Box sx={{ mb: 1 }}>
+                          <ProSavingsBanner
+                            amount={
+                              activeOffer?.total_saved ??
+                              activeOffer?.plan_details?.total_saved
+                            }
+                            message={proSavingsMessage}
+                          />
+                        </Box>
+                      );
+                    }
+                    // Show subscribe prompt only when truly not subscribed
+                    // (no plan_details). A subscribed user with no benefit
+                    // for this module sees nothing — they're already paying.
+                    if (!isProMember && !activeOfferLoading) {
+                      return (
+                        <Box sx={{ mb: 1 }}>
+                          <ProPlanBanner
+                            onSubscribe={() => {
+                              if (!hasToken) {
+                                toast.error(t("Please login to use this feature"));
+                                return;
+                              }
+                              setProModalOpen(true);
+                            }}
+                            subjectLabel="rental"
+                          />
+                        </Box>
+                      );
+                    }
+                    return null;
+                  })()}
+              </RentalProceedtoCheckout>
             )}
           </CustomStackFullWidth>
         </Box>
@@ -374,12 +570,12 @@ const TaxiView = (props) => {
             setIds={setIds}
             setUpdateCartObject={setUpdateCartObject}
             callUpdateUserData={false}
-            // isHourly={data?.trip_hourly}
-            // isDistence={data?.trip_distance}
+          // isHourly={data?.trip_hourly}
+          // isDistence={data?.trip_distance}
           />
         )}
       </CustomSideDrawer>
-      
+
       <CustomModal openModal={openTripChange}>
         <TripModalContent
           title="Trip Vehicle List"
@@ -398,6 +594,21 @@ const TaxiView = (props) => {
           }
         />
       </CustomModal>
+      {proFeatureEnabled && proModalOpen && (
+        <ProPlanSubscriptionModal
+          open={proModalOpen}
+          onClose={() => setProModalOpen(false)}
+          onSubscribe={handleProSubscribe}
+          isSubmitting={subscribeProMutation.isLoading}
+        />
+      )}
+      {proFeatureEnabled && proPaymentOpen && (
+        <ProPlanPaymentModal
+          open={proPaymentOpen}
+          onClose={() => setProPaymentOpen(false)}
+          plan={proSelectedPlan}
+        />
+      )}
     </>
   );
 };

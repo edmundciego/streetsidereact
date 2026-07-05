@@ -1,18 +1,17 @@
 import React from "react";
 import { Typography } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
-import { escapeHtml } from "utils/CustomFunctions";
 
 const Details = ({ description }) => {
   const theme = useTheme();
   const formattedText = description?.split(/\r\n/)
     .map(line => {
       if (line.match(/^\d+\./)) {
-        return `<br/>${escapeHtml(line)}`;
+        return `<br/>${line}`; 
       } else if (line.trim() === '') {
         return '<br/><br/>';
       }
-      return escapeHtml(line);
+      return line;
     })
     .join('');
 

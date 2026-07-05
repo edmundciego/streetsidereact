@@ -8,6 +8,7 @@ import { useTheme } from "@mui/material/styles";
 import useGetUserInfo from "../../api-manage/hooks/react-query/user/useGetUserInfo";
 import { CustomTypographyEllipsis } from "styled-components/CustomTypographies.style";
 import moment from "moment";
+import VerifiedStoreBadge from "components/cards/VerifiedStoreBadge";
 
 export const StyledBadge = styled(Badge)(({ theme }) => ({
 	"& .MuiBadge-badge": {
@@ -81,7 +82,7 @@ const InfoCard = ({
 			direction="row"
 			spacing={2}
 			alignItems="center"
-			padding="10px 15px 10px 10px"
+			padding={{ xs: "10px 0px", md: "10px 15px 10px 10px" }}
 			sx={{
 				background:
 					selectedId === currentId &&
@@ -106,9 +107,17 @@ const InfoCard = ({
 					justifyContent="space-between"
 					marginRight={language_direction === "rtl" ? "1rem" : "0rem"}
 				>
-					<Typography fontSize="14px" fontWeight="500">
-						{receiver}
-					</Typography>
+					<Stack direction="row" alignItems="center">
+						<Typography fontSize="14px" fontWeight="500">
+							{receiver}
+						</Typography>
+						{userList?.receiver_type === "vendor" && (
+							<VerifiedStoreBadge
+								verified={userList?.receiver?.verified_seller}
+								fontSize="14px"
+							/>
+						)}
+					</Stack>
 					<Typography fontSize="12px">
 						{moment(messageTime).format("hh:mm A")}
 					</Typography>

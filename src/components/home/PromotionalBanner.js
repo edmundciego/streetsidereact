@@ -11,11 +11,9 @@ export const BannerWrapper = styled(Box)(({ theme }) => ({
   width: "100%",
   height: "360px",
   position: "relative",
-  marginTop: "20px",
-  img:{
+  img: {
     width: "100%",
     height: "100%",
-
   },
   "&:hover": {
     img: {
@@ -55,7 +53,7 @@ const PromotionalBanner = ({ bannerData }) => {
 
   return (
     <>
-      {bannerData?.bottom_section_banner && (
+      {bannerData?.bottom_section_banner ? (
         <BannerWrapper>
           <NextImage
             src={bannerData?.bottom_section_banner_full_url}
@@ -64,7 +62,7 @@ const PromotionalBanner = ({ bannerData }) => {
             objectFit="cover"
           />
         </BannerWrapper>
-      )}
+      ) : null}
     </>
   );
 };

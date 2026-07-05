@@ -27,5 +27,6 @@ export const make_payment = "api/v1/rental/user/trip/payment";
 
 export const submit_rental_review_api = "api/v1/rental/user/review/add";
 export const get_store_reviews = "/api/v1/rental/provider/get-provider-reviews";
-export const provider_banner="api/v1/rental/banners";
-export const rental_get_tax="/api/v1/rental/user/trip/get-tax"
+export const provider_banner = "api/v1/rental/banners";
+export const rental_get_tax = "/api/v1/rental/user/trip/get-tax";
+export const verified_providers = "/api/v1/stores/verified";

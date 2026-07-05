@@ -15,11 +15,14 @@ import { useRemoveRentalWishList } from "api-manage/hooks/react-query/rental-wis
 import CustomImageContainer from "components/CustomImageContainer";
 import CustomRatings from "components/search/CustomRatings";
 import CustomDivider from "components/CustomDivider";
+import VerifiedStoreBadge from "components/cards/VerifiedStoreBadge";
 
 const ProviderWishCard = ({ data, setSideDrawerOpen }) => {
   const router = useRouter();
   const theme = useTheme();
   const dispatch = useDispatch();
+  console.log({data});
+  
 
   const { mutate: removeFavoriteMutation } = useRemoveRentalWishList();
   const removeFromRentalWishlistProviderHandler = (e) => {
@@ -44,7 +47,7 @@ const ProviderWishCard = ({ data, setSideDrawerOpen }) => {
   const handleCLick = (e) => {
     router.push(
       {
-        pathname: `/rental/provider-details/${data?.id}`,
+        pathname: `/rental/provider/${data?.id}`,
       },
       undefined,
       { shallow: true }
@@ -72,9 +75,13 @@ const ProviderWishCard = ({ data, setSideDrawerOpen }) => {
         </StoreImageBox>
 
         <Stack width="0px" flexGrow="1" justifyContent="center" spacing={0.5}>
-          <Typography fontWeight="500" fontSize="14px">
-            {data?.name}
-          </Typography>
+          <Stack direction="row" alignItems="center" spacing={0.5}>
+            <Typography fontWeight="500" fontSize="14px">
+              {data?.name}
+            </Typography>
+            <VerifiedStoreBadge verified={data?.verified_seller} fontSize="14px" />
+          </Stack>
+
           <CustomRatings
             ratingValue={data?.avg_rating}
             readOnly="true"

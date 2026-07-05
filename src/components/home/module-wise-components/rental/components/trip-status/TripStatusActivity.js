@@ -87,6 +87,34 @@ const getStatusConfig = (tripDetails) => ({
     ),
     content: <CustomImageContainer src={"/static/rental/cartrip.png"} />,
   },
+  payment_failed: {
+    text: (
+      <>
+        <Typography
+          sx={{
+            fontSize: "16px",
+            fontWeight: 600,
+            color: (theme) => theme.palette.neutral[1000],
+          }}
+        >
+          {t("Payment failed")}
+        </Typography>
+        <Typography
+          sx={{
+            fontSize: "12px",
+            fontWeight: 400,
+            color: (theme) => theme.palette.neutral[600],
+            maxWidth: "280px",
+          }}
+        >
+          {t(
+            "Your payment was not successful. Please try again to complete the trip"
+          )}
+        </Typography>
+      </>
+    ),
+    content: <CustomImageContainer src="/static/rental/cartripLocation.png" />,
+  },
   completed: {
     text: (
       <Stack>

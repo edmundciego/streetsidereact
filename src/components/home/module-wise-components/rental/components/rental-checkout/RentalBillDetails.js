@@ -1,4 +1,4 @@
-import { fontWeight } from "@mui/system";
+import { alpha, fontWeight } from "@mui/system";
 import H3 from "components/typographies/H3";
 import React from "react";
 import { CustomBoxFullWidth } from "styled-components/CustomStyles.style";
@@ -22,7 +22,22 @@ const RentalBillDetails = ({
   couponDiscount,
   vatPer,
   additionalCharge,
+  proOrderDiscountActive,
+  proOrderDiscountAmount,
+  proOrderDiscountPct,
+  proOrderDiscountMax,
+  // Trip / bill payload — used to detect Pro-given coupons via
+  // `benefit_type === "coupon"`. Optional; falls back to `couponDiscount`
+  // shape when callers don't pass it.
+  billDetails,
+  // Slot for the caller to render the Pro customer banner (or any other
+  // promo node) immediately under the Total row.
+  proSavingsBanner,
 }) => {
+  const showCouponProTag =
+    billDetails?.benefit_type === "coupon" ||
+    couponDiscount?.coupon_type === "pro_customer";
+
   const { configData } = useSelector((state) => state.configData);
   return (
     <>
@@ -127,16 +142,52 @@ const RentalBillDetails = ({
                 color: (theme) => theme.palette.neutral[600],
               }}
             >
-              -{getAmountWithSign(tripDiscount>tripCost? tripCost : tripDiscount)}
+              -
+              {getAmountWithSign(
+                tripDiscount > tripCost ? tripCost : tripDiscount
+              )}
             </Typography>
           </Stack>
-          {rentalCoupon || couponDiscount ? (
+          {proOrderDiscountActive && proOrderDiscountAmount > 0 ? (
             <Stack
               direction="row"
               justifyContent="space-between"
               alignItems="center"
               sx={{ mb: "15px" }}
             >
+              <Stack direction="row" alignItems="center" spacing={0.75}>
+                <Typography
+                  sx={{
+                    fontSize: "14px",
+                    fontWeight: "400",
+                    color: (theme) => theme.palette.neutral[600],
+                  }}
+                >
+                  {t("Pro Discount")}
+                </Typography>
+                <Typography
+                  component="span"
+                  sx={{
+                    fontSize: "11px",
+                    px: 0.75,
+                    py: 0.1,
+                    borderRadius: "999px",
+                    backgroundColor: (theme) =>
+                      alpha(theme.palette.primary.main, 0.12),
+                    color: (theme) => theme.palette.primary.main,
+                    fontWeight: 600,
+                  }}
+                >
+                  {proOrderDiscountPct > 0
+                    ? `${proOrderDiscountPct}%`
+                    : t("Pro")}
+                  {proOrderDiscountMax > 0
+                    ? ` · ${t("up to")} ${getAmountWithSign(
+                        proOrderDiscountMax
+                      )}`
+                    : ""}
+                </Typography>
+              </Stack>
               <Typography
                 sx={{
                   fontSize: "14px",
@@ -144,8 +195,45 @@ const RentalBillDetails = ({
                   color: (theme) => theme.palette.neutral[600],
                 }}
               >
-                {t("Coupon Discount")}
+                {`- ${getAmountWithSign(proOrderDiscountAmount)}`}
               </Typography>
+            </Stack>
+          ) : null}
+          {rentalCoupon || couponDiscount ? (
+            <Stack
+              direction="row"
+              justifyContent="space-between"
+              alignItems="center"
+              sx={{ mb: "15px" }}
+            >
+              <Stack direction="row" alignItems="center" spacing={0.75}>
+                <Typography
+                  sx={{
+                    fontSize: "14px",
+                    fontWeight: "400",
+                    color: (theme) => theme.palette.neutral[600],
+                  }}
+                >
+                  {t("Coupon Discount")}
+                </Typography>
+                {showCouponProTag ? (
+                  <Typography
+                    component="span"
+                    sx={{
+                      fontSize: "11px",
+                      px: 0.75,
+                      py: 0.1,
+                      borderRadius: "999px",
+                      backgroundColor: (theme) =>
+                        alpha(theme.palette.primary.main, 0.12),
+                      color: (theme) => theme.palette.primary.main,
+                      fontWeight: 600,
+                    }}
+                  >
+                    {t("Pro")}
+                  </Typography>
+                ) : null}
+              </Stack>
               <Typography
                 sx={{
                   fontSize: "14px",
@@ -160,6 +248,7 @@ const RentalBillDetails = ({
             ""
           )}
         </Box>
+
         <Box
           sx={{
             borderBottom: (theme) =>
@@ -182,16 +271,19 @@ const RentalBillDetails = ({
               component="span"
             >
               {t("Subtotal")}
-             <Typography
-               sx={{
-                 fontSize: "12px",
-                 fontWeight: "400",
-                 color: (theme) => theme.palette.neutral[500],
-               }}
-               component="span"
-             >
-               {" "} {vatTax?.tax_included === 1 && vatTax?.tax_included!==null && ("(Vat/Tax incl.)")}
-             </Typography>
+              <Typography
+                sx={{
+                  fontSize: "12px",
+                  fontWeight: "400",
+                  color: (theme) => theme.palette.neutral[500],
+                }}
+                component="span"
+              >
+                {" "}
+                {vatTax?.tax_included === 1 &&
+                  vatTax?.tax_included !== null &&
+                  "(Vat/Tax incl.)"}
+              </Typography>
             </Typography>
             <Typography
               sx={{
@@ -200,11 +292,11 @@ const RentalBillDetails = ({
                 color: (theme) => theme.palette.neutral[500],
               }}
             >
-              {getAmountWithSign(subTotal) }
-
+              {getAmountWithSign(subTotal)}
             </Typography>
           </Stack>
-          {(vatTax?.tax_included!==null || vatTax?.tax_included===0 ) && vatTax?.tax_amount>0 ? (
+          {(vatTax?.tax_included !== null || vatTax?.tax_included === 0) &&
+          vatTax?.tax_amount > 0 ? (
             <Stack
               direction="row"
               justifyContent="space-between"
@@ -231,8 +323,7 @@ const RentalBillDetails = ({
                 {getAmountWithSign(vatTax?.tax_amount)}
               </Typography>
             </Stack>
-          ):null}
-
+          ) : null}
 
           <Stack
             direction="row"
@@ -316,6 +407,9 @@ const RentalBillDetails = ({
                 {getAmountWithSign(totalPrice)}
               </Typography>
             </Stack>
+            {proSavingsBanner ? (
+              <Box sx={{ mb: "15px" }}>{proSavingsBanner}</Box>
+            ) : null}
 
             {/*<Stack*/}
             {/*	direction="row"*/}

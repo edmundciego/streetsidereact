@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useRef, useState, useMemo } from "react";
+import { useEffect, useState } from "react";
 import placeholder from "../../public/static/no-image-found.png";
 
 const shimmer = (w, h) => `
@@ -23,37 +23,42 @@ const toBase64 = (str) =>
     ? Buffer.from(str).toString("base64")
     : window.btoa(str);
 
+// `next/image` rejects anything that isn't absolute (http/https) or
+// root-relative ("/foo.png"). Some backend responses come back as a bare
+// filename like "2025-12-28-...webp" — surface those as the placeholder
+// instead of letting next/image throw "Failed to parse src ..." at runtime.
+const sanitizeSrc = (raw, fallback) => {
+  if (!raw) return fallback;
+  if (typeof raw !== "string") return raw; // StaticImageData / import — leave as-is
+  const trimmed = raw.trim();
+  if (!trimmed) return fallback;
+  if (trimmed.startsWith("/")) return trimmed;
+  if (trimmed.startsWith("data:")) return trimmed;
+  if (trimmed.startsWith("blob:")) return trimmed;
+  if (/^https?:\/\//i.test(trimmed)) return trimmed;
+  return fallback;
+};
+
 const NextImage = ({
-   src,
-   altSrc = placeholder,
-   alt = "Image",
-   width,
-   height,
-   objectFit,
-   borderRadius,
-   aspectRatio,
-   sizes = undefined,
-   ...props
- }) => {
-  // Use ref to track the last valid src to prevent flicker
-  const lastValidSrc = useRef(src || altSrc);
-  const [errorFallback, setErrorFallback] = useState(false);
-  
-  // Determine the image source without causing unnecessary re-renders
-  const imageSrc = useMemo(() => {
-    if (errorFallback) {
-      return altSrc;
-    }
-    if (src) {
-      lastValidSrc.current = src;
-      return src;
-    }
-    return lastValidSrc.current || altSrc;
-  }, [src, errorFallback, altSrc]);
+  src,
+  altSrc = placeholder,
+  alt = "Image",
+  width,
+  height,
+  objectFit,
+  borderRadius,
+  aspectRatio,
+  ...props
+}) => {
+  const [currentSrc, setCurrentSrc] = useState(sanitizeSrc(src, altSrc));
+
+  useEffect(() => {
+    setCurrentSrc(sanitizeSrc(src, altSrc));
+  }, [src, altSrc]);
 
   const handleError = () => {
-    if (!errorFallback) {
-      setErrorFallback(true);
+    if (altSrc && currentSrc !== altSrc) {
+      setCurrentSrc(altSrc);
     }
   };
 
@@ -65,25 +70,17 @@ const NextImage = ({
     ...props.style, // allow passing additional styles
   };
 
-  // Default sizes hint for responsive images
-  const defaultSizes = sizes || `(max-width: 768px) 100vw, ${width}px`;
-
-  // Memoize placeholder to prevent recalculation on every render
-  const placeholderData = useMemo(
-    () => `data:image/svg+xml;base64,${toBase64(shimmer(width || 100, height || 100))}`,
-    [width, height]
-  );
-
   return (
     <Image
-      src={imageSrc}
+      src={currentSrc}
       width={width}
       height={height}
       alt={alt}
       onError={handleError}
-      placeholder={placeholderData}
+      placeholder={`data:image/svg+xml;base64,${toBase64(
+        shimmer(width, height)
+      )}`}
       style={style}
-      sizes={defaultSizes}
       {...props}
     />
   );

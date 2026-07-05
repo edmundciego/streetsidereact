@@ -15,8 +15,10 @@ import {
   Tooltip,
   Typography,
 } from "@mui/material";
+import LoadingButton from "@mui/lab/LoadingButton";
 import CustomContainer from "components/container";
 import CheckoutStepper from "components/checkout/item-checkout/CheckoutStepper";
+import RentalHaveCoupon from "components/home/module-wise-components/rental/components/rental-checkout/RentalHaveCoupon";
 import RentalCardWrapper from "../global/RentalCardWrapper";
 import RentalProceedtoCheckout from "../global/RentalProceedtoCheckout";
 import { t } from "i18next";
@@ -70,15 +72,31 @@ import CarBookingModal from "../global/CarBookingModal";
 import CustomModal from "components/modal";
 import TripModalContent from "../rental-cart/TripModalContent";
 import TripVehicleList from "../rental-cart/TripVehicleList";
-import {
-  useGetRentalTax
-} from "components/home/module-wise-components/rental/rental-api-manage/hooks/react-query/trip-booking/useGetRentalTax";
-import {useGetSurgePrice} from "api-manage/hooks/react-query/order-place/useGetSurgePrice";
+import { useGetRentalTax } from "components/home/module-wise-components/rental/rental-api-manage/hooks/react-query/trip-booking/useGetRentalTax";
+import { useGetSurgePrice } from "api-manage/hooks/react-query/order-place/useGetSurgePrice";
+import useGetProActiveOffer from "api-manage/hooks/react-query/pro-plans/useGetProActiveOffer";
+import useSubscribeProPlan from "api-manage/hooks/react-query/pro-plans/useSubscribeProPlan";
+import ProPlanBanner from "components/pro-plan/ProPlanBanner";
+import ProSavingsBanner from "components/pro-plan/ProSavingsBanner";
+import dynamic from "next/dynamic";
+
+const ProPlanSubscriptionModal = dynamic(() =>
+  import("components/pro-plan/ProPlanSubscriptionModal")
+);
+const ProPlanPaymentModal = dynamic(() =>
+  import("components/pro-plan/ProPlanPaymentModal")
+);
 const RentalCheckoutPage = () => {
   useScrollToTop();
   const theme = useTheme();
   const dispatch = useDispatch();
   const { cartList } = useSelector((state) => state.cart);
+  // Carts are shared across modules in redux. After a reload a food/grocery
+  // cart can land at index 0, so always resolve the rental cart by
+  // module_type instead of trusting carts[0].
+  const rentalCart = cartList?.carts?.[0];
+  
+  const isRehydrated = useSelector((state) => state?._persist?.rehydrated);
   const { configData } = useSelector((state) => state.configData);
   const { couponInfo } = useSelector((state) => state.profileInfo);
   const { guestUserInfo } = useSelector((state) => state.guestUserInfo);
@@ -89,8 +107,8 @@ const RentalCheckoutPage = () => {
   const [ids, setIds] = useState(null);
   const [updateCartObject, setUpdateCartObject] = useState(null);
   const { mutate, isLoading } = useTripBooking();
-  const {mutate:rentalTaxMutate,data}=useGetRentalTax()
-  const {data:surgePrice,mutate:surgeMutate}=useGetSurgePrice()
+  const { mutate: rentalTaxMutate, data } = useGetRentalTax();
+  const { data: surgePrice, mutate: surgeMutate } = useGetSurgePrice();
   const [state, checkoutDispatch] = useReducer(
     rentalCheckoutReducer,
     checkoutInitialState
@@ -124,14 +142,25 @@ const RentalCheckoutPage = () => {
     });
   };
 
-  
   const tripCost = getTotalAmount(cartList);
-  const calculateProviderWiseDiscounts=calculateProviderWiseDiscount(cartList,tripCost)
-  const isShowDiscount=calculateProviderWiseDiscounts>calculateTotalDiscount(cartList,tripCost)
-  const tripDiscount = calculateProviderWiseDiscounts>calculateTotalDiscount(cartList,tripCost)?calculateProviderWiseDiscounts:calculateTotalDiscount(cartList,tripCost)
-  const discountDifference = calculateProviderWiseDiscounts === 0 || calculateTotalDiscount(cartList,tripCost) === 0 ? 0 : Math.abs(calculateProviderWiseDiscounts - calculateTotalDiscount(cartList,tripCost));
- 
-  
+  const calculateProviderWiseDiscounts = calculateProviderWiseDiscount(
+    cartList,
+    tripCost
+  );
+  const isShowDiscount =
+    calculateProviderWiseDiscounts > calculateTotalDiscount(cartList, tripCost);
+  const tripDiscount =
+    calculateProviderWiseDiscounts > calculateTotalDiscount(cartList, tripCost)
+      ? calculateProviderWiseDiscounts
+      : calculateTotalDiscount(cartList, tripCost);
+  const discountDifference =
+    calculateProviderWiseDiscounts === 0 ||
+    calculateTotalDiscount(cartList, tripCost) === 0
+      ? 0
+      : Math.abs(
+          calculateProviderWiseDiscounts -
+            calculateTotalDiscount(cartList, tripCost)
+        );
 
   const rentalCoupon =
     cartList?.carts?.length > 0 &&
@@ -141,23 +170,158 @@ const RentalCheckoutPage = () => {
       cartList
     );
 
-  const subTotal = getRentalSubTotalPrice(cartList, rentalCoupon || 0,tripCost,(tripDiscount>tripCost? tripCost:tripDiscount));
+  const subTotal = getRentalSubTotalPrice(
+    cartList,
+    rentalCoupon || 0,
+    tripCost,
+    tripDiscount > tripCost ? tripCost : tripDiscount
+  );
   const storeData = cartList?.carts?.length > 0 && cartList?.carts[0]?.provider;
   const referDiscount = null;
   const vat_tax = getVat(cartList, storeData, referDiscount, rentalCoupon);
   const isIncluded = data?.tax_included === 0 ? data?.tax_amount : 0;
-  const totalPrice = getTotalPrice(
+  const baseTotalPrice = getTotalPrice(
     cartList,
     isIncluded,
     rentalCoupon || 0,
     configData?.additional_charge || 0,
     tripCost,
-    (tripDiscount>tripCost? tripCost:tripDiscount)
+    tripDiscount > tripCost ? tripCost : tripDiscount
   );
+
+  const proFeatureEnabled = configData?.pro_member_status === 1;
+  const hasToken = !!getToken();
+  const { data: activeOfferRaw, isLoading: activeOfferLoading } =
+    useGetProActiveOffer({
+      enabled: proFeatureEnabled && hasToken,
+    });
+  const activeOffer = activeOfferRaw?.data ?? activeOfferRaw ?? null;
+  const isProMember =
+    Number(activeOffer?.plan_details?.days_remaining) > 0 ||
+    Boolean(activeOffer?.plan_details?.plan_name);
+  const isProActive = activeOffer?.status === true;
+  const proBenefit = activeOffer?.benefit ?? null;
+  const proOfferResolved =
+    !(proFeatureEnabled && hasToken) || !activeOfferLoading;
+  const proMinOrderAmount = Number(proBenefit?.min_order_amount) || 0;
+  const proSubtotalForMinCheck = Number(subTotal) || 0;
+  const proMinSatisfied =
+    proBenefit?.min_order_status !== 1 ||
+    proSubtotalForMinCheck >= proMinOrderAmount;
+  const proOrderDiscountPct = Number(proBenefit?.percentage) || 0;
+  const proOrderDiscountMax = Number(proBenefit?.max_amount) || 0;
+  const proOrderDiscountActive =
+    isProActive &&
+    proBenefit?.type === "discount" &&
+    proMinSatisfied &&
+    proOrderDiscountPct > 0;
+  const proOrderDiscountAmount = (() => {
+    if (!proOrderDiscountActive) return 0;
+    const raw = (proSubtotalForMinCheck * proOrderDiscountPct) / 100;
+    return proOrderDiscountMax > 0 ? Math.min(raw, proOrderDiscountMax) : raw;
+  })();
+  const totalPrice = Math.max(
+    0,
+    Number(baseTotalPrice) - proOrderDiscountAmount
+  );
+  const proSavingsMessage = (() => {
+    if (!proBenefit) return undefined;
+    const offerActive = isProActive;
+    if (!offerActive) return undefined;
+
+    const benefitType = proBenefit?.type;
+    const offerType = proBenefit?.offer_type;
+    const benefitPercentage = Number(proBenefit?.percentage) || 0;
+    const benefitMaxAmount = Number(proBenefit?.max_amount) || 0;
+    const chargeDiscountPct =
+      Number(proBenefit?.charge_discount_percentage) || 0;
+    const minOrderStatus = Number(proBenefit?.min_order_status) === 1;
+    const minOrderAmount = Number(proBenefit?.min_order_amount) || 0;
+
+    // Rental "cart subtotal" — already computed above as `subTotal` (trip
+    // cost minus discounts/coupon). Reusing it keeps this message in sync
+    // with the totals row the user sees just below.
+    const cartSubtotal = Math.max(0, Number(subTotal) || 0);
+
+    const qualifiesForOffer =
+      !minOrderStatus || minOrderAmount <= 0 || cartSubtotal >= minOrderAmount;
+    const amountToReachMin = Math.max(0, minOrderAmount - cartSubtotal);
+
+    if (!qualifiesForOffer) {
+      const amountToReachText = getAmountWithSign(amountToReachMin);
+      return `${t("Add")} ${amountToReachText} ${t(
+        "more to save with Pro Plan"
+      )}`;
+    }
+    if (benefitType === "discount") {
+      const rawDiscount = (cartSubtotal * benefitPercentage) / 100;
+      const savedAmount =
+        benefitMaxAmount > 0
+          ? Math.min(rawDiscount, benefitMaxAmount)
+          : rawDiscount;
+      if (savedAmount > 0) {
+        const savedText = getAmountWithSign(savedAmount);
+        return `${t("You save")} ${savedText} ${t("with Pro Plan")}`;
+      }
+      return undefined;
+    }
+    if (benefitType === "delivery_fee") {
+      if (offerType === "full_free" || offerType === "free") {
+        return t("Free delivery as a Pro member");
+      }
+      if (offerType === "partial_free" && chargeDiscountPct > 0) {
+        return `${chargeDiscountPct}% ${t("off delivery as a Pro member")}`;
+      }
+      return undefined;
+    }
+    if (benefitType === "coupon") {
+      return t("Pro coupon benefit unlocked");
+    }
+    return undefined;
+  })();
+  const [proModalOpen, setProModalOpen] = useState(false);
+  const [proPaymentOpen, setProPaymentOpen] = useState(false);
+  const [proSelectedPlan, setProSelectedPlan] = useState(null);
+  const subscribeProMutation = useSubscribeProPlan();
+  const handleProSubscribe = (plan) => {
+    if (!plan) return;
+    if (plan.price === 0) {
+      subscribeProMutation.mutate(
+        {
+          plan_id: plan.id,
+          payment_type: "free_trial",
+          payment_method: "free_trial",
+          callback_url:
+            typeof window !== "undefined" ? window.location.href : "",
+        },
+        {
+          onSuccess: (res) => {
+            const redirect = res?.redirect_link ?? res?.data?.redirect_link;
+            if (redirect && typeof window !== "undefined") {
+              window.location.href = redirect;
+              return;
+            }
+            toast.success(t("Subscribed successfully"));
+            setProModalOpen(false);
+          },
+          onError: (err) => {
+            toast.error(
+              err?.response?.data?.message || t("Subscription failed")
+            );
+          },
+        }
+      );
+      return;
+    }
+    setProSelectedPlan(plan);
+    setProModalOpen(false);
+    setProPaymentOpen(true);
+  };
   const tripObject = {
-    provider_id: Array.isArray(cartList?.carts) && cartList.carts.length > 0
-      ? cartList.carts[0]?.provider?.id
-      : null,
+    provider_id:
+      Array.isArray(cartList?.carts) && cartList.carts.length > 0
+        ? cartList.carts[0]?.provider?.id
+        : null,
     trip_type: cartList?.user_data?.rental_type,
     trip_amount: totalPrice,
     additional_note: state.additionalNotes,
@@ -168,9 +332,7 @@ const RentalCheckoutPage = () => {
     contact_person_number: getToken()
       ? null
       : guestUserInfo?.contact_person_number,
-    contact_person_name: getToken()
-      ? null
-      : guestUserInfo?.contact_person_name,
+    contact_person_name: getToken() ? null : guestUserInfo?.contact_person_name,
     contact_person_email: getToken()
       ? null
       : guestUserInfo?.contact_person_email,
@@ -182,14 +344,12 @@ const RentalCheckoutPage = () => {
   };
 
   useEffect(() => {
-    if( cartList?.carts?.length>0){
-      rentalTaxMutate(
-        tripObject,{
-          onError:onErrorResponse
-        }
-      )
+    if (cartList?.carts?.length > 0) {
+      rentalTaxMutate(tripObject, {
+        onError: onErrorResponse,
+      });
     }
-  }, [cartList,state?.couponDiscount?.discount]);
+  }, [cartList, state?.couponDiscount?.discount]);
   const handleTripPlace = () => {
     mutate(tripObject, {
       onSuccess: (data) => {
@@ -238,10 +398,7 @@ const RentalCheckoutPage = () => {
   const { isLoading: couponIsLoading, refetch } = useQuery(
     "apply-coupon-rental",
     () =>
-      CouponApi.applyCoupon(
-        state.rental_coupon_code,
-        cartList?.carts[0].provider?.id
-      ),
+      CouponApi.applyCoupon(state.rental_coupon_code, rentalCart?.provider?.id),
     {
       onSuccess: handleSuccess,
       onError: onErrorResponse,
@@ -276,10 +433,11 @@ const RentalCheckoutPage = () => {
   }
 
   useEffect(() => {
+    if (!isRehydrated) return; // wait for redux-persist to restore cart
     if (cartList?.carts?.length === 0 || !zoneId) {
       Router.push("/home");
     }
-  }, [cartList?.carts?.length, zoneId]);
+  }, [cartList?.carts?.length, zoneId, isRehydrated]);
 
   const handleCashbackAmount = (data) => {
     setCashbackAmount(data);
@@ -293,17 +451,18 @@ const RentalCheckoutPage = () => {
       refetchCashbackAmount();
     }
   }, [totalPrice]);
-
+  console.log("totalPrice", cartList);
   return (
     <CustomContainer>
-      <CustomStackFullWidth sx={{ mt: "40px" }}>
+      <CustomStackFullWidth sx={{ mt: { xs: "12px", md: "10px" } }}>
         <Grid container spacing={2}>
           <Grid item xs={12} md={8}>
-            <CustomStackFullWidth sx={{ mb: "30px" }}>
+            <CustomStackFullWidth sx={{ mb: { xs: "20px", md: "30px" } }}>
               <CheckoutStepper
-                text2={t("Trip details")}
-                text={t("Cart")}
-                text1={t("Checkout")}
+                text={t("Checkout")}
+                homeHref="/home?module=rental"
+                storeData={{ name: t("Cart") }}
+                storeHref="/rental/cart"
               />
             </CustomStackFullWidth>
             <RentalCardWrapper>
@@ -366,11 +525,11 @@ const RentalCheckoutPage = () => {
               checkOut
             />
 
-            {!getToken() && (
+            {!getToken() ? (
               <RentalCardWrapper sx={{ mt: "20px" }}>
                 <GuestUserInforForm configData={configData} rental />
               </RentalCardWrapper>
-            )}
+            ) : null}
 
             <RentalAdditionalNote
               handleAdditionalNotes={handleAdditionalNotes}
@@ -380,76 +539,35 @@ const RentalCheckoutPage = () => {
           <Grid item xs={12} md={4}>
             <Box sx={{ minHeight: { xs: "0", md: "139vh" } }}>
               <RentalCardWrapper sx={{ position: "sticky", top: "80px" }}>
-                {getToken() && (
-                  <CustomBoxFullWidth
-                    sx={{
-                      display: "flex",
-                      justifyContent: "start",
-                      alignItems: "start",
-                      gap: "10px",
-                      mb: "20px",
-                    }}
-                  >
-                    <Box sx={{ flex: 1 }}>
-                      <CustomTextFieldWithFormik
-                        key={state.rental_coupon_code}
-                        height="45px"
-                        type="text"
-                        label={t("Promo Coupon")}
-                        placeholder={t("Enter Your Code")}
-                        onChangeHandler={handleCouponChange}
-                        value={
-                          state.rental_coupon_code
-                            ? state.rental_coupon_code
-                            : ""
+                {getToken() && rentalCart?.provider?.id && (
+                  <Box sx={{ mb: "20px" }}>
+                    <RentalHaveCoupon
+                      provider_id={rentalCart.provider.id}
+                      tripCost={tripCost}
+                      appliedCoupon={state?.couponDiscount}
+                      setCouponDiscount={(data) => {
+                        if (data === null) {
+                          checkoutDispatch({
+                            type: ACTIONS.setCouponDiscount,
+                            payload: null,
+                          });
+                          checkoutDispatch({
+                            type: ACTIONS.setRentalCouponCode,
+                            payload: "",
+                          });
+                        } else {
+                          checkoutDispatch({
+                            type: ACTIONS.setCouponDiscount,
+                            payload: { ...data },
+                          });
+                          checkoutDispatch({
+                            type: ACTIONS.setRentalCouponCode,
+                            payload: data.code,
+                          });
                         }
-                        onKeyPress={(e) => {
-                          if (e.key === "Enter") {
-                            handleApply();
-                          }
-                        }}
-                        startIcon={
-                          <InputAdornment position="start">
-                            <ConfirmationNumberIcon
-                              sx={{
-                                fontSize: "18px",
-                                transform: "rotate(90deg)",
-                                color: (theme) => theme.palette.neutral[400],
-                              }}
-                            />
-                          </InputAdornment>
-                        }
-                      />
-                    </Box>
-
-                    <Box sx={{ flex: 0.3 }}>
-                      {state?.couponDiscount ? (
-                        <Button
-                          sx={{
-                            width: "100%",
-                            backgroundColor: (theme) =>
-                              theme.palette.error.main,
-                            padding: "10px 20px",
-                          }}
-                          variant="contained"
-                          onClick={removeCoupon}
-                        >
-                          {t("Remove")}
-                        </Button>
-                      ) : (
-                        <Button
-                          sx={{
-                            width: "100%",
-                            padding: "10px 20px",
-                          }}
-                          variant="contained"
-                          onClick={handleApply}
-                        >
-                          {t("Apply")}
-                        </Button>
-                      )}
-                    </Box>
-                  </CustomBoxFullWidth>
+                      }}
+                    />
+                  </Box>
                 )}
                 <RentalBillDetails
                   showTotal={false}
@@ -463,7 +581,36 @@ const RentalCheckoutPage = () => {
                   couponDiscount={state?.couponDiscount}
                   vatPer={storeData?.tax}
                   additionalCharge={configData?.additional_charge}
+                  proOrderDiscountActive={proOrderDiscountActive}
+                  proOrderDiscountAmount={proOrderDiscountAmount}
+                  proOrderDiscountPct={proOrderDiscountPct}
+                  proOrderDiscountMax={proOrderDiscountMax}
                 />
+                {/* {proFeatureEnabled &&
+                  hasToken &&
+                  proOfferResolved &&
+                  !isProMember && (
+                    <Box sx={{ my: "16px", width: "100%" }}>
+                      <ProPlanBanner
+                        onSubscribe={() => setProModalOpen(true)}
+                      />
+                    </Box>
+                  )}
+                {proFeatureEnabled &&
+                  hasToken &&
+                  proOfferResolved &&
+                  isProActive &&
+                  proSavingsMessage && (
+                    <Box sx={{ my: "16px", width: "100%" }}>
+                      <ProSavingsBanner
+                        amount={
+                          activeOffer?.total_saved ??
+                          activeOffer?.plan_details?.total_saved
+                        }
+                        message={proSavingsMessage}
+                      />
+                    </Box>
+                  )} */}
                 {getToken() && cashbackAmount?.cashback_amount > 0 && (
                   <Grid item xs={12} my="1rem">
                     <Box
@@ -518,7 +665,11 @@ const RentalCheckoutPage = () => {
                   </Typography>
                   <Typography sx={{ fontSize: "12px" }}>
                     {t("By placing the booking you are agreed to the")}{" "}
-                    <Link href="/terms-and-conditions" target="_blank" rel="noopener noreferrer">
+                    <Link
+                      href="/terms-and-conditions"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
                       <Typography
                         component="span"
                         sx={{
@@ -534,7 +685,6 @@ const RentalCheckoutPage = () => {
                       </Typography>
                     </Link>
                   </Typography>
-
                 </Box>
                 <RentalProceedtoCheckout
                   totalAmount={totalPrice}
@@ -583,6 +733,21 @@ const RentalCheckoutPage = () => {
           }
         />
       </CustomModal>
+      {proFeatureEnabled && proModalOpen && (
+        <ProPlanSubscriptionModal
+          open={proModalOpen}
+          onClose={() => setProModalOpen(false)}
+          onSubscribe={handleProSubscribe}
+          isSubmitting={subscribeProMutation.isLoading}
+        />
+      )}
+      {proFeatureEnabled && proPaymentOpen && (
+        <ProPlanPaymentModal
+          open={proPaymentOpen}
+          onClose={() => setProPaymentOpen(false)}
+          plan={proSelectedPlan}
+        />
+      )}
     </CustomContainer>
   );
 };

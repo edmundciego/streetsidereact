@@ -26,24 +26,33 @@ const TripVehicleList = ({
   card,
   confirmMutate,
  
- 
 }) => {
+  console.log({updateCartObject});
   
   const dispatch = useDispatch();
   const { mutate: userDataUpdateMutate, isLoading: userDataIsLoading } =
     usePostLocationUpdate();
   const { mutate, isLoading } = useDeleteMultipleItem();
+  const pickupTimeSource =
+    updateCartObject?.dateValue ?? updateCartObject?.pickup_time;
+  const pickupDate = new Date(pickupTimeSource);
+  const minimumPickupTime = new Date(Date.now() + 2 * 60 * 1000);
+  const safePickupTime =
+    Number.isNaN(pickupDate.getTime()) || pickupDate.getTime() < Date.now()
+      ? minimumPickupTime
+      : pickupTimeSource;
 
   const tempUpdateCartObject = {userId: updateCartObject?.userId,
     pickup_location: updateCartObject?.locations?.pickup,
     destination_location: updateCartObject?.locations?.destination,
     rental_type: updateCartObject?.tripType,
     estimated_hours: updateCartObject?.durationValue,
-    pickup_time: updateCartObject?.dateValue,
+    pickup_time: safePickupTime,
     destination_time: Math.floor(
-      updateCartObject?.data?.rows?.[0]?.elements[0]?.duration?.value / (60 * 60)
+      Number(String(updateCartObject?.data?.duration).replace(/s/gi, "")) /
+        (60 * 60)
     ),
-    distance: updateCartObject?.data?.rows?.[0]?.elements[0]?.distance?.value / 1000,
+    distance: updateCartObject?.data?.distanceMeters  / 1000,
     guest_id: getToken() ? null : getGuestId()
    }
 
@@ -56,6 +65,7 @@ const TripVehicleList = ({
 
             bookingConfirm({
               ...updateCartObject,
+              dateValue: safePickupTime,
               confirmMutate,
               dispatch,
               setCartList,
@@ -75,7 +85,17 @@ const TripVehicleList = ({
     }else{
       mutate(ids, {
         onSuccess: (data) => {
-          userDataUpdateMutate(updateCartObject, {
+          userDataUpdateMutate(
+            {
+              ...updateCartObject,
+              ...(updateCartObject?.pickup_time !== undefined
+                ? { pickup_time: safePickupTime }
+                : {}),
+              ...(updateCartObject?.dateValue !== undefined
+                ? { dateValue: safePickupTime }
+                : {}),
+            },
+            {
           onSuccess: (res) => {
             dispatch(setCartList(res));
             toast.success("updated successfully!");

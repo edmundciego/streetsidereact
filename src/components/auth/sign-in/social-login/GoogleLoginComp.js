@@ -4,14 +4,10 @@ import { toast } from "react-hot-toast";
 import { google_client_id } from "utils/staticCredential";
 import { Stack, styled } from "@mui/system";
 import CustomImageContainer from "components/CustomImageContainer";
-import { alpha, Typography, useMediaQuery, useTheme } from "@mui/material";
+import { alpha, Box, Typography, useMediaQuery, useTheme } from "@mui/material";
 import googleLatest from "../../asset/Google_Logo.png";
 import { t } from "i18next";
 import { getGuestId } from "helper-functions/getToken";
-import { getSocialLoginClientId } from "utils/socialLoginConfig";
-import { getGoogleNameParts } from "utils/socialUserName";
-
-const GOOGLE_SCRIPT_SRC = "https://accounts.google.com/gsi/client";
 
 export const CustomGoogleButton = styled(Stack)(({ theme, width, height }) => ({
   width: width,
@@ -30,7 +26,6 @@ export const CustomGoogleButton = styled(Stack)(({ theme, width, height }) => ({
 const GoogleLoginComp = (props) => {
   const {
     handleSuccess,
-    configData,
     socialLength,
     state,
     setJwtToken,
@@ -39,18 +34,17 @@ const GoogleLoginComp = (props) => {
     setMedium,
     loginMutation,
     setLoginInfo,
+    isLandingVariant,
   } = props;
   const theme = useTheme();
   const [loginValue, setLoginValue] = useState(null);
   const [openModal, setOpenModal] = useState(false);
   const [openOtpModal, setOpenOtpModal] = useState(false);
   const [otpData, setOtpData] = useState({ phone: "" });
-  const [isGoogleSdkLoaded, setIsGoogleSdkLoaded] = useState(false);
   const buttonDiv = useRef(null);
   const isSmall = useMediaQuery(theme.breakpoints.down("md"));
   const [buttonWidth, setButtonWidth] = useState(isSmall ? "300px" : "350px"); // Default width
-  const clientId =
-    getSocialLoginClientId(configData, "google") || google_client_id;
+  const clientId = google_client_id;
 
   // Update button size based on socialLength
   useEffect(() => {
@@ -86,38 +80,6 @@ const GoogleLoginComp = (props) => {
     }
   }, [otpData]);
 
-  useEffect(() => {
-    if (typeof window === "undefined") {
-      return undefined;
-    }
-
-    if (window.google?.accounts?.id) {
-      setIsGoogleSdkLoaded(true);
-
-      return undefined;
-    }
-
-    const existingScript = document.querySelector(
-      `script[src="${GOOGLE_SCRIPT_SRC}"]`
-    );
-    const handleLoad = () => setIsGoogleSdkLoaded(true);
-
-    if (existingScript) {
-      existingScript.addEventListener("load", handleLoad);
-
-      return () => existingScript.removeEventListener("load", handleLoad);
-    }
-
-    const script = document.createElement("script");
-    script.src = GOOGLE_SCRIPT_SRC;
-    script.async = true;
-    script.defer = true;
-    script.addEventListener("load", handleLoad);
-    document.body.appendChild(script);
-
-    return () => script.removeEventListener("load", handleLoad);
-  }, []);
-
   const handlePostRequestOnSuccess = (response) => {
     const res = response;
     if (response?.is_exist_user === null && response?.is_personal_info === 1) {
@@ -135,14 +97,9 @@ const GoogleLoginComp = (props) => {
   };
   const handleCallBackResponse = (res) => {
     const userObj = jwt_decode(res.credential);
-    const nameParts = getGoogleNameParts(userObj);
-    const socialUserInfo = {
-      ...userObj,
-      ...nameParts,
-    };
 
     setJwtToken(res);
-    setUserInfo(socialUserInfo);
+    setUserInfo(userObj);
     const tempValue = {
       email: res?.email ?? userObj.email,
       token: res?.token ?? res.credential,
@@ -150,7 +107,6 @@ const GoogleLoginComp = (props) => {
       medium: res?.medium ?? "google",
       login_type: res?.login_type ?? "social",
       guest_id: loginValue?.guest_id ?? getGuestId(),
-      ...nameParts,
     };
     setLoginValue(tempValue);
     loginMutation(tempValue, {
@@ -158,7 +114,6 @@ const GoogleLoginComp = (props) => {
         handlePostRequestOnSuccess({
           ...res,
           email: userObj.email,
-          ...nameParts,
         }),
       onError: (error) => {
         error?.response?.data?.errors?.forEach((item) =>
@@ -166,34 +121,21 @@ const GoogleLoginComp = (props) => {
         );
       },
     });
-
-    const handleRegistrationOnSuccess = (token) => {
-      //registration on success func remaining
-      setOpenModal(false);
-      handleSuccess(token);
-    };
   };
   useEffect(() => {
-    if (
-      !isGoogleSdkLoaded ||
-      !clientId ||
-      !buttonDiv.current ||
-      !window?.google?.accounts?.id
-    ) {
-      return;
+    // Initialize Google button
+    if (typeof window !== undefined) {
+      window?.google?.accounts?.id?.initialize({
+        client_id: clientId,
+        callback: handleCallBackResponse,
+      });
+      window?.google?.accounts?.id?.renderButton(buttonDiv.current, {
+        theme: "outline",
+        size: "large", // Set button size to 'large' for better scaling
+        logo_alignment: "left",
+      });
     }
-
-    buttonDiv.current.innerHTML = "";
-    window.google.accounts.id.initialize({
-      client_id: clientId,
-      callback: handleCallBackResponse,
-    });
-    window.google.accounts.id.renderButton(buttonDiv.current, {
-      theme: "outline",
-      size: "large",
-      logo_alignment: "left",
-    });
-  }, [clientId, isGoogleSdkLoaded]);
+  }, []);
 
   const handleView = () => {
     // Handle conditional rendering for social login button style
@@ -281,6 +223,44 @@ const GoogleLoginComp = (props) => {
     }
   };
 
+  if (isLandingVariant) {
+    return (
+      <Box sx={{ width: "100%", position: "relative" }}>
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            py: "13px",
+            borderRadius: "12px",
+            border: "1px solid",
+            borderColor: "divider",
+            backgroundColor: "background.paper",
+            cursor: "pointer",
+          }}
+        >
+          <Box
+            component="img"
+            src={googleLatest.src}
+            alt="google"
+            sx={{ width: 20, height: 20, objectFit: "contain" }}
+          />
+        </Box>
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            filter: "opacity(0)",
+            zIndex: 9999,
+            cursor: "pointer",
+          }}
+        >
+          <div ref={buttonDiv} />
+        </div>
+      </Box>
+    );
+  }
+
   return (
     <Stack
       width={socialLength === 3 && state?.status !== "social" ? "45px" : "100%"}
@@ -300,8 +280,7 @@ const GoogleLoginComp = (props) => {
         <div
           style={{
             position: "absolute",
-            inset: 0,
-            height: "100%",
+
             width: "100%",
             filter: "opacity(0)",
             zIndex: 9999,

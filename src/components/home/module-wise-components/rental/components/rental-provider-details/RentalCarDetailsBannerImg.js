@@ -29,6 +29,7 @@ const RentalCarDetailsBannerImg = ({
     infinite: true,
     slidesToShow: 1,
     slidesToScroll: 1,
+    swipeToSlide: true,
     autoplay: true,
     speed: 800,
     autoplaySpeed: 3000,
@@ -39,6 +40,7 @@ const RentalCarDetailsBannerImg = ({
         settings: {
           slidesToShow: 1,
           slidesToScroll: 1,
+          swipeToSlide: true,
         },
       },
     ],

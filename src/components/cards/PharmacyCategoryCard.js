@@ -12,7 +12,7 @@ import useTextEllipsis from "api-manage/hooks/custom-hooks/useTextEllipsis";
 const Wrapper = styled(Box)(({ theme }) => ({
   cursor: "pointer",
   width: "122px",
-  height: "183px",
+  height: "175px",
   backgroundColor: theme.palette.background.default,
   borderRadius: "60px",
   transition: "all ease 0.3s",
@@ -67,7 +67,7 @@ const TextWrapper = styled(Box)(({ theme }) => ({
 
 /* ===================== COMPONENT ===================== */
 
-const PharmacyCategoryCard = ({ image, title, id, onlyshimmer }) => {
+const PharmacyCategoryCard = ({ image, title, id, slug, onlyshimmer }) => {
   const [hover, setHover] = useState(false);
   const { ref: textRef, isEllipsed } = useTextEllipsis(title);
   const router = useRouter();
@@ -79,12 +79,9 @@ const PharmacyCategoryCard = ({ image, title, id, onlyshimmer }) => {
   return (
     <Link
       href={{
-        pathname: "/search",
+        pathname: `/home/category/${slug || id}`,
         query: {
-          search: "category",
           id,
-          name: title,
-          data_type: "category",
           ...(moduleValue ? { module: String(moduleValue) } : {}),
         },
       }}

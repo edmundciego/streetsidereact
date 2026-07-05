@@ -22,6 +22,8 @@ import DotSpin from "components/DotSpin";
 import { CustomStackFullWidth } from "styled-components/CustomStyles.style";
 import { ReadMore } from "components/store-details/ReadMore";
 import { getModuleId } from "helper-functions/getModuleId";
+import { handleProductRedirect } from "helper-functions/handleProductRedirect";
+
 import { getCurrentModuleType } from "helper-functions/getCurrentModuleType";
 import FoodDetailModal from "components/food-details/foodDetail-modal/FoodDetailModal";
 import ModuleModal from "components/cards/ModuleModal";
@@ -97,17 +99,7 @@ const RentalReview = ({
 		setProductData(itemReview);
 
 		if (itemReview?.item?.module_type === "ecommerce") {
-			router.push({
-				pathname: "/product/[id]",
-				query: {
-					id: `${
-						itemReview?.item?.slug
-							? itemReview?.item?.slug
-							: itemReview?.item?.id
-					}`,
-					module_id: `${getModuleId()}`,
-				},
-			});
+			handleProductRedirect(itemReview?.item, router);
 		} else {
 			setOpenModal(true);
 		}
@@ -173,7 +165,7 @@ const RentalReview = ({
 						padding="2rem"
 						borderRadius="8px"
 						color={theme.palette.text.primary}
-						// margin=".5rem"
+					// margin=".5rem"
 					>
 						<Grid container gap={{ xs: 2, md: 0 }}>
 							<Grid item xs={12} sm={12} md={6}>

@@ -18,6 +18,7 @@ import {
   cartItemPrice,
 } from "components/home/module-wise-components/rental/components/rental-checkout/checkoutHeplerFunction";
 import { mainPrice } from "../utils/bookingHepler";
+import VerifiedStoreBadge from "components/cards/VerifiedStoreBadge";
 
 const Price = ({ price, item }) => {
   const { cartList } = useSelector((state) => state.cart);
@@ -116,15 +117,18 @@ const CardDetailsSection = ({
   const { cartList } = useSelector((state) => state.cart);
   return (
     <Box>
-      <Typography
-        sx={{
-          fontSize: "14px",
-         fontWeight: "normal",
-       color: (theme) => theme.palette.neutral[500],
-       }}
-      >
-       {item?.provider?.name}
-     </Typography>
+      <Stack direction="row" alignItems="center">
+        <Typography
+          sx={{
+            fontSize: "14px",
+            fontWeight: "normal",
+            color: (theme) => theme.palette.neutral[500],
+          }}
+        >
+          {item?.provider?.name}
+        </Typography>
+        <VerifiedStoreBadge verified={item?.provider?.verified_seller} fontSize="14px" />
+      </Stack>
       <H3
         text={item?.vehicle?.name}
         sx={{

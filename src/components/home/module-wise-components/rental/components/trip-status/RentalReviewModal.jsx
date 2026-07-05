@@ -51,6 +51,7 @@ const RentalReviewModal = ({
     speed: 500,
     slidesToShow: 1,
     slidesToScroll: 1,
+    swipeToSlide: true,
     onInit: () => {
       setVehicleIdentityId(vehicleIdentity[0]?.vehicle_identity_id);
       activeFormRef.current = document.querySelectorAll("form")[0];

@@ -33,11 +33,13 @@ const DownloadSection = ({ landingPageData }) => {
 						bgcolor={theme.palette.background.custom7}
 						sx={{
 							padding: "30px",
-							pb: {xs: 0, sm:"100px"},
-							position:"relative"
-,						}}
+							display: "flex",
+							flexDirection: { xs: "column", sm: "row" },
+							alignItems: { xs: "stretch", sm: "flex-end" },
+							gap: { xs: 3, sm: 2 },
+						}}
 					>
-						<Box>
+						<Box sx={{ flex: 1, minWidth: 0 }}>
 							<Box>
 								<H2
 									textAlign={{xs: "center", sm: "start"}}
@@ -136,12 +138,10 @@ const DownloadSection = ({ landingPageData }) => {
 						<Box
 							sx={{
 								display: "flex",
-								justifyContent: { xs: "center", md: "end" },
-								textAlign: "right",
+								justifyContent: { xs: "center", sm: "flex-end" },
 								alignItems: "flex-end",
-								position:{sm: "absolute"},
-								bottom:"0",
-								right:{sm:"40px"},
+								flexShrink: 0,
+								width: { xs: "100%", sm: "auto" },
 							}}
 						>
 							<CustomImageContainer

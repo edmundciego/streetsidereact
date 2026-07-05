@@ -1,15 +1,15 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import PropTypes from "prop-types";
 import AppleLogin from "react-apple-login";
-import { Typography, useMediaQuery, useTheme } from "@mui/material";
+import { Box, Typography, useMediaQuery, useTheme } from "@mui/material";
 import { useTranslation } from "react-i18next";
+import { appleLoginCredential } from "utils/staticCredential";
 import { CustomGoogleButton } from "components/auth/sign-in/social-login/GoogleLoginComp";
 import CustomImageContainer from "components/CustomImageContainer";
 import appleLogo from "../../asset/Apple Logo.svg";
 import jwt_decode from "jwt-decode";
 import { getGuestId } from "helper-functions/getToken";
 import { onErrorResponse } from "api-manage/api-error-response/ErrorResponses";
-import { getAppleNameParts } from "utils/socialUserName";
 
 const AppleLoginComp = (props) => {
   const {
@@ -24,14 +24,23 @@ const AppleLoginComp = (props) => {
     setModalFor,
     setJwtToken,
     setUserInfo,
+    isLandingVariant,
   } = props;
   const theme = useTheme();
   const isSmall = useMediaQuery(theme.breakpoints.down("md"));
+  const credentials = appleLoginCredential;
   const { t } = useTranslation();
+  const [appleSdkLoaded, setAppleSdkLoaded] = useState(false);
   const [loginValue, setLoginValue] = useState(null);
-  const appleClientId = item?.client_id || configData?.apple_login?.[0]?.client_id;
-  const appleRedirectUri =
-    item?.redirect_url_react || configData?.apple_login?.[0]?.redirect_url_react;
+  // client_id
+  // Load Apple SDK
+  useEffect(() => {
+    if (typeof AppleID !== "undefined") {
+      setAppleSdkLoaded(true);
+    } else {
+      console.warn("Apple SDK not loaded");
+    }
+  }, []); // Only runs once when the component mounts
 
   const handleToken = (token) => {
     if (token) {
@@ -60,17 +69,12 @@ const AppleLoginComp = (props) => {
   const handleAppleResponse = async (res) => {
     if (res.authorization?.id_token) {
       const userObj = jwt_decode(res.authorization?.id_token);
-      const nameParts = getAppleNameParts(res, userObj);
-      const socialUserInfo = {
-        ...userObj,
-        ...nameParts,
-      };
 
       setJwtToken({
         credential: res?.authorization?.id_token,
         clientId: res?.authorization?.code,
       });
-      setUserInfo(socialUserInfo);
+      setUserInfo(userObj);
       const tempValue = {
         email: res?.email ?? userObj?.email,
         token: res.authorization?.id_token,
@@ -78,7 +82,6 @@ const AppleLoginComp = (props) => {
         medium: res?.medium ?? "apple",
         login_type: res?.login_type ?? "social",
         guest_id: loginValue?.guest_id ?? getGuestId(),
-        ...nameParts,
       };
       //setLoginValue(tempValue);
       // const tempValue = {
@@ -94,7 +97,6 @@ const AppleLoginComp = (props) => {
           handlePostRequestOnSuccess({
             ...res,
             email: userObj?.email,
-            ...nameParts,
           }),
         onError: onErrorResponse,
       });
@@ -193,24 +195,52 @@ const AppleLoginComp = (props) => {
     <div
       style={{
         width:
-          socialLength === 3 && state?.status !== "social" ? "45px" : "100%",
+          isLandingVariant
+            ? "100%"
+            : socialLength === 3 && state?.status !== "social"
+            ? "45px"
+            : "100%",
       }}
     >
-      {appleClientId && appleRedirectUri ? (
+      {appleSdkLoaded ? (
         <AppleLogin
-          clientId={appleClientId}
-          redirectURI={appleRedirectUri}
+          clientId={configData?.apple_login[0]?.client_id}
+          redirectURI={configData?.apple_login[0]?.redirect_url_react}
           responseType="code"
           responseMode="form_post"
           usePopup={true}
           callback={handleAppleResponse}
           scope="email name"
-          render={(
-            renderProps // Custom Apple Sign-in Button
-          ) => <>{handleView(renderProps.onClick)}</>}
+          render={(renderProps) =>
+            isLandingVariant ? (
+              <Box
+                onClick={renderProps.onClick}
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  py: "13px",
+                  borderRadius: "12px",
+                  border: "1px solid",
+                  borderColor: "divider",
+                  backgroundColor: "background.paper",
+                  cursor: "pointer",
+                }}
+              >
+                <Box
+                  component="img"
+                  src={appleLogo.src}
+                  alt="apple"
+                  sx={{ width: 20, height: 20, objectFit: "contain" }}
+                />
+              </Box>
+            ) : (
+              <>{handleView(renderProps.onClick)}</>
+            )
+          }
         />
       ) : (
-        <Typography>{t("Apple Login is not configured.")}</Typography>
+        <Typography>{t("Loading Apple Login...")}</Typography>
       )}
     </div>
   );

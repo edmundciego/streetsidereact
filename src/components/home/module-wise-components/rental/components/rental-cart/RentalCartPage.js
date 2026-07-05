@@ -29,10 +29,23 @@ import {
   getTotalAmount,
   isCurrentTime,
 } from "components/home/module-wise-components/rental/components/rental-checkout/checkoutHeplerFunction";
+import useGetProActiveOffer from "api-manage/hooks/react-query/pro-plans/useGetProActiveOffer";
+import useSubscribeProPlan from "api-manage/hooks/react-query/pro-plans/useSubscribeProPlan";
+import ProPlanBanner from "components/pro-plan/ProPlanBanner";
+import ProSavingsBanner from "components/pro-plan/ProSavingsBanner";
+import { getAmountWithSign } from "helper-functions/CardHelpers";
+import { getToken } from "helper-functions/getToken";
+import { toast } from "react-hot-toast";
 const CarBookingModal = dynamic(() =>
   import(
     "components/home/module-wise-components/rental/components/global/CarBookingModal"
   )
+);
+const ProPlanSubscriptionModal = dynamic(() =>
+  import("components/pro-plan/ProPlanSubscriptionModal")
+);
+const ProPlanPaymentModal = dynamic(() =>
+  import("components/pro-plan/ProPlanPaymentModal")
 );
 const RentalCartPage = () => {
   useScrollToTop();
@@ -42,27 +55,207 @@ const RentalCartPage = () => {
   const [ids, setIds] = React.useState(null);
   const [updateCartObject, setUpdateCartObject] = React.useState({});
   const { cartList } = useSelector((state) => state.cart);
+  // Carts are shared across modules in redux. After a reload a food/grocery
+  // cart can land at index 0, so always resolve the rental cart by
+  // module_type instead of trusting carts[0].
+  const rentalCart = cartList?.carts?.find(
+    (c) => c?.module_type === "rental" && c?.provider
+  );
+  const { configData } = useSelector((state) => state.configData);
   const currentTime = new Date().toLocaleTimeString();
-  // useEffect(() => {
-  //   if ( cartList?.carts?.length === 0) {
-  //     router.push("/home");
-  //   }
-  // }, [cartList]);
+  const proFeatureEnabled = configData?.pro_member_status === 1;
+  const hasToken = !!getToken();
+  const { data: activeOfferRaw, isLoading: activeOfferLoading } =
+    useGetProActiveOffer({
+      enabled: proFeatureEnabled && hasToken,
+    });
+  const activeOffer = activeOfferRaw?.data ?? activeOfferRaw ?? null;
+  const isProMember =
+    Number(activeOffer?.plan_details?.days_remaining) > 0 ||
+    Boolean(activeOffer?.plan_details?.plan_name);
+  const isProActive = activeOffer?.status === true;
+  const proBenefit = activeOffer?.benefit ?? null;
+  const proOfferResolved =
+    !(proFeatureEnabled && hasToken) || !activeOfferLoading;
+  const proSavingsMessage = (() => {
+    if (!proBenefit) return undefined;
+    const offerActive = isProActive;
+    if (!offerActive) return undefined;
 
-  const tripCost = getTotalAmount(cartList)
-  const calculateProviderWiseDiscounts = calculateProviderWiseDiscount(cartList, tripCost)
-  const isShowDiscount = calculateProviderWiseDiscounts > calculateTotalDiscount(cartList, tripCost)
-  const finalDiscount = calculateProviderWiseDiscounts > calculateTotalDiscount(cartList, tripCost) ? calculateProviderWiseDiscounts : calculateTotalDiscount(cartList, tripCost)
-  const discountDifference = calculateProviderWiseDiscounts === 0 || calculateTotalDiscount(cartList, tripCost) === 0 ? 0 : Math.abs(calculateProviderWiseDiscounts - calculateTotalDiscount(cartList, tripCost));
+    const benefitType = proBenefit?.type;
+    const offerType = proBenefit?.offer_type;
+    const benefitPercentage = Number(proBenefit?.percentage) || 0;
+    const benefitMaxAmount = Number(proBenefit?.max_amount) || 0;
+    const chargeDiscountPct =
+      Number(proBenefit?.charge_discount_percentage) || 0;
+    const minOrderStatus = Number(proBenefit?.min_order_status) === 1;
+    const minOrderAmount = Number(proBenefit?.min_order_amount) || 0;
+
+    // Rental "cart subtotal" = trip cost minus provider/vehicle discounts.
+    // Mirrors the value the backend uses to gate the Pro benefit.
+    const tripCostNow = getTotalAmount(cartList) || 0;
+    const tripDiscountNow = calculateTotalDiscount(cartList, tripCostNow) || 0;
+    const cartSubtotal = Math.max(0, tripCostNow - tripDiscountNow);
+
+    const qualifiesForOffer =
+      !minOrderStatus || minOrderAmount <= 0 || cartSubtotal >= minOrderAmount;
+    const amountToReachMin = Math.max(0, minOrderAmount - cartSubtotal);
+
+    if (!qualifiesForOffer) {
+      const amountToReachText = getAmountWithSign(amountToReachMin);
+      return `${t("Add")} ${amountToReachText} ${t(
+        "more to save with Pro Plan"
+      )}`;
+    }
+    if (benefitType === "discount") {
+      const rawDiscount = (cartSubtotal * benefitPercentage) / 100;
+      const savedAmount =
+        benefitMaxAmount > 0
+          ? Math.min(rawDiscount, benefitMaxAmount)
+          : rawDiscount;
+      if (savedAmount > 0) {
+        const savedText = getAmountWithSign(savedAmount);
+        return `${t("You save")} ${savedText} ${t("with Pro Plan")}`;
+      }
+      return undefined;
+    }
+    if (benefitType === "delivery_fee") {
+      if (offerType === "full_free" || offerType === "free") {
+        return t("Free delivery as a Pro member");
+      }
+      if (offerType === "partial_free" && chargeDiscountPct > 0) {
+        return `${chargeDiscountPct}% ${t("off delivery as a Pro member")}`;
+      }
+      return undefined;
+    }
+    if (benefitType === "coupon") {
+      return t("Pro coupon benefit unlocked");
+    }
+    return undefined;
+  })();
+  const [proModalOpen, setProModalOpen] = useState(false);
+  const [proPaymentOpen, setProPaymentOpen] = useState(false);
+  const [proSelectedPlan, setProSelectedPlan] = useState(null);
+  const subscribeProMutation = useSubscribeProPlan();
+  const handleProSubscribe = (plan) => {
+    if (!plan) return;
+    if (plan.price === 0) {
+      subscribeProMutation.mutate(
+        {
+          plan_id: plan.id,
+          payment_type: "free_trial",
+          payment_method: "free_trial",
+          callback_url:
+            typeof window !== "undefined" ? window.location.href : "",
+        },
+        {
+          onSuccess: (res) => {
+            const redirect = res?.redirect_link ?? res?.data?.redirect_link;
+            if (redirect && typeof window !== "undefined") {
+              window.location.href = redirect;
+              return;
+            }
+            toast.success(t("Subscribed successfully"));
+            setProModalOpen(false);
+          },
+          onError: (err) => {
+            toast.error(
+              err?.response?.data?.message || t("Subscription failed")
+            );
+          },
+        }
+      );
+      return;
+    }
+    setProSelectedPlan(plan);
+    setProModalOpen(false);
+    setProPaymentOpen(true);
+  };
+  // Redirect to the module home when the rental cart becomes empty —
+  // either the user removed the last vehicle, or they logged out (which
+  // wipes the rental cart slice to a plain `[]`). The cart slice starts
+  // as `[]` too (initialState), so we use `hadItemsRef` to distinguish
+  // a real "now empty" event from the initial loading window, and a
+  // short timer for the case where the user lands on this page with
+  // an already-empty cart (e.g. direct URL hit / logout from elsewhere).
+  // const hadItemsRef = React.useRef(false);
+  // useEffect(() => {
+  //   const hasItems =
+  //     Array.isArray(cartList?.carts) && cartList.carts.length > 0;
+  //   if (hasItems) {
+  //     hadItemsRef.current = true;
+  //     return;
+  //   }
+  //   const goHome = () =>
+  //     router.push({
+  //       pathname: "/home",
+  //       ...(router.query?.module
+  //         ? { query: { module: router.query.module } }
+  //         : {}),
+  //     });
+  //   // Logout / last-item removal: we had items, now we don't → bounce
+  //   // immediately so the empty page never flashes.
+  //   if (hadItemsRef.current) {
+  //     goHome();
+  //     return;
+  //   }
+  //   // First visit / refresh on an already-empty cart: give the fetch a
+  //   // beat to populate before kicking the user out.
+  //   const timer = setTimeout(() => {
+  //     const stillEmpty = !(
+  //       Array.isArray(cartList?.carts) && cartList.carts.length > 0
+  //     );
+  //     if (stillEmpty) goHome();
+  //   }, 800);
+  //   return () => clearTimeout(timer);
+  // }, [cartList]);
+  // console.log({ cartList });
+
+  const tripCost = getTotalAmount(cartList);
+  const calculateProviderWiseDiscounts = calculateProviderWiseDiscount(
+    cartList,
+    tripCost
+  );
+  const isShowDiscount =
+    calculateProviderWiseDiscounts > calculateTotalDiscount(cartList, tripCost);
+  const finalDiscount =
+    calculateProviderWiseDiscounts > calculateTotalDiscount(cartList, tripCost)
+      ? calculateProviderWiseDiscounts
+      : calculateTotalDiscount(cartList, tripCost);
+  const discountDifference =
+    calculateProviderWiseDiscounts === 0 ||
+    calculateTotalDiscount(cartList, tripCost) === 0
+      ? 0
+      : Math.abs(
+          calculateProviderWiseDiscounts -
+            calculateTotalDiscount(cartList, tripCost)
+        );
 
   return (
     <>
       <CustomContainer>
-        <CustomStackFullWidth sx={{ mt: "40px" }}>
+        <CustomStackFullWidth sx={{ mt: { xs: "12px", md: "10px" } }}>
           <Grid container spacing={2}>
             <Grid item xs={12} md={8}>
-              <CustomStackFullWidth sx={{ mb: "30px" }}>
-                <CheckoutStepper text2={t("Trip details")} text={t("Cart")} text1={t("Checkout")} />
+              <CustomStackFullWidth sx={{ mb: "20px" }}>
+                <CheckoutStepper
+                  text2={t("Trip details")}
+                  text={t("Cart")}
+                  text1={t("Checkout")}
+                  homeHref="/home?module=rental"
+                  storeData={
+                    rentalCart?.provider
+                      ? { name: rentalCart.provider.name }
+                      : undefined
+                  }
+                  storeHref={
+                    rentalCart?.provider
+                      ? `/rental/provider/${
+                          rentalCart.provider.slug || rentalCart.provider.id
+                        }`
+                      : undefined
+                  }
+                />
               </CustomStackFullWidth>
               <RentalCardWrapper>
                 {!cartList?.carts && <Skeleton height="200px" width="100%" />}
@@ -76,10 +269,8 @@ const RentalCartPage = () => {
                   />
                 ))}
                 <Box sx={{ textAlign: "center" }}>
-                  {cartList?.carts?.length > 0 && (
-                    <Link
-                      href={`/rental/provider-details/${cartList?.carts[0].provider?.id}`}
-                    >
+                  {rentalCart?.provider?.id && (
+                    <Link href={`/rental/provider/${rentalCart.provider.id}`}>
                       <Button
                         sx={{
                           background: "none",
@@ -96,7 +287,7 @@ const RentalCartPage = () => {
 
             <Grid item xs={12} md={4}>
               <Box sx={{ position: "sticky", top: "80px" }}>
-                <RentalCardWrapper >
+                <RentalCardWrapper>
                   <Stack
                     direction="row"
                     justifyContent="space-between"
@@ -152,7 +343,6 @@ const RentalCartPage = () => {
                               overflow: "hidden",
                               textOverflow: "ellipsis",
                             }}
-
                           >
                             {cartList?.user_data?.pickup_location
                               ?.location_name ? (
@@ -259,10 +449,11 @@ const RentalCartPage = () => {
                             fontSize: "12px",
                           }}
                         >
-                          - {isCurrentTime(cartList)
+                          -{" "}
+                          {isCurrentTime(cartList)
                             ? FormatedDateWithTime(
-                              cartList?.user_data?.pickup_time
-                            )
+                                cartList?.user_data?.pickup_time
+                              )
                             : FormatedDateWithTime(new Date())}
                         </Typography>
                       </Box>
@@ -307,16 +498,40 @@ const RentalCartPage = () => {
                             textTransform: "capitalize",
                           }}
                         >
-                          - {cartList?.user_data?.rental_type?.replace("_", " ")}
+                          -{" "}
+                          {cartList?.user_data?.rental_type?.replace("_", " ")}
                         </Typography>
                       </Box>
                     </CardDetailsSingleCard>
                   </Box>
+                  {proFeatureEnabled &&
+                    hasToken &&
+                    proOfferResolved &&
+                    !isProMember && (
+                      <Box sx={{ mb: "16px" }}>
+                        <ProPlanBanner
+                          onSubscribe={() => setProModalOpen(true)}
+                        />
+                      </Box>
+                    )}
+                  {proFeatureEnabled &&
+                    hasToken &&
+                    proOfferResolved &&
+                    isProActive &&
+                    proSavingsMessage && (
+                      <Box sx={{ mb: "16px" }}>
+                        <ProSavingsBanner
+                          amount={
+                            activeOffer?.total_saved ??
+                            activeOffer?.plan_details?.total_saved
+                          }
+                          message={proSavingsMessage}
+                        />
+                      </Box>
+                    )}
                   <RentalProceedtoCheckout
                     rentalUserData={cartList}
-                    totalAmount={
-                      Math.max(tripCost - finalDiscount, 0)
-                    }
+                    totalAmount={Math.max(tripCost - finalDiscount, 0)}
                     sx={{
                       boxShadow: "none",
                       p: "0px",
@@ -365,6 +580,21 @@ const RentalCartPage = () => {
           }
         />
       </CustomModal>
+      {proFeatureEnabled && proModalOpen && (
+        <ProPlanSubscriptionModal
+          open={proModalOpen}
+          onClose={() => setProModalOpen(false)}
+          onSubscribe={handleProSubscribe}
+          isSubmitting={subscribeProMutation.isLoading}
+        />
+      )}
+      {proFeatureEnabled && proPaymentOpen && (
+        <ProPlanPaymentModal
+          open={proPaymentOpen}
+          onClose={() => setProPaymentOpen(false)}
+          plan={proSelectedPlan}
+        />
+      )}
     </>
   );
 };

@@ -2,7 +2,7 @@ import { Button, Typography } from "@mui/material";
 import { Box } from "@mui/system";
 import { t } from "i18next";
 import React from "react";
-import { getAmountWithSign } from "helper-functions/CardHelpers";
+import { getAmountWithSign, formatNumber } from "helper-functions/CardHelpers";
 import { LoadingButton } from "@mui/lab";
 import {
   calculateTotalDiscount,
@@ -22,9 +22,10 @@ const RentalProceedtoCheckout = ({
   rentalUserData,
   isLoading,
   totalAmount,
-  discountDifference, isShowDiscount
+  discountDifference,
+  isShowDiscount,
+  children,
 }) => {
-
   const getText = {
     cart: (
       <Typography
@@ -40,19 +41,18 @@ const RentalProceedtoCheckout = ({
         {t("Estimated")}{" "}
         {rentalUserData?.user_data?.rental_type === "hourly" ? (
           <>
-            <b>{rentalUserData?.user_data?.estimated_hours}</b> Hrs
+            <b>{formatNumber(rentalUserData?.user_data?.estimated_hours)}</b> Hrs
           </>
         ) : rentalUserData?.user_data?.rental_type === "day_wise" ? (
           <>
-            <b>{rentalUserData?.user_data?.estimated_hours/24}</b> Days
+            <b>{formatNumber(rentalUserData?.user_data?.estimated_hours / 24)}</b> Days
           </>
         ) : (
           <>
-            <b>{rentalUserData?.user_data?.distance?.toFixed(3)}</b> Km
+            <b>{formatNumber(rentalUserData?.user_data?.distance)}</b> Km
           </>
         )}
       </Typography>
-
     ),
     "trip-status": (
       <Typography
@@ -81,19 +81,26 @@ const RentalProceedtoCheckout = ({
 
   return (
     <Box sx={sx}>
-      {discountDifference && isShowDiscount ?<Typography
-        sx={{
-          fontSize: "14px",
-          fontWeight: "400",
-          width: "100%",
-          color: (theme) => theme.palette.neutral[1000],
-          padding: "5px 0px",
-          backgroundColor: "#FFF6CA",
-        }}
-        align="center"
-      >
-        {t(`You got ${getAmountWithSign(discountDifference)} additional discount`)}
-      </Typography> : null}
+      {children}
+      {discountDifference && isShowDiscount ? (
+        <Typography
+          sx={{
+            fontSize: "14px",
+            fontWeight: "400",
+            width: "100%",
+            color: (theme) => theme.palette.neutral[1000],
+            padding: "5px 0px",
+            backgroundColor: "#FFF6CA",
+          }}
+          align="center"
+        >
+          {t(
+            `You got ${getAmountWithSign(
+              discountDifference
+            )} additional discount`
+          )}
+        </Typography>
+      ) : null}
 
       <Box
         sx={{
