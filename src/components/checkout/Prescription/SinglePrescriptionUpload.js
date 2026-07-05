@@ -33,7 +33,7 @@ const SinglePrescriptionUpload = (props) => {
 	const theme = useTheme();
 	const [image, setImage] = useState("");
 	const customerImageUrl =
-		"https://6ammart.ragnar66.com/dev/storage/app/public/profile";
+		`${process.env.NEXT_PUBLIC_BASE_URL}/storage/app/public/profile`;
 	useEffect(() => {
 		typeof image !== "string" && handleImageUpload?.(image);
 	}, [image]);
