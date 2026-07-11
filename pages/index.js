@@ -13,13 +13,21 @@ import { checkMaintenanceMode } from "../src/utils/serverSidePropsHelper";
 
 const Root = (props) => {
   const { configData, landingPageData } = props;
-  const { data, refetch } = useGetLandingPage();
+  const bootstrapFetchedAt = props.bootstrapFetchedAt || Date.now();
+  const { data: queryLandingData } = useGetLandingPage({
+    initialData: landingPageData,
+    initialDataUpdatedAt: bootstrapFetchedAt,
+    enabled: true,
+  });
   const dispatch = useDispatch();
-  const { data: dataConfig, refetch: configRefetch } = useGetConfigData();
-  useEffect(() => {
-    configRefetch();
-    refetch();
-  }, []);
+  const { data: queryConfigData } = useGetConfigData({
+    initialData: configData,
+    initialDataUpdatedAt: bootstrapFetchedAt,
+    enabled: true,
+  });
+  const data = queryLandingData || landingPageData;
+  const dataConfig = queryConfigData || configData;
+
   useEffect(() => {
     dispatch(setLandingPageData(data));
     if (dataConfig) {
@@ -29,13 +37,8 @@ const Root = (props) => {
         dispatch(setConfigData(dataConfig));
       }
     }
-  }, [dataConfig, data]);
-  let lanDirection = undefined;
+  }, [dataConfig, data, dispatch]);
 
-  if (typeof window !== "undefined") {
-    lanDirection = JSON.parse(localStorage.getItem("settings"));
-  }
-  console.log({ configData });
   return (
     <>
       <CssBaseline />
@@ -108,6 +111,7 @@ export const getServerSideProps = async (context) => {
     props: {
       configData: config,
       landingPageData: landingPageData,
+      bootstrapFetchedAt: Date.now(),
     },
   };
 };

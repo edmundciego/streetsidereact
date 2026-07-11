@@ -15,12 +15,17 @@ const getData = async () => {
   }
 };
 
-export default function useGetUserInfo(handleSuccess) {
+export default function useGetUserInfo(handleSuccess, options = {}) {
+  const hasToken = Boolean(getToken());
+
   return useQuery("user-info", () => getData(), {
-    enabled: true,
+    // Do not create an anonymous startup query. Authenticated consumers share
+    // this key, so React Query still deduplicates profile reads.
+    enabled: hasToken,
     staleTime: 10000,
     cacheTime: 5000,
     onSuccess: handleSuccess,
     onError: onSingleErrorResponse,
+    ...options,
   });
 }

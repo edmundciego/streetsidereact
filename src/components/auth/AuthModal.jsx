@@ -102,6 +102,7 @@ const AuthModal = ({
 
   const handleSuccess = async (value) => {
     localStorage.setItem("token", value);
+    window.dispatchEvent(new Event("streetside-auth-change"));
     toast.success(t(loginSuccessFull));
     if (zoneid) {
       if (moduleType === "rental") {

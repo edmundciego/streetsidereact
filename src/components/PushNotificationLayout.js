@@ -1,6 +1,4 @@
-import React, { useEffect, useState } from "react";
-import "firebase/messaging";
-import { fetchToken, onMessageListener } from "../firebase";
+import React, { useCallback, useEffect, useState } from "react";
 import { toast } from "react-hot-toast";
 import {
   IconButton,
@@ -44,65 +42,87 @@ const PushNotificationLayout = ({
   const [userToken, setUserToken] = useState(null);
   const [isTokenFound, setTokenFound] = useState(false);
   const [fcmToken, setFcmToken] = useState("");
-  const darkToast = () =>
-    toast("You have a new message", {
-      icon: "",
-      style: {
-        borderRadius: "12px",
-        background: theme.palette.primary.main,
-        color: theme.palette.neutral[1000],
-        height: "60px",
-      },
-      position: "top-center",
-    });
-  const CustomToast = ({ title, description, icon }) => (
-    <CustomPaperRefer>
-      {icon && icon}
-      <Stack gap="7px">
-        <Typography
-          fontSize="14px"
-          fontWeight={700}
-          sx={{ color: "primary.main" }}
+  const darkToast = useCallback(
+    () =>
+      toast("You have a new message", {
+        icon: "",
+        style: {
+          borderRadius: "12px",
+          background: theme.palette.primary.main,
+          color: theme.palette.neutral[1000],
+          height: "60px",
+        },
+        position: "top-center",
+      }),
+    [theme.palette.neutral, theme.palette.primary.main]
+  );
+  const CustomToast = useCallback(
+    ({ title, description, icon }) => (
+      <CustomPaperRefer>
+        {icon && icon}
+        <Stack gap="7px">
+          <Typography
+            fontSize="14px"
+            fontWeight={700}
+            sx={{ color: "primary.main" }}
+          >
+            {t(title)}
+          </Typography>
+          <Typography fontSize="12px" sx={{ width: "100%", maxWidth: "283px" }}>
+            {t(description)}
+          </Typography>
+        </Stack>
+        <IconButton
+          sx={{ position: "absolute", top: 10, right: 15 }}
+          onClick={() => toast.dismiss()}
         >
-          {t(title)}
-        </Typography>
-        <Typography fontSize="12px" sx={{ width: "100%", maxWidth: "283px" }}>
-          {t(description)}
-        </Typography>
-      </Stack>
-      <IconButton
-        sx={{ position: "absolute", top: 10, right: 15 }}
-        onClick={() => toast.dismiss()}
-      >
-        <CloseIcon sx={{ fontSize: "16px" }} />
-      </IconButton>
-    </CustomPaperRefer>
+          <CloseIcon sx={{ fontSize: "16px" }} />
+        </IconButton>
+      </CustomPaperRefer>
+    ),
+    []
   );
   useEffect(() => {
-    handleFetchToken();
+    if (typeof window === "undefined") return;
+    const syncUserToken = () => setUserToken(localStorage.getItem("token"));
+    syncUserToken();
+    window.addEventListener("streetside-auth-change", syncUserToken);
+    window.addEventListener("storage", syncUserToken);
+    return () => {
+      window.removeEventListener("streetside-auth-change", syncUserToken);
+      window.removeEventListener("storage", syncUserToken);
+    };
   }, []);
-
-  const handleFetchToken = async () => {
-    await fetchToken(setTokenFound, setFcmToken);
-  };
-
-  useEffect(() => {
-    if (typeof window !== undefined) {
-      setUserToken(localStorage.getItem("token"));
-      //userToken = window.localStorage.getItem('token')
-    }
-  }, [userToken]);
 
   //const userToken=localStorage.getItem("token")
   const { mutate } = useStoreFcm();
 
   useEffect(() => {
-    if (userToken) {
-      mutate(fcmToken);
-    }
-  }, [fcmToken]);
+    if (!userToken || typeof window === "undefined") return;
 
-  const clickHandler = () => {
+    // Firebase is a large browser-only dependency. Wait until the first paint
+    // is idle and only initialise it for signed-in users who can receive FCM.
+    let cancelled = false;
+    const start = async () => {
+      const { fetchToken } = await import("../firebase");
+      if (!cancelled) await fetchToken(setTokenFound, setFcmToken);
+    };
+    const idleId = window.requestIdleCallback
+      ? window.requestIdleCallback(start, { timeout: 3000 })
+      : window.setTimeout(start, 1500);
+
+    return () => {
+      cancelled = true;
+      if (window.cancelIdleCallback) window.cancelIdleCallback(idleId);
+      else window.clearTimeout(idleId);
+    };
+  }, [userToken]);
+
+  useEffect(() => {
+    if (userToken && fcmToken) mutate(fcmToken);
+  }, [fcmToken, mutate, userToken]);
+
+  const clickHandler = useCallback(() => {
     if (notification.type === "message") {
       router.push(
         {
@@ -129,15 +149,27 @@ const PushNotificationLayout = ({
         }
       );
     }
-  };
+  }, [notification, router]);
 
   useEffect(() => {
-    onMessageListener()
+    if (!userToken) return;
+    let cancelled = false;
+    import("../firebase")
+      .then(({ onMessageListener }) => onMessageListener())
       .then((payload) => {
-        setNotification(payload.data);
-        // toast.success(payload.data.title)
+        if (!cancelled && payload?.data) setNotification(payload.data);
       })
-      .catch((err) => toast(err));
+      .catch((err) =>
+        console.error("Foreground notification listener failed", err)
+      );
+
+    return () => {
+      cancelled = true;
+    };
+  }, [userToken]);
+
+  useEffect(() => {
+    if (!notification) return;
     if (notification) {
       if (pathName === "chat" && notification.type === "message") {
         refetch();
@@ -174,7 +206,16 @@ const PushNotificationLayout = ({
         );
       }
     }
-  }, [notification]);
+  }, [
+    CustomToast,
+    clickHandler,
+    darkToast,
+    notification,
+    pathName,
+    refetch,
+    refetchTrackOrder,
+    theme.palette.primary.main,
+  ]);
 
   return <>{children}</>;
 };

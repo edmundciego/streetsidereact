@@ -118,6 +118,7 @@ const SignUp = ({
   const handleTokenAfterSignUp = (response) => {
     if (response) {
       localStorage.setItem("token", response?.token);
+      window.dispatchEvent(new Event("streetside-auth-change"));
       profileRefetch();
       toast.success(t(signup_successfull));
       dispatch(setWelcomeModal(true));
@@ -128,7 +129,7 @@ const SignUp = ({
           router.push(
             { pathname, query: { module: `${moduleId}` } },
             undefined,
-            { shallow: true },
+            { shallow: true }
           );
           return;
         }
@@ -198,7 +199,7 @@ const SignUp = ({
           setOtpData,
           setMainToken,
           sendOTP,
-          configData,
+          configData
         );
       },
       onError: onErrorResponse,

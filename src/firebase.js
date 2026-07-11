@@ -44,8 +44,16 @@ export const fetchToken = async (setTokenFound, setFcmToken) => {
     const messaging = await getMessagingObject();
     if (!messaging) return;
 
+    // Keep Firebase's worker in its own narrow scope. The marketplace runtime
+    // worker controls `/`, so neither registration can replace the other.
+    const serviceWorkerRegistration = await navigator.serviceWorker.register(
+      "/firebase-messaging-sw.js",
+      { scope: "/firebase-cloud-messaging-push-scope" }
+    );
     const currentToken = await getToken(messaging, {
-      vapidKey: "BFyeO2SnW09j8eJjb3rmOcjdA5yYrly0Z3FVeNvLoY01pxu_fA4CyPhLB8nFjmTadTSfAmz67m6fCVfzMP1ixRg",
+      vapidKey:
+        "BFyeO2SnW09j8eJjb3rmOcjdA5yYrly0Z3FVeNvLoY01pxu_fA4CyPhLB8nFjmTadTSfAmz67m6fCVfzMP1ixRg",
+      serviceWorkerRegistration,
     });
 
     if (currentToken) {

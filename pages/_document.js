@@ -10,6 +10,7 @@ class CustomDocument extends Document {
     return (
       <Html lang="en">
         <Head>
+          <link rel="manifest" href="/manifest.json" />
           <script
             dangerouslySetInnerHTML={{
               __html: `
@@ -45,7 +46,11 @@ class CustomDocument extends Document {
           />
           {/* Fonts */}
           <link rel="preconnect" href="https://fonts.googleapis.com" />
-          <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
+          <link
+            rel="preconnect"
+            href="https://fonts.gstatic.com"
+            crossOrigin=""
+          />
           <link
             href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Rubik:wght@300;400;500;600;700&display=swap"
             rel="stylesheet"
@@ -81,7 +86,10 @@ class CustomDocument extends Document {
 
           {analyticsConfig.google_analytics && (
             <>
-              <script async src={`https://www.googletagmanager.com/gtag/js?id=${analyticsConfig.google_analytics}`} />
+              <script
+                async
+                src={`https://www.googletagmanager.com/gtag/js?id=${analyticsConfig.google_analytics}`}
+              />
               <script
                 dangerouslySetInnerHTML={{
                   __html: `
@@ -189,8 +197,8 @@ class CustomDocument extends Document {
         </Head>
 
         <body>
-        <Main />
-        <NextScript />
+          <Main />
+          <NextScript />
         </body>
       </Html>
     );
@@ -220,7 +228,8 @@ CustomDocument.getInitialProps = async (ctx) => {
   // 🛠 Fetch analytics config server-side
   let analyticsConfig = {};
   try {
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://yourdomain.com";
+    const baseUrl =
+      process.env.NEXT_PUBLIC_BASE_URL || "https://yourdomain.com";
     const res = await fetch(`${baseUrl}/api/v1/config/get-analytic-scripts`, {
       headers: {
         "X-software-id": 33571750,
@@ -231,7 +240,8 @@ CustomDocument.getInitialProps = async (ctx) => {
     const data = await res.json();
     if (Array.isArray(data)) {
       data.forEach((item) => {
-        if (item.type && item.script_id) analyticsConfig[item.type] = item.script_id;
+        if (item.type && item.script_id)
+          analyticsConfig[item.type] = item.script_id;
       });
     }
   } catch (err) {

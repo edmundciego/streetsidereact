@@ -207,6 +207,7 @@ const SignIn = ({
   const handleTokenAfterSignIn = async (response) => {
     if (response) {
       localStorage.setItem("token", response?.token);
+      window.dispatchEvent(new Event("streetside-auth-change"));
       if (moduleType === "rental") {
         await bookingRefetch();
         await rentalWishlistRefetch();
