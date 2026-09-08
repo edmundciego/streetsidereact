@@ -54,3 +54,8 @@ public/workbox-*.js
 public/workbox-*.js.map
 public/fallback-*.js
 .env*
+
+# Laravel backend (served from a separate location) - do not push to this repo
+base/
+
+.DS_Store
