@@ -7,7 +7,7 @@ import { getCurrentModuleType } from "helper-functions/getCurrentModuleType";
 import { ModuleTypes } from "helper-functions/moduleTypes";
 import announcementIcon from "assets/img/announcementIcon.png";
 import NextImage from "components/NextImage";
-import Slider from "react-slick";
+import Slider from "components/common/LazySlider";
 import "slick-carousel/slick/slick.css";
 import SliderSectionHeader from "components/common/SliderSectionHeader";
 import { useRef, useState, useEffect } from "react";

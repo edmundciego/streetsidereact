@@ -68,53 +68,65 @@ export const getServerSideProps = async (context) => {
   let vehicleDetailsData = null;
   let config = null;
 
-  try {
-    const headers = {
-      "X-software-id": 33571750,
-      "X-server": "server",
-      origin,
-      "X-localization": language,
-    };
+  const headers = {
+    "X-software-id": 33571750,
+    "X-server": "server",
+    origin,
+    "X-localization": language,
+  };
+  const vehicleHeaders = { ...headers };
+  if (moduleId) {
+    const moduleIdValue = String(moduleId);
+    vehicleHeaders.moduleId = moduleIdValue;
+    vehicleHeaders["module_id"] = moduleIdValue;
+  }
 
-    if (moduleId) {
-      const moduleIdValue = String(moduleId);
-      headers.moduleId = moduleIdValue;
-      headers["module_id"] = moduleIdValue;
-    }
-
-    const configRes = await fetch(
-      `${process.env.NEXT_PUBLIC_BASE_URL}/api/v1/config`,
-      {
-        method: "GET",
-        headers: {
-          "X-software-id": 33571750,
-          "X-server": "server",
-          origin: process.env.NEXT_CLIENT_HOST_URL,
-        },
-      }
-    );
-
-    if (!configRes.ok) {
-      throw new Error(`Failed to fetch config: ${configRes.statusText}`);
-    }
-
-    config = await configRes.json();
-
-    if (id) {
-      const vehicleDetailsRes = await fetch(
-        `${baseUrl}/api/v1/rental/vehicle/get-vehicle-details/${id}`,
-        {
+  // Config and vehicle details are independent documents — fetch both in
+  // parallel; vehicle details can gracefully degrade to null on failure.
+  const [configSettled, vehicleSettled] = await Promise.allSettled([
+    fetch(`${baseUrl}/api/v1/config`, { method: "GET", headers }),
+    id
+      ? fetch(`${baseUrl}/api/v1/rental/vehicle/get-vehicle-details/${id}`, {
           method: "GET",
-          headers,
-        }
-      );
+          headers: vehicleHeaders,
+        })
+      : Promise.resolve(null),
+  ]);
 
-      if (vehicleDetailsRes.ok) {
-        vehicleDetailsData = await vehicleDetailsRes.json();
-      }
+  if (configSettled.status === "rejected") {
+    console.error(
+      "SSR config fetch failed:",
+      configSettled.reason?.message || configSettled.reason,
+    );
+  } else if (configSettled.value?.ok) {
+    try {
+      config = await configSettled.value.json();
+    } catch (error) {
+      console.error("SSR config parse failed:", error?.message);
     }
-  } catch (error) {
-    console.error("SSR vehicle details fetch failed:", error?.message || error);
+  } else {
+    console.error(
+      "SSR config fetch failed:",
+      configSettled.value?.statusText,
+    );
+  }
+
+  if (vehicleSettled.status === "rejected") {
+    console.error(
+      "SSR vehicle details fetch failed:",
+      vehicleSettled.reason?.message || vehicleSettled.reason,
+    );
+  } else if (vehicleSettled.value?.ok) {
+    try {
+      vehicleDetailsData = await vehicleSettled.value.json();
+    } catch (error) {
+      console.error("SSR vehicle details parse failed:", error?.message);
+    }
+  } else if (vehicleSettled.value) {
+    console.error(
+      "SSR vehicle details fetch failed:",
+      vehicleSettled.value?.statusText,
+    );
   }
 
   return {

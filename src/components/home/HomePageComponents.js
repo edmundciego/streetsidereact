@@ -1,3 +1,4 @@
+import dynamic from "next/dynamic";
 import { NoSsr, styled, Typography } from "@mui/material";
 import { Box } from "@mui/system";
 import { baseUrl } from "api-manage/MainApi";
@@ -12,6 +13,7 @@ import { t } from "i18next";
 import { useRouter } from "next/router";
 import React, { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
+import { useQuery } from "react-query";
 import {
   setFilterData,
   setStoreSelectedItems,
@@ -24,12 +26,6 @@ import PushNotificationLayout from "../PushNotificationLayout";
 import CustomModal from "../modal";
 import LastOrderReview from "./LastOrderReview";
 import SearchWithTitle from "./SearchWithTitle";
-import Grocery from "./module-wise-components/Grocery";
-import Shop from "./module-wise-components/ecommerce";
-import FoodModule from "./module-wise-components/food";
-import Parcel from "./module-wise-components/parcel/Index";
-import Pharmacy from "./module-wise-components/pharmacy/Pharmacy";
-
 import { onErrorResponse } from "api-manage/api-error-response/ErrorResponses";
 import { GoogleApi } from "api-manage/hooks/react-query/googleApi";
 import useGetOfflinePaymentOptions from "api-manage/hooks/react-query/offlinePayment/useGetOfflinePaymentOptions";
@@ -37,20 +33,62 @@ import { useUpdatePaymentMethod } from "api-manage/hooks/react-query/payment-met
 import { useGetWishList } from "api-manage/hooks/react-query/rental-wishlist/useGetWishlist";
 import { useGetFailedPayment } from "api-manage/hooks/react-query/useGetFailedPayment";
 import { useUpdatePaymentByWallet } from "api-manage/hooks/react-query/useUpdatePaymentByWallet";
-import PaymentMethod from "components/checkout/PaymentMethod";
-import ScrollUpButton from "components/common/ScrollUpButton";
-import IncompleteOrderModal from "components/home/IncompleteOrderModal";
-import Rental from "components/home/module-wise-components/rental/Rental";
-import ServiceModule from "components/home/module-wise-components/service/Service";
-import TaxiSearchPanel from "components/home/module-wise-components/rental/components/global/search/TaxiSearchPanel";
-import { useQuery } from "react-query";
 import {
   getDigitalMethodFromZone,
   handleFailedOrderPlace,
 } from "utils/CustomFunctions";
-import TopBanner from "./top-banner";
-import ModuleSearchBanner from "./module-wise-components/shared/ModuleSearchBanner";
-import RideShareModuleLandingPage from "./module-wise-components/rideShare";
+// Code-split per-module bundles: home page was statically importing all 8
+// module UIs (grocery+food+shop+pharmacy+parcel+rental+service+ride) even
+// though only one ever renders. Dynamic imports create separate chunks.
+const Grocery = dynamic(() => import("./module-wise-components/Grocery"), {
+  loading: () => null,
+});
+const Shop = dynamic(() => import("./module-wise-components/ecommerce"), {
+  loading: () => null,
+});
+const FoodModule = dynamic(() => import("./module-wise-components/food"), {
+  loading: () => null,
+});
+const Parcel = dynamic(() => import("./module-wise-components/parcel/Index"), {
+  loading: () => null,
+});
+const Pharmacy = dynamic(
+  () => import("./module-wise-components/pharmacy/Pharmacy"),
+  { loading: () => null }
+);
+
+// Below-fold / modal-only chunks — ssr:false keeps them out of initial JS.
+const PaymentMethod = dynamic(
+  () => import("components/checkout/PaymentMethod"),
+  { ssr: false, loading: () => null }
+);
+const ScrollUpButton = dynamic(
+  () => import("components/common/ScrollUpButton"),
+  { ssr: false, loading: () => null }
+);
+const IncompleteOrderModal = dynamic(
+  () => import("components/home/IncompleteOrderModal"),
+  { ssr: false, loading: () => null }
+);
+const Rental = dynamic(
+  () => import("components/home/module-wise-components/rental/Rental"),
+  { loading: () => null }
+);
+const ServiceModule = dynamic(
+  () => import("components/home/module-wise-components/service/Service"),
+  { loading: () => null }
+);
+const TopBanner = dynamic(() => import("./top-banner"), {
+  loading: () => null,
+});
+const ModuleSearchBanner = dynamic(
+  () => import("./module-wise-components/shared/ModuleSearchBanner"),
+  { loading: () => null }
+);
+const RideShareModuleLandingPage = dynamic(
+  () => import("./module-wise-components/rideShare"),
+  { loading: () => null }
+);
 
 export const HomeComponentsWrapper = styled(Box)(({ theme }) => ({
   width: "100%",

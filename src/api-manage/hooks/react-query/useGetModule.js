@@ -69,23 +69,32 @@ export default function useGetModule() {
     if (typeof window === "undefined") return;
 
     const updateZoneIds = () => {
-      setZoneIdsKey(getZoneIdsKeyFromStorage());
+      setZoneIdsKey((prev) => {
+        const next = getZoneIdsKeyFromStorage();
+        return prev === next ? prev : next;
+      });
     };
 
     updateZoneIds();
     window.addEventListener("storage", updateZoneIds);
     window.addEventListener("focus", updateZoneIds);
-    const intervalId = window.setInterval(updateZoneIds, 1000);
+    // Custom event fired by zone setters (see setZoneId helpers) so we
+    // update instantly without 1s polling. Keeps state in sync with
+    // zero idle CPU cost.
+    window.addEventListener("zoneid-changed", updateZoneIds);
 
     return () => {
       window.removeEventListener("storage", updateZoneIds);
       window.removeEventListener("focus", updateZoneIds);
-      window.clearInterval(intervalId);
+      window.removeEventListener("zoneid-changed", updateZoneIds);
     };
   }, []);
 
   const query = useQuery(["module-list", zoneIdsKey], getModule, {
     enabled: false,
+    staleTime: 1000 * 60 * 5, // modules rarely change
+    cacheTime: 1000 * 60 * 10,
+    refetchOnWindowFocus: false,
     onError: onErrorResponse,
   });
   const { refetch } = query;

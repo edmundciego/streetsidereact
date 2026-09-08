@@ -58,4 +58,8 @@ public/fallback-*.js
 # Laravel backend (served from a separate location) - do not push to this repo
 base/
 
+# Local AI agent tooling
+.agents/
+skills-lock.json
+
 .DS_Store

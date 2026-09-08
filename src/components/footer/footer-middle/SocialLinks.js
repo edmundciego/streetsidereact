@@ -58,11 +58,11 @@ const SocialLinks = (props) => {
               <IconButton
                 sx={{
                   padding: "0px",
-                  color: theme.palette.primary.icon,
+                  color: theme?.palette?.primary?.icon,
                   transition: "all ease 0.5s",
                   "&:hover": {
                     transform: "scale(1.14)",
-                    color: theme.palette.primary.main,
+                    color: theme?.palette?.primary?.main,
                   },
                 }}
                 key={index}

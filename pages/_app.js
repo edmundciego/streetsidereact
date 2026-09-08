@@ -14,7 +14,6 @@ import { Toaster } from "react-hot-toast";
 import { SettingsConsumer, SettingsProvider } from "contexts/settings-context";
 import "../src/language/i18n";
 import { QueryClient, QueryClientProvider } from "react-query";
-import { ReactQueryDevtools } from "react-query/devtools";
 import nProgress from "nprogress";
 import Router from "next/router";
 import { persistStore } from "redux-persist";
@@ -25,10 +24,6 @@ import ProSubscriptionExpiredModal from "../src/components/pro-plan/ProSubscript
 import PwaServiceWorker from "../src/components/PwaServiceWorker";
 import App from "next/app";
 
-Router.events.on("routeChangeStart", nProgress.start);
-Router.events.on("routeChangeError", nProgress.done);
-Router.events.on("routeChangeComplete", nProgress.done);
-
 export const currentVersion = process.env.NEXT_PUBLIC_SITE_VERSION;
 const clientSideEmotionCache = createEmotionCache();
 const createQueryClient = () =>
@@ -37,6 +32,8 @@ const createQueryClient = () =>
       queries: {
         cacheTime: 1000 * 60 * 5, // 5 minutes
         staleTime: 1000 * 60 * 2, // 2 minutes
+        refetchOnWindowFocus: false, // avoid refetch storm on tab focus
+        retry: 1, // fail fast on flaky mobile networks
       },
     },
   });
@@ -54,6 +51,20 @@ function MyApp(props) {
   const [queryClient] = useState(createQueryClient);
   // Initialise redux-persist once for the app lifetime, not on every render.
   useState(() => persistStore(store));
+
+  // NProgress route listeners (with cleanup to avoid duplicate handlers)
+  useEffect(() => {
+    const handleStart = () => nProgress.start();
+    const handleDone = () => nProgress.done();
+    Router.events.on("routeChangeStart", handleStart);
+    Router.events.on("routeChangeError", handleDone);
+    Router.events.on("routeChangeComplete", handleDone);
+    return () => {
+      Router.events.off("routeChangeStart", handleStart);
+      Router.events.off("routeChangeError", handleDone);
+      Router.events.off("routeChangeComplete", handleDone);
+    };
+  }, []);
 
   // Version check
   useEffect(() => {

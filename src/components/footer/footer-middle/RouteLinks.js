@@ -1,4 +1,4 @@
-import { useTheme } from "@emotion/react";
+import { useTheme } from "@mui/material/styles";
 import { Typography, useMediaQuery } from "@mui/material";
 import { Router, useRouter } from "next/router";
 import React from "react";
@@ -48,7 +48,9 @@ const RouteLinks = (props) => {
     router.push(href, undefined, { shallow: true });
   };
   const theme = useTheme();
-  const isXsmall = useMediaQuery(theme.breakpoints.down("sm"));
+  // SSR-safe: ThemeProvider context can be absent on first server render
+  // (useTheme returns null). Fall back to the raw media query string.
+  const isXsmall = useMediaQuery(theme?.breakpoints?.down("sm") ?? "(max-width:600px)");
 
   const linkSx = {
     fontSize: "14px",
@@ -60,7 +62,7 @@ const RouteLinks = (props) => {
     py: "6px",
     cursor: "pointer",
     textAlign: centered ? "center" : "left",
-    "&:hover": { color: theme.palette.primary.main },
+    "&:hover": { color: theme?.palette?.primary?.main },
   };
 
   return (

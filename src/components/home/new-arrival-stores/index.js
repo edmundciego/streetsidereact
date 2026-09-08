@@ -9,16 +9,14 @@ import { Skeleton, Typography, styled } from "@mui/material";
 import { Box } from "@mui/system";
 import { t } from "i18next";
 import Link from "next/link";
-import { useDispatch, useSelector } from "react-redux";
+import { useSelector } from "react-redux";
 import Slider from "react-slick";
 
 import { useGetPopularStoreWithoutInfiniteScroll } from "api-manage/hooks/react-query/store/useGetPopularStore";
 import { getCurrentModuleType } from "helper-functions/getCurrentModuleType";
 import { getStoreRedirectURL } from "helper-functions/handleStoreRedirect";
 import { ModuleTypes } from "helper-functions/moduleTypes";
-import { setNewArrivalStores } from "redux/slices/storedData";
 import "slick-carousel/slick/slick.css";
-import useGetNewArrivalStores from "../../../api-manage/hooks/react-query/store/useGetNewArrivalStores";
 import CustomImageContainer from "../../CustomImageContainer";
 import SpecialOfferCardShimmer from "../../Shimmer/SpecialOfferCardSimmer";
 import NearbyStoreCard from "../../cards/NearbyStoreCard";
@@ -92,9 +90,10 @@ const FoodSliderWrapper = styled(CustomBoxFullWidth)(() => ({
 
 const menus = ["Popular", "Top Rated", "New"];
 const NewArrivalStores = () => {
-  const { data, refetch, isFetching, isLoading } = useGetNewArrivalStores({
-    type: "all",
-  });
+  // NOTE: cards render from the popular feed only (tabs sort client-side).
+  // The new-arrival endpoint was fetched here AND in FoodModule for just the
+  // section heading — now read from the shared redux cache instead, so home
+  // fires 1 heavy store query here instead of 2.
   const [selectedMenuIndex, setSelectedMenuIndex] = useState(0);
   const { configData } = useSelector((state) => state.configData);
   const moduleId = JSON.parse(window.localStorage.getItem("module"))?.id;
@@ -107,20 +106,16 @@ const NewArrivalStores = () => {
     data: popularData,
     refetch: popularRefetch,
     isLoading: popularIsLoading,
-  } = useGetPopularStoreWithoutInfiniteScroll({ queryKey, type: "all" });
-  const dispatch = useDispatch();
+  } = useGetPopularStoreWithoutInfiniteScroll({
+    queryKey,
+    type: "all",
+    limit: 12,
+    offset: 1,
+  });
+  const isLoading = popularIsLoading;
   useEffect(() => {
-    if (newArrivalStores.length === 0) {
-      refetch();
-    }
-  }, [newArrivalStores]);
-
-  useEffect(() => {
-    if (data?.stores?.length > 0) {
-      dispatch(setNewArrivalStores(data?.stores));
-    }
-  }, [data]);
-  useEffect(() => {
+    // Fetch the single feed this section renders from (popular, limit 12).
+    // Tab switches re-sort the same payload client-side — no extra requests.
     popularRefetch();
   }, []);
   useEffect(() => {

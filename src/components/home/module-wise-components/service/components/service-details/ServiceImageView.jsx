@@ -8,11 +8,14 @@ import {
 } from "@mui/material";
 import { Box, Stack } from "@mui/system";
 
+import dynamic from "next/dynamic";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/router";
 import { useTranslation } from "react-i18next";
-import ReactImageMagnify from "react-image-magnify";
-import Slider from "react-slick";
+import Slider from "components/common/LazySlider";
+const ReactImageMagnify = dynamic(() => import("react-image-magnify"), {
+  ssr: false,
+});
 import "slick-carousel/slick/slick-theme.css";
 import "slick-carousel/slick/slick.css";
 import VideoPlayer from "./VideoPlayer";

@@ -40,6 +40,15 @@ export const getMessagingObject = async () => {
 // fetchToken function
 export const fetchToken = async (setTokenFound, setFcmToken) => {
   try {
+    // Skip entirely when the user blocked notifications — calling getToken
+    // then throws messaging/permission-blocked, which Next dev surfaces as a
+    // runtime error overlay. Not an app bug, just a declined permission.
+    if (
+      typeof Notification !== "undefined" &&
+      Notification.permission === "denied"
+    ) {
+      return;
+    }
     const messaging = await getMessagingObject();
     if (!messaging) return;
 
@@ -56,6 +65,14 @@ export const fetchToken = async (setTokenFound, setFcmToken) => {
       setFcmToken();
     }
   } catch (err) {
+    // Blocked/dismissed permission is an expected user choice, not an error —
+    // stay silent so it never trips the dev overlay or error monitoring.
+    if (
+      err?.code === "messaging/permission-blocked" ||
+      err?.code === "messaging/permission-default"
+    ) {
+      return;
+    }
     console.error("Token fetch error:", err);
   }
 };

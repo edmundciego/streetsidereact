@@ -67,65 +67,67 @@ export const getServerSideProps = async (context) => {
   const language = req.cookies.languageSetting || "en";
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
   const origin = process.env.NEXT_CLIENT_HOST_URL;
-  const moduleId = module || legacyModuleId;
 
   let providerMetaData = null;
   let config = null;
 
-  try {
-    const headers = {
-      "X-software-id": 33571750,
-      "X-server": "server",
-      origin,
-      "X-localization": language,
-    };
+  const headers = {
+    "X-software-id": 33571750,
+    "X-server": "server",
+    origin,
+    "X-localization": language,
+  };
 
-    if (moduleId) {
-      const moduleIdValue = String(moduleId);
-      headers.moduleId = moduleIdValue;
-      headers["module_id"] = moduleIdValue;
-    }
-
-    const configRes = await fetch(
-      `${process.env.NEXT_PUBLIC_BASE_URL}/api/v1/config`,
-      {
-        method: "GET",
-        headers: {
-          "X-software-id": 33571750,
-          "X-server": "server",
-          origin: process.env.NEXT_CLIENT_HOST_URL,
-        },
-      },
-    );
-
-    if (!configRes.ok) {
-      throw new Error(`Failed to fetch config: ${configRes.statusText}`);
-    }
-
-    config = await configRes.json();
-
-    if (id) {
-      const providerDetailsRes = await fetch(
-        `${baseUrl}/api/v1/rental/provider/get-provider-details/${id}`,
-        {
+  // Config and provider details are independent documents — fetch both in
+  // parallel; both can gracefully degrade to null on failure.
+  const [configSettled, providerSettled] = await Promise.allSettled([
+    fetch(`${baseUrl}/api/v1/config`, { method: "GET", headers }),
+    id
+      ? fetch(`${baseUrl}/api/v1/rental/provider/get-provider-details/${id}`, {
           method: "GET",
           headers,
-        },
-      );
+        })
+      : Promise.resolve(null),
+  ]);
 
-      if (providerDetailsRes.ok) {
-        const providerDetailsData = await providerDetailsRes.json();
-
-        providerMetaData = {
-          meta_title: providerDetailsData?.meta_title || null,
-          meta_image: providerDetailsData?.meta_image_full_url || null,
-          meta_description: providerDetailsData?.meta_description || null,
-          meta_data: providerDetailsData?.meta_data || null,
-        };
-      }
+  if (configSettled.status === "rejected") {
+    console.error(
+      "SSR config fetch failed:",
+      configSettled.reason?.message || configSettled.reason,
+    );
+  } else if (configSettled.value?.ok) {
+    try {
+      config = await configSettled.value.json();
+    } catch (error) {
+      console.error("SSR config parse failed:", error?.message);
     }
-  } catch (error) {
-    console.error("SSR vehicle details fetch failed:", error?.message || error);
+  } else {
+    console.error("SSR config fetch failed:", configSettled.value?.statusText);
+  }
+
+  if (providerSettled.status === "rejected") {
+    console.error(
+      "SSR provider details fetch failed:",
+      providerSettled.reason?.message || providerSettled.reason,
+    );
+  } else if (providerSettled.value?.ok) {
+    try {
+      const providerDetailsData = await providerSettled.value.json();
+
+      providerMetaData = {
+        meta_title: providerDetailsData?.meta_title || null,
+        meta_image: providerDetailsData?.meta_image_full_url || null,
+        meta_description: providerDetailsData?.meta_description || null,
+        meta_data: providerDetailsData?.meta_data || null,
+      };
+    } catch (error) {
+      console.error("SSR provider details parse failed:", error?.message);
+    }
+  } else if (providerSettled.value) {
+    console.error(
+      "SSR provider details fetch failed:",
+      providerSettled.value?.statusText,
+    );
   }
 
   return {

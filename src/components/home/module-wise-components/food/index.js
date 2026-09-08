@@ -58,10 +58,13 @@ const FoodModule = (props) => {
   const moduleId = useMemo(() => getModuleId(), []);
 
   useEffect(() => {
+    // SSR/React-Query cache already holds these on repeat visits — only hit
+    // the network when the cache is empty (e.g. fresh login / module switch).
+    // Saves 1 uncached other-banners + 1 heavy stores/latest per home load.
     const fetchData = async () => {
       try {
-        await refetch();
-        newStoreRefetch();
+        if (!data) await refetch();
+        if (!newStore?.stores?.length) newStoreRefetch();
       } catch (error) {
         console.error("Error fetching data:", error);
       }

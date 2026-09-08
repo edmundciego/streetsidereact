@@ -1,10 +1,14 @@
+import dynamic from "next/dynamic";
 import { Box, Stack, Typography, alpha, useTheme } from "@mui/material";
-import { Calendar } from "react-date-range";
 import "react-date-range/dist/styles.css";
 import "react-date-range/dist/theme/default.css";
 import { useTranslation } from "react-i18next";
 import ArrivalTimePicker from "../../service-checkout/multiple-booking/ArrivalTimePicker";
 import dayjs from "dayjs";
+const Calendar = dynamic(
+  () => import("react-date-range").then((m) => m.Calendar),
+  { ssr: false }
+);
 
 /**
  * @param {Date|null}   date         - controlled date value

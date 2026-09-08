@@ -12,6 +12,17 @@ export const checkMaintenanceMode = (configData) => {
   return !!(isMaintenanceMode && configData?.maintenance_mode);
 };
 
+const fetchConfig = (language) =>
+  fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/v1/config`, {
+    method: "GET",
+    headers: {
+      "X-software-id": 33571750,
+      "X-server": "server",
+      "X-localization": language,
+      origin: process.env.NEXT_CLIENT_HOST_URL,
+    },
+  });
+
 export const getCommonServerSideProps = async (
   context,
   pageName,
@@ -20,18 +31,12 @@ export const getCommonServerSideProps = async (
   const { req, res } = context;
   const language = req.cookies.languageSetting;
 
-  const configRes = await fetch(
-    `${process.env.NEXT_PUBLIC_BASE_URL}/api/v1/config`,
-    {
-      method: "GET",
-      headers: {
-        "X-software-id": 33571750,
-        "X-server": "server",
-        "X-localization": language,
-        origin: process.env.NEXT_CLIENT_HOST_URL,
-      },
-    }
-  );
+  // Config and page metadata are independent documents — start both
+  // requests in parallel instead of paying two sequential round-trips.
+  const [configRes, metaData] = await Promise.all([
+    fetchConfig(language),
+    fetchPageMetadata(pageName, pageId, language),
+  ]);
   const config = await configRes.json();
 
   if (
@@ -47,7 +52,6 @@ export const getCommonServerSideProps = async (
     };
   }
 
-  const metaData = await fetchPageMetadata(pageName, pageId, language);
   // Set cache control headers for 1 hour (3600 seconds)
   res.setHeader(
     "Cache-Control",

@@ -21,6 +21,11 @@ import RemoveIcon from "@mui/icons-material/Remove";
 import { darkStyles, grayMapStyle } from "../mapColor.js";
 import ModalExtendShrink from "./ModalExtendShrink";
 
+// Stable empty array: @react-google-maps/api reloads the script whenever the
+// `libraries` prop reference changes. We use backend autocomplete (no Places
+// lib needed), so keep a module-scope constant to load the script only once.
+const GOOGLE_MAP_LIBRARIES = [];
+
 const GoogleMapComponent = ({
   setDisablePickButton,
   setLocationEnabled,
@@ -62,7 +67,7 @@ const GoogleMapComponent = ({
       lat: parseFloat(location?.lat),
       lng: parseFloat(location?.lng),
     }),
-    [location?.lng, location?.lng]
+    [location?.lat, location?.lng]
   );
 
   const options = useMemo(
@@ -80,6 +85,7 @@ const GoogleMapComponent = ({
   const { isLoaded } = useJsApiLoader({
     id: "google-map-script",
     googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAP_KEY,
+    libraries: GOOGLE_MAP_LIBRARIES,
   });
 
   const [isMounted, setIsMounted] = useState(false);

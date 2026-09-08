@@ -1,9 +1,10 @@
+import dynamic from "next/dynamic";
 import React, { useEffect, useRef, useState } from "react";
-import ReactPlayer from "react-player";
 import { Stack, IconButton } from "@mui/material";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import PauseIcon from "@mui/icons-material/Pause";
 import ReplayIcon from "@mui/icons-material/Replay";
+const ReactPlayer = dynamic(() => import("react-player"), { ssr: false });
 
 const VideoPlayerWithCenteredControl = ({
   video,

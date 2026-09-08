@@ -22,8 +22,8 @@ export default function useGetUserInfo(handleSuccess, options = {}) {
     // Do not create an anonymous startup query. Authenticated consumers share
     // this key, so React Query still deduplicates profile reads.
     enabled: hasToken,
-    staleTime: 10000,
-    cacheTime: 5000,
+    staleTime: 1000 * 60 * 5, // 5 min - profile rarely changes
+    cacheTime: 1000 * 60 * 10, // 10 min - must be >= staleTime
     onSuccess: handleSuccess,
     onError: onSingleErrorResponse,
     ...options,

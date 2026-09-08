@@ -1,12 +1,16 @@
 const nextConfig = {
   reactStrictMode: true,
-  // Hide Next.js dev-mode indicator (bottom-left "N" badge)
-  devIndicators: {
-    buildActivity: false,
-    appIsrStatus: false,
-  },
+  compress: true,
   experimental: {
     swcPlugins: [],
+    optimizePackageImports: [
+      "@mui/material",
+      "@mui/icons-material",
+      "@mui/system",
+      "@mui/lab",
+      "@emotion/react",
+      "@emotion/styled",
+    ],
   },
   compiler: {
     removeConsole: process.env.NODE_ENV === 'production' ? {
@@ -14,6 +18,8 @@ const nextConfig = {
     } : false,
   },
   images: {
+    formats: ['image/avif', 'image/webp'],
+    minimumCacheTTL: 86400, // 24h CDN cache for optimized images
     remotePatterns: [
       {
         protocol: 'http',

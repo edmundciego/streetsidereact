@@ -1,6 +1,4 @@
 import React, { useEffect, useState } from "react";
-import "firebase/messaging";
-import { fetchToken, onMessageListener } from "../firebase";
 import { toast } from "react-hot-toast";
 import {
   IconButton,
@@ -107,20 +105,40 @@ const PushNotificationLayout = ({
       </IconButton>
     </CustomPaperRefer>
   );
+  // Defer Firebase Messaging SDK until browser is idle so it never blocks
+  // initial render / LCP. Dynamically imports ../firebase (which pulls
+  // firebase/messaging) after idle.
   useEffect(() => {
-    handleFetchToken();
+    let cancelled = false;
+    const load = async () => {
+      try {
+        const { fetchToken } = await import("../firebase");
+        if (!cancelled) await fetchToken(setTokenFound, setFcmToken);
+      } catch {
+        // push unsupported — silently skip
+      }
+    };
+    if (typeof window !== "undefined") {
+      if ("requestIdleCallback" in window) {
+        const id = window.requestIdleCallback(load, { timeout: 4000 });
+        return () => {
+          cancelled = true;
+          window.cancelIdleCallback?.(id);
+        };
+      }
+      const t = setTimeout(load, 2500);
+      return () => {
+        cancelled = true;
+        clearTimeout(t);
+      };
+    }
   }, []);
 
-  const handleFetchToken = async () => {
-    await fetchToken(setTokenFound, setFcmToken);
-  };
-
   useEffect(() => {
-    if (typeof window !== undefined) {
+    if (typeof window !== "undefined") {
       setUserToken(localStorage.getItem("token"));
-      //userToken = window.localStorage.getItem('token')
     }
-  }, [userToken]);
+  }, []);
 
   //const userToken=localStorage.getItem("token")
   const { mutate } = useStoreFcm();
@@ -160,13 +178,22 @@ const PushNotificationLayout = ({
     }
   };
 
+  // Listen for foreground messages once (firebase lazily loaded)
   useEffect(() => {
-    onMessageListener()
+    let cancelled = false;
+    import("../firebase")
+      .then(({ onMessageListener }) => onMessageListener())
       .then((payload) => {
-        setNotification(payload.data);
-        // toast.success(payload.data.title)
+        if (!cancelled && payload?.data) setNotification(payload.data);
       })
-      .catch((err) => toast(err));
+      .catch(() => {}); // push unsupported — skip
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Render toast when a notification arrives
+  useEffect(() => {
     if (notification) {
       if (pathName === "chat" && notification.type === "message") {
         refetch();

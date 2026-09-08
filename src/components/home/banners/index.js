@@ -5,7 +5,7 @@ import { Grid, Skeleton, styled, useMediaQuery, useTheme } from "@mui/material";
 import { Box } from "@mui/system";
 import { useRouter } from "next/router";
 import { useDispatch, useSelector } from "react-redux";
-import Slider from "react-slick";
+import Slider from "components/common/LazySlider";
 import "slick-carousel/slick/slick-theme.css";
 import "slick-carousel/slick/slick.css";
 import useGetBanners from "../../../api-manage/hooks/react-query/useGetBanners";

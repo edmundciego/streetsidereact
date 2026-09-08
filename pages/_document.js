@@ -2,6 +2,7 @@ import { Children } from "react";
 import Document, { Head, Html, Main, NextScript } from "next/document";
 import createEmotionServer from "@emotion/server/create-instance";
 import createEmotionCache from "../src/utils/create-emotion-cache";
+import { LRUCache } from "lru-cache";
 
 class CustomDocument extends Document {
   render() {
@@ -205,6 +206,44 @@ class CustomDocument extends Document {
   }
 }
 
+// Analytics scripts change rarely — cache the config across requests so the
+// same network round-trip doesn't block every SSR render. A short timeout
+// prevents a slow backend from stalling HTML delivery.
+const ANALYTICS_CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes
+const analyticsConfigCache = new LRUCache({ max: 10, ttl: ANALYTICS_CACHE_TTL_MS });
+
+const fetchAnalyticsConfig = async () => {
+  const cached = analyticsConfigCache.get("config");
+  if (cached) return cached;
+
+  let analyticsConfig = {};
+  try {
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://yourdomain.com";
+    const res = await fetch(`${baseUrl}/api/v1/config/get-analytic-scripts`, {
+      headers: {
+        "X-software-id": 33571750,
+        "X-server": "server",
+        origin: process.env.NEXT_CLIENT_HOST_URL || "http://localhost:3000",
+      },
+      // AbortSignal.timeout requires Node 17.3+; Next.js 15 requires Node 18.17+
+      signal: AbortSignal.timeout(3000),
+    });
+    const data = await res.json();
+    if (Array.isArray(data)) {
+      data.forEach((item) => {
+        if (item.type && item.script_id)
+          analyticsConfig[item.type] = item.script_id;
+      });
+    }
+    // Only cache successful responses so a transient backend failure is
+    // retried on the next request instead of being remembered.
+    analyticsConfigCache.set("config", analyticsConfig);
+  } catch (err) {
+    console.error("Error fetching analytics config:", err);
+  }
+  return analyticsConfig;
+};
+
 CustomDocument.getInitialProps = async (ctx) => {
   const originalRenderPage = ctx.renderPage;
   const cache = createEmotionCache();
@@ -225,28 +264,8 @@ CustomDocument.getInitialProps = async (ctx) => {
     />
   ));
 
-  // 🛠 Fetch analytics config server-side
-  let analyticsConfig = {};
-  try {
-    const baseUrl =
-      process.env.NEXT_PUBLIC_BASE_URL || "https://yourdomain.com";
-    const res = await fetch(`${baseUrl}/api/v1/config/get-analytic-scripts`, {
-      headers: {
-        "X-software-id": 33571750,
-        "X-server": "server",
-        origin: process.env.NEXT_CLIENT_HOST_URL || "http://localhost:3000",
-      },
-    });
-    const data = await res.json();
-    if (Array.isArray(data)) {
-      data.forEach((item) => {
-        if (item.type && item.script_id)
-          analyticsConfig[item.type] = item.script_id;
-      });
-    }
-  } catch (err) {
-    console.error("Error fetching analytics config:", err);
-  }
+  // 🛠 Fetch analytics config server-side (cached across requests)
+  const analyticsConfig = await fetchAnalyticsConfig();
 
   return {
     ...initialProps,

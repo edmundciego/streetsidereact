@@ -8,7 +8,7 @@ import {
 } from "styled-components/CustomStyles.style";
 import { Skeleton, Typography } from "@mui/material";
 import { useSelector } from "react-redux";
-import Slider from "react-slick";
+import Slider from "components/common/LazySlider";
 import { useGetFeaturedCategories } from "api-manage/hooks/react-query/all-category/all-categorys";
 import { getCurrentModuleType } from "helper-functions/getCurrentModuleType";
 import { ModuleTypes } from "helper-functions/moduleTypes";

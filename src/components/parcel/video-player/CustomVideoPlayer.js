@@ -1,7 +1,8 @@
+import dynamic from 'next/dynamic';
 import React, { useState, useRef } from 'react';
-import ReactPlayer from 'react-player';
 import { IconButton, useMediaQuery, useTheme } from '@mui/material';
 import { CustomStackFullWidthVideo, PauseButton, PlayButton, PlayButtonWrapper, PlayButtonWrapperInside } from './CustomVideoPlayerStyles.style';
+const ReactPlayer = dynamic(() => import('react-player'), { ssr: false });
 
 const CustomVideoPlayer = ({ videoUrl }) => {
   const theme = useTheme();

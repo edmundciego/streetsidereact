@@ -7,7 +7,7 @@ import {
   Tooltip,
   useMediaQuery,
 } from "@mui/material";
-import Picker from "emoji-picker-react";
+import dynamic from "next/dynamic";
 import { toast } from "react-hot-toast";
 import { t } from "i18next";
 import ChatImage from "./ChatImage";
@@ -23,6 +23,7 @@ import { useGetOrderCancelReason } from "api-manage/hooks/react-query/order/useG
 import { makeStyles } from "@mui/styles";
 
 import Loading from "components/custom-loading/Loading";
+const Picker = dynamic(() => import("emoji-picker-react"), { ssr: false });
 const useStyles = makeStyles((theme) => ({
   popover: {
     pointerEvents: "none",

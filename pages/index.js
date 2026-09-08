@@ -13,13 +13,12 @@ import { checkMaintenanceMode } from "../src/utils/serverSidePropsHelper";
 
 const Root = (props) => {
   const { configData, landingPageData } = props;
-  const { data, refetch } = useGetLandingPage();
+  // SSR already fetched both documents in getServerSideProps — seed the
+  // queries instead of refetching the same payloads on mount (config is
+  // cached forever server-side; landing page is the uncached fan-out).
+  const { data } = useGetLandingPage({ initialData: landingPageData });
   const dispatch = useDispatch();
-  const { data: dataConfig, refetch: configRefetch } = useGetConfigData();
-  useEffect(() => {
-    configRefetch();
-    refetch();
-  }, []);
+  const { data: dataConfig } = useGetConfigData({ initialData: configData });
   useEffect(() => {
     dispatch(setLandingPageData(data));
     if (dataConfig) {
@@ -31,10 +30,6 @@ const Root = (props) => {
     }
   }, [dataConfig, data]);
   let lanDirection = undefined;
-
-  if (typeof window !== "undefined") {
-    lanDirection = JSON.parse(localStorage.getItem("settings"));
-  }
 
   return (
     <>
@@ -62,19 +57,38 @@ export const getServerSideProps = async (context) => {
   const { req, res } = context;
   const language = req.cookies.languageSetting;
 
-  const configRes = await fetch(
-    `${process.env.NEXT_PUBLIC_BASE_URL}/api/v1/config`,
-    {
+  const configHeaders = {
+    "X-software-id": 33571750,
+    "X-server": "server",
+    "X-localization": language,
+    origin: process.env.NEXT_CLIENT_HOST_URL,
+  };
+  const landingHeaders = {
+    "X-software-id": 33571750,
+    "X-server": "server",
+    "X-localization": language,
+    origin: process.env.NEXT_CLIENT_HOST_URL,
+  };
+
+  // Config and the landing-page CMS document are independent — start both
+  // requests in parallel instead of paying two sequential round-trips.
+  // (In the rare maintenance-mode case the landing request is wasted, but
+  // the redirect is still served immediately once config resolves.)
+  const [configSettled, landingSettled] = await Promise.allSettled([
+    fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/v1/config`, {
       method: "GET",
-      headers: {
-        "X-software-id": 33571750,
-        "X-server": "server",
-        "X-localization": language,
-        origin: process.env.NEXT_CLIENT_HOST_URL,
-      },
-    },
-  );
-  const config = await configRes.json();
+      headers: configHeaders,
+    }),
+    fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/v1/react-landing-page`, {
+      method: "GET",
+      headers: landingHeaders,
+    }),
+  ]);
+
+  if (configSettled.status === "rejected") {
+    throw configSettled.reason;
+  }
+  const config = await configSettled.value.json();
 
   if (checkMaintenanceMode(config)) {
     return {
@@ -85,19 +99,10 @@ export const getServerSideProps = async (context) => {
     };
   }
 
-  const landingPageRes = await fetch(
-    `${process.env.NEXT_PUBLIC_BASE_URL}/api/v1/react-landing-page`,
-    {
-      method: "GET",
-      headers: {
-        "X-software-id": 33571750,
-        "X-server": "server",
-        "X-localization": language,
-        origin: process.env.NEXT_CLIENT_HOST_URL,
-      },
-    },
-  );
-  const landingPageData = await landingPageRes.json();
+  if (landingSettled.status === "rejected") {
+    throw landingSettled.reason;
+  }
+  const landingPageData = await landingSettled.value.json();
   // Set cache control headers for 1 hour (3600 seconds)
   res.setHeader(
     "Cache-Control",

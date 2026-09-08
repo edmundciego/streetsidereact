@@ -38,7 +38,7 @@ export function useGetLatestStoreByInfiniteStore(pageParams) {
       retry: 3,
       enabled: false,
       onError: onSingleErrorResponse,
-      cacheTime: "0",
+      cacheTime: 0,
     }
   );
 }

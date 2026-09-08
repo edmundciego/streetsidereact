@@ -1,4 +1,4 @@
-import { useTheme } from "@emotion/react";
+import { useTheme } from "@mui/material/styles";
 import { Clear } from "@mui/icons-material";
 import { Box, Dialog, Drawer, Stack, useMediaQuery } from "@mui/material";
 import PropTypes from "prop-types";
@@ -25,7 +25,8 @@ const CustomModal = (props) => {
     }
   };
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down("md"));
+  // SSR-safe fallback (see RouteLinks): raw query string when no provider.
+  const isMobile = useMediaQuery(theme?.breakpoints?.down("md") ?? "(max-width:900px)");
 
   const closeButtonNode = closeButton && (
     <Stack direction="row" justifyContent="flex-end">
@@ -33,7 +34,7 @@ const CustomModal = (props) => {
         onClick={handleCloseModal}
         sx={{
           cursor: "pointer",
-          color: theme.palette.text.primary,
+          color: theme?.palette?.text?.primary,
           mt: 1.3,
           mr: 1.3,
         }}

@@ -1,4 +1,4 @@
-import { useTheme } from "@emotion/react";
+import { useTheme } from "@mui/material/styles";
 import {
   Button,
   Stack,
@@ -32,6 +32,7 @@ export const CustomButton = styled(Button)(({ theme, graybackground }) => ({
 }));
 const AppLinks = (props) => {
   const { graybackground, landingPageData, align = "center" } = props;
+  // SSR-safe: useTheme() is null on first server render (see RouteLinks).
   const theme = useTheme();
 
   let language_direction;
@@ -67,7 +68,7 @@ const AppLinks = (props) => {
           <Typography
             sx={{
               fontSize: { xs: "8px", sm: "10px", md: "11px" },
-              color: theme.palette.whiteContainer.main,
+              color: theme?.palette?.whiteContainer?.main,
               lineHeight: { xs: "10px", sm: "13px", md: "10px" },
             }}
           >
@@ -78,7 +79,7 @@ const AppLinks = (props) => {
               fontWeight: 600,
               fontSize: { xs: "10px", sm: "13px", md: "12px" },
             }}
-            color={theme.palette.whiteContainer.main}
+            color={theme?.palette?.whiteContainer?.main}
           >
             Google Play
           </Typography>
@@ -111,7 +112,7 @@ const AppLinks = (props) => {
           <Typography
             sx={{
               fontSize: { xs: "8px", sm: "10px", md: "11px" },
-              color: theme.palette.whiteContainer.main,
+              color: theme?.palette?.whiteContainer?.main,
               lineHeight: { xs: "10px", sm: "13px", md: "10px" },
             }}
           >
@@ -122,7 +123,7 @@ const AppLinks = (props) => {
               fontWeight: 700,
               fontSize: { xs: "10px", sm: "12px", md: "12px" },
             }}
-            color={theme.palette.whiteContainer.main}
+            color={theme?.palette?.whiteContainer?.main}
           >
             {t("App Store")}
           </Typography>
