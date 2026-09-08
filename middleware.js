@@ -83,6 +83,6 @@ export function middleware(request) {
 
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.sw\\.js|firebase-messaging-sw\\.js|workbox-.*\\.js|.*\\.(?:png|jpg|jpeg|gif|svg|ico|webp|woff|woff2|ttf|otf|eot|mp4|webm|mp3|wav|pdf|zip)).*)",
+    "/((?!_next/static|_next/image|favicon.ico|sw\\.js|.*\\.sw\\.js|firebase-messaging-sw\\.js|workbox-.*\\.js|.*\\.(?:png|jpg|jpeg|gif|svg|ico|webp|woff|woff2|ttf|otf|eot|mp4|webm|mp3|wav|pdf|zip)).*)",
   ],
 };
