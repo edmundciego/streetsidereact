@@ -1,6 +1,12 @@
 import "../src/styles/globals.css";
 import "../src/styles/nprogress.css";
-import "@flaticon/flaticon-uicons/css/all/all.css";
+// This app uses regular, solid, and bold UIcons. The all-family sheet also
+// ships thin glyph maps, which are unused and add about 50 KB compressed to
+// every route's shared CSS.
+import "@flaticon/flaticon-uicons/css/bold/all.css";
+import "@flaticon/flaticon-uicons/css/regular/all.css";
+import "@flaticon/flaticon-uicons/css/solid/all.css";
+import "@flaticon/flaticon-uicons/css/brands/all.css";
 import { CacheProvider } from "@emotion/react";
 import { Provider as ReduxProvider } from "react-redux";
 import createEmotionCache from "../src/utils/create-emotion-cache";
