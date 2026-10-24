@@ -6,14 +6,20 @@ import {
   useTheme,
 } from "@mui/material";
 import NewProductCard from "components/cards/newCard/NewProductCard";
-import SliderSectionHeader from "components/common/SliderSectionHeader";
+import CustomSlider from "components/common/CustomSlider";
 import { HomeComponentsWrapper } from "components/home/HomePageComponents";
 import { t } from "i18next";
-import { useRef, useState } from "react";
-import Slider from "react-slick";
-import "slick-carousel/slick/slick.css";
 import { CustomBoxFullWidth } from "styled-components/CustomStyles.style";
 import { useGetRecommendedServices } from "../../service-api-manage/hooks/react-query/recommended-services";
+
+// react-slick breakpoint:X meant "apply for width <= X" (descending); these
+// Swiper breakpoints mean "apply for width >= X" (ascending) - shifted by +1.
+const RECOMMENDED_SERVICES_BREAKPOINTS = {
+  451: { slidesPerView: 1.5 },
+  601: { slidesPerView: 2 },
+  901: { slidesPerView: 2, spaceBetween: 20 },
+  1025: { slidesPerView: 2.5, spaceBetween: 20 },
+};
 
 // ─── Styled ────────────────────────────────────────────────────────────────
 
@@ -42,85 +48,49 @@ const SliderWrapper = styled(CustomBoxFullWidth)(({ theme }) => ({
 const RecommendedServices = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
-  const slider = useRef(null);
-  const [currentSlide, setCurrentSlide] = useState(0);
 
   const { data } = useGetRecommendedServices({ offset: 1, type: "all" });
 
   const items = data?.services ?? [];
-
-  const enhancedSettings = {
-    dots: false,
-    infinite: false,
-    speed: 500,
-    slidesToShow: 2.5,
-    slidesToScroll: 1,
-    arrows: false,
-    responsive: [
-      {
-        breakpoint: 1450,
-        settings: { slidesToShow: 2.5, slidesToScroll: 1, infinite: false },
-      },
-      {
-        breakpoint: 1024,
-        settings: { slidesToShow: 2, slidesToScroll: 1, infinite: false },
-      },
-      {
-        breakpoint: 600,
-        settings: { slidesToShow: 1.5, slidesToScroll: 1, infinite: false },
-      },
-      {
-        breakpoint: 450,
-        settings: { slidesToShow: 1, slidesToScroll: 1, infinite: false },
-      },
-    ],
-  };
 
   if (!items.length) return null;
 
   return (
     <SectionWrapper>
       <HomeComponentsWrapper sx={{ gap: "1rem" }}>
-        <SliderSectionHeader
-          sliderRef={slider}
-          currentSlide={currentSlide}
-          totalSlides={items.length}
-          slidesToShow={3}
-          sx={{ mb: "1rem" }}
-          heading={
-            <Typography
-              sx={{
-                fontSize: { xs: "18px", md: "24px" },
-                fontWeight: 700,
-                color: "neutral.1050",
-                lineHeight: 1.1,
-                letterSpacing: "-1.2px",
-              }}
-            >
-              {t("Recommended Services Nearby")}
-            </Typography>
-          }
-        />
         <SliderWrapper>
-          <Slider
-            {...enhancedSettings}
-            ref={slider}
-            afterChange={(idx) => setCurrentSlide(idx)}
-          >
-            {items.map((item) => (
-              <div key={item.id}>
-                <NewProductCard
-                  max_width="100%"
-                  variant="horizontal"
-                  item={item}
-                  horizontalStyle={{
-                    border: "none",
-                    "&:hover": { boxShadow: "none" },
-                  }}
-                />
-              </div>
-            ))}
-          </Slider>
+          <CustomSlider
+            items={items}
+            getKey={(item) => item.id}
+            renderItem={(item) => (
+              <NewProductCard
+                max_width="100%"
+                variant="horizontal"
+                item={item}
+                horizontalStyle={{
+                  border: "none",
+                  "&:hover": { boxShadow: "none" },
+                }}
+              />
+            )}
+            arrowVariant="section"
+            title={
+              <Typography
+                sx={{
+                  fontSize: { xs: "18px", md: "24px" },
+                  fontWeight: 700,
+                  color: "neutral.1050",
+                  lineHeight: 1.1,
+                  letterSpacing: "-1.2px",
+                }}
+              >
+                {t("Recommended Services Nearby")}
+              </Typography>
+            }
+            slidesPerView={1}
+            spaceBetween={16}
+            breakpoints={RECOMMENDED_SERVICES_BREAKPOINTS}
+          />
         </SliderWrapper>
       </HomeComponentsWrapper>
     </SectionWrapper>

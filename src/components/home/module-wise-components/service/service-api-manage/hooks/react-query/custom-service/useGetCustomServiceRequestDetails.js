@@ -1,6 +1,7 @@
 import MainApi from "api-manage/MainApi";
 import { useQuery } from "react-query";
 import { onSingleErrorResponse } from "api-manage/api-error-response/ErrorResponses";
+import { getApiContent } from "api-manage/getApiContent";
 
 // GET /api/v1/service/custom-requests/{id}
 const CUSTOM_REQUESTS_API = "/api/v1/service/custom-requests";
@@ -9,9 +10,10 @@ const getData = async ({ id, limit, offset }) => {
   const params = new URLSearchParams();
   params.set("limit", String(limit ?? 20));
   params.set("offset", String(offset ?? 1));
-  const { data } = await MainApi.get(
+  const { data: __env } = await MainApi.get(
     `${CUSTOM_REQUESTS_API}/${id}?${params.toString()}`
   );
+  const data = getApiContent(__env);
   return data;
 };
 

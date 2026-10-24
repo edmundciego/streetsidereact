@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import { useSelector } from "react-redux";
 import { CustomBoxFullWidth } from "styled-components/CustomStyles.style";
 import {
@@ -12,9 +12,7 @@ import {
 } from "@mui/material";
 import CustomModal from "components/modal";
 import { t } from "i18next";
-import Slider from "react-slick";
-import "slick-carousel/slick/slick.css";
-import SliderSectionHeader from "components/common/SliderSectionHeader";
+import CustomSlider from "components/common/CustomSlider";
 import CartStoreCard from "components/cards/newCard/CartStoreCard";
 import { getAmountWithSign } from "helper-functions/CardHelpers";
 import useGetLastOrders from "api-manage/hooks/react-query/order/useGetLastOrders";
@@ -66,31 +64,17 @@ const Container = styled(Box)(({ theme }) => ({
   },
 }));
 
-const SliderWrapper = styled(CustomBoxFullWidth)(({ theme }) => ({
-  "& .slick-track": {
-    marginLeft: 0,
-    marginRight: "auto",
-  },
-  "& .slick-slide": {
-    paddingRight: "20px",
-  },
-  "& .slick-slide:first-child": {
-    paddingLeft: 0,
-  },
-  "& .slick-slide > div > *": {
-    width: "100% !important",
-  },
-  [theme.breakpoints.down("sm")]: {
-    "& .slick-slide": { paddingRight: "12px" },
-  },
-}));
+// CartStoreCard has its own fixed width (280px / 364px for "running"), so
+// the slider sizes slides to the card's real content width via "auto"
+// rather than a computed fractional cell.
+const LAST_ORDERS_GAP_BREAKPOINTS = {
+  901: { spaceBetween: 20 },
+};
 
 // ─── Main ──────────────────────────────────────────────────────────────────
 
 const LastOrdersSection = ({ title, store_id }) => {
   const theme = useTheme();
-  const slider = useRef(null);
-  const [currentSlide, setCurrentSlide] = useState(0);
   const [reorderingId, setReorderingId] = useState(null);
   const [pendingReorder, setPendingReorder] = useState(null); // { orderId, storeName }
 
@@ -182,90 +166,14 @@ const LastOrdersSection = ({ title, store_id }) => {
     return null;
   }
 
-  const sliderSettings = {
-    dots: false,
-    infinite: false,
-    speed: 500,
-    slidesToShow: 3.4,
-    slidesToScroll: 1,
-    swipeToSlide: true,
-    arrows: false,
-    responsive: [
-      {
-        breakpoint: 1450,
-        settings: {
-          slidesToShow: 3.4,
-          slidesToScroll: 1,
-          infinite: false,
-          swipeToSlide: true,
-        },
-      },
-      {
-        breakpoint: 1024,
-        settings: {
-          slidesToShow: 2.4,
-          slidesToScroll: 1,
-          infinite: false,
-          swipeToSlide: true,
-        },
-      },
-      {
-        breakpoint: 760,
-        settings: {
-          slidesToShow: 1.8,
-          slidesToScroll: 1,
-          infinite: false,
-          swipeToSlide: true,
-        },
-      },
-      {
-        breakpoint: 480,
-        settings: {
-          slidesToShow: 1.2,
-          slidesToScroll: 1,
-          infinite: false,
-          swipeToSlide: true,
-        },
-      },
-    ],
-  };
-
   return (
     <>
       <Container>
-        <SliderSectionHeader
-          sliderRef={slider}
-          currentSlide={currentSlide}
-          totalSlides={orders.length}
-          slidesToShow={3.4}
-          heading={
-            <Typography
-              sx={{
-                fontSize: { xs: "18px", md: "24px" },
-                fontWeight: 700,
-                color: "neutral.1050",
-                lineHeight: 1.1,
-                letterSpacing: "-1.2px",
-                whiteSpace: "nowrap",
-              }}
-            >
-              {title ??
-                (getCurrentModuleType() === "rental"
-                  ? t("Your Last Trips")
-                  : t("Your Last Orders"))}
-            </Typography>
-          }
-          sx={{ pr: { xs: "16px", md: "24px" } }}
-        />
-        <SliderWrapper>
-          <Slider
-            {...sliderSettings}
-            ref={slider}
-            afterChange={(idx) => setCurrentSlide(idx)}
-          >
-            {orders.map((order) => (
+        <CustomBoxFullWidth>
+          <CustomSlider
+            items={orders}
+            renderItem={(order) => (
               <CartStoreCard
-                key={order.id}
                 variant="order_placed"
                 store={order.store}
                 items={order.items_preview?.length ? order.items_preview : []}
@@ -275,9 +183,34 @@ const LastOrdersSection = ({ title, store_id }) => {
                 isReordering={reorderingId === order.order_id}
                 showReorder={canReorder}
               />
-            ))}
-          </Slider>
-        </SliderWrapper>
+            )}
+            getKey={(order) => order.id}
+            arrowVariant="section"
+            title={
+              <Typography
+                sx={{
+                  fontSize: { xs: "18px", md: "24px" },
+                  fontWeight: 700,
+                  color: "neutral.1050",
+                  lineHeight: 1.1,
+                  letterSpacing: "-1.2px",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {title ??
+                  (getCurrentModuleType() === "rental"
+                    ? t("Your Last Trips")
+                    : t("Your Last Orders"))}
+              </Typography>
+            }
+            headerSx={{ pr: { xs: "16px", md: "24px" } }}
+            stretchItems={false}
+            allowOverflowY={false}
+            slidesPerView="auto"
+            spaceBetween={16}
+            breakpoints={LAST_ORDERS_GAP_BREAKPOINTS}
+          />
+        </CustomBoxFullWidth>
       </Container>
 
       {/* ── Reorder Confirm Modal ─────────────────────────────────────────── */}

@@ -1,8 +1,9 @@
 import MainApi from "../../MainApi";
 import { useQuery } from "react-query";
 import { moduleList } from "../../ApiRoutes";
+import { getApiList } from "../../getApiContent";
 import { onErrorResponse } from "../../api-error-response/ErrorResponses";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { filterOutRiderShareModules } from "helper-functions/moduleFilter";
 
 const injectServiceModule = (data) => {
@@ -20,7 +21,7 @@ const getModule = async () => {
   const { data } = await MainApi.get(moduleList);
   // return filterOutRiderShareModules(data);
   // return data;
-  return injectServiceModule(data);
+  return injectServiceModule(getApiList(data));
 };
 
 const normalizeZoneIdForKey = (zoneId) => {
@@ -69,38 +70,37 @@ export default function useGetModule() {
     if (typeof window === "undefined") return;
 
     const updateZoneIds = () => {
-      setZoneIdsKey((prev) => {
-        const next = getZoneIdsKeyFromStorage();
-        return prev === next ? prev : next;
-      });
+      setZoneIdsKey(getZoneIdsKeyFromStorage());
     };
 
     updateZoneIds();
     window.addEventListener("storage", updateZoneIds);
     window.addEventListener("focus", updateZoneIds);
-    // Custom event fired by zone setters (see setZoneId helpers) so we
-    // update instantly without 1s polling. Keeps state in sync with
-    // zero idle CPU cost.
-    window.addEventListener("zoneid-changed", updateZoneIds);
+    const intervalId = window.setInterval(updateZoneIds, 1000);
 
     return () => {
       window.removeEventListener("storage", updateZoneIds);
       window.removeEventListener("focus", updateZoneIds);
-      window.removeEventListener("zoneid-changed", updateZoneIds);
+      window.clearInterval(intervalId);
     };
   }, []);
 
   const query = useQuery(["module-list", zoneIdsKey], getModule, {
     enabled: false,
-    staleTime: 1000 * 60 * 5, // modules rarely change
-    cacheTime: 1000 * 60 * 10,
-    refetchOnWindowFocus: false,
     onError: onErrorResponse,
   });
   const { refetch } = query;
 
+  // Refresh when the user's zone actually CHANGES — not on mount. Every caller
+  // already decides for itself whether it needs the module list (MainLayout,
+  // for instance, only wants it on /home), and firing here on mount overrode
+  // those gates: `enabled: false` was meaningless because refetch() ignores it,
+  // so the module list was requested on every page that renders the layout.
+  const previousZoneIdsKey = useRef(zoneIdsKey);
   useEffect(() => {
-    if (!zoneIdsKey) return;
+    const changed = previousZoneIdsKey.current !== zoneIdsKey;
+    previousZoneIdsKey.current = zoneIdsKey;
+    if (!changed || !zoneIdsKey) return;
     refetch();
   }, [zoneIdsKey, refetch]);
 

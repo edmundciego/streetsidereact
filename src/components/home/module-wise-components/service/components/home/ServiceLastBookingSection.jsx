@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import { useSelector } from "react-redux";
 import {
   Box,
@@ -10,10 +10,8 @@ import {
   useTheme,
 } from "@mui/material";
 import { t } from "i18next";
-import Slider from "react-slick";
-import "slick-carousel/slick/slick.css";
+import CustomSlider from "components/common/CustomSlider";
 import CustomModal from "components/modal";
-import SliderSectionHeader from "components/common/SliderSectionHeader";
 import CartStoreCard from "components/cards/newCard/CartStoreCard";
 import useGetServiceLastBookings from "components/home/module-wise-components/service/service-api-manage/hooks/react-query/booking/useGetServiceLastBookings";
 import usePostServiceRebook, {
@@ -55,31 +53,17 @@ const Container = styled(Box)(({ theme }) => ({
   },
 }));
 
-const SliderWrapper = styled(CustomBoxFullWidth)(({ theme }) => ({
-  "& .slick-track": {
-    marginLeft: 0,
-    marginRight: "auto",
-  },
-  "& .slick-slide": {
-    paddingRight: "20px",
-  },
-  "& .slick-slide:first-child": {
-    paddingLeft: 0,
-  },
-  "& .slick-slide > div > *": {
-    width: "100% !important",
-  },
-  [theme.breakpoints.down("sm")]: {
-    "& .slick-slide": { paddingRight: "12px" },
-  },
-}));
+// CartStoreCard has its own fixed width (280px / 364px for "running"), so
+// the slider sizes slides to the card's real content width via "auto"
+// rather than a computed fractional cell.
+const LAST_BOOKING_GAP_BREAKPOINTS = {
+  901: { spaceBetween: 20 },
+};
 
 // ─── Main ──────────────────────────────────────────────────────────────────
 
 const ServiceLastBookingSection = ({ title, store_id }) => {
   const theme = useTheme();
-  const slider = useRef(null);
-  const [currentSlide, setCurrentSlide] = useState(0);
   const [reorderingId, setReorderingId] = useState(null);
   const [pendingReorder, setPendingReorder] = useState(null); // { orderId, storeName }
   const { cartList } = useSelector((state) => state.cart);
@@ -112,8 +96,6 @@ const ServiceLastBookingSection = ({ title, store_id }) => {
       placedDate: formatTripDate(row.created_at),
     }));
   }, [data]);
-
-  console.log({ orders, data });
 
   const { mutate: rebookMutate } = usePostServiceRebook();
 
@@ -168,87 +150,15 @@ const ServiceLastBookingSection = ({ title, store_id }) => {
     return null;
   }
 
-  const sliderSettings = {
-    dots: false,
-    infinite: false,
-    speed: 500,
-    slidesToShow: 3.4,
-    slidesToScroll: 1,
-    swipeToSlide: true,
-    arrows: false,
-    responsive: [
-      {
-        breakpoint: 1450,
-        settings: {
-          slidesToShow: 3.4,
-          slidesToScroll: 1,
-          infinite: false,
-          swipeToSlide: true,
-        },
-      },
-      {
-        breakpoint: 1024,
-        settings: {
-          slidesToShow: 2.4,
-          slidesToScroll: 1,
-          infinite: false,
-          swipeToSlide: true,
-        },
-      },
-      {
-        breakpoint: 760,
-        settings: {
-          slidesToShow: 1.8,
-          slidesToScroll: 1,
-          infinite: false,
-          swipeToSlide: true,
-        },
-      },
-      {
-        breakpoint: 480,
-        settings: {
-          slidesToShow: 1.2,
-          slidesToScroll: 1,
-          infinite: false,
-          swipeToSlide: true,
-        },
-      },
-    ],
-  };
-
   return (
     <>
       <Container>
-        <SliderSectionHeader
-          sliderRef={slider}
-          currentSlide={currentSlide}
-          totalSlides={orders.length}
-          slidesToShow={3.4}
-          heading={
-            <Typography
-              sx={{
-                fontSize: { xs: "18px", md: "24px" },
-                fontWeight: 700,
-                color: "neutral.1050",
-                lineHeight: 1.1,
-                letterSpacing: "-1.2px",
-                whiteSpace: "nowrap",
-              }}
-            >
-              {title ?? t("Your Previous Booking")}
-            </Typography>
-          }
-          sx={{ pr: { xs: "16px", md: "24px" } }}
-        />
-        <SliderWrapper>
-          <Slider
-            {...sliderSettings}
-            ref={slider}
-            afterChange={(idx) => setCurrentSlide(idx)}
-          >
-            {orders.map((order) => (
+        <CustomBoxFullWidth>
+          <CustomSlider
+            items={orders}
+            getKey={(order) => order.id}
+            renderItem={(order) => (
               <CartStoreCard
-                key={order.id}
                 variant="order_placed"
                 store={order.store}
                 items={order.services?.length ? order.services : []}
@@ -258,9 +168,30 @@ const ServiceLastBookingSection = ({ title, store_id }) => {
                 onReorder={() => handleReorderClick(order)}
                 showReorder={canRebook}
               />
-            ))}
-          </Slider>
-        </SliderWrapper>
+            )}
+            arrowVariant="section"
+            title={
+              <Typography
+                sx={{
+                  fontSize: { xs: "18px", md: "24px" },
+                  fontWeight: 700,
+                  color: "neutral.1050",
+                  lineHeight: 1.1,
+                  letterSpacing: "-1.2px",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {title ?? t("Your Previous Booking")}
+              </Typography>
+            }
+            headerSx={{ pr: { xs: "16px", md: "24px" } }}
+            stretchItems={false}
+            allowOverflowY={false}
+            slidesPerView="auto"
+            spaceBetween={16}
+            breakpoints={LAST_BOOKING_GAP_BREAKPOINTS}
+          />
+        </CustomBoxFullWidth>
       </Container>
 
       {/* ── Reorder Confirm Modal ─────────────────────────────────────────── */}

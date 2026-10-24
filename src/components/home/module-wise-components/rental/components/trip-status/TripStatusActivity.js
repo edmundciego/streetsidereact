@@ -7,10 +7,12 @@ import { Box } from "@mui/system";
 import { getReachedTime } from "components/home/module-wise-components/rental/components/trip-status/tripstatusHelper";
 import moment from "moment";
 import { getAmountWithSign } from "helper-functions/CardHelpers";
+import { formatDistanceWithUnit } from "helper-functions/formatDistanceWithUnit";
+import { useSelector } from "react-redux";
 import giftbox from "../../asset/success.gif";
 import loadingGif from "../../asset/loading.gif";
 
-const getStatusConfig = (tripDetails) => ({
+const getStatusConfig = (tripDetails, configData) => ({
   pending: {
     text: (
       <Typography
@@ -196,7 +198,10 @@ const getStatusConfig = (tripDetails) => ({
               {tripDetails?.trip_type === "day_wise" ? <Typography fontWeight="700">
                 {tripDetails?.estimated_hours/24} days
               </Typography>: <Typography fontWeight="700">
-                {tripDetails?.distance?.toFixed(1)} Km
+                {formatDistanceWithUnit(
+                  tripDetails?.distance,
+                  configData
+                )}
               </Typography>}
             </Stack>
           </Stack>
@@ -281,7 +286,8 @@ const getStatusConfig = (tripDetails) => ({
 });
 
 const TripStatusActivity = ({ status = "destination", tripDetails }) => {
-  const STATUS_CONFIG = getStatusConfig(tripDetails);
+  const { configData } = useSelector((state) => state.configData);
+  const STATUS_CONFIG = getStatusConfig(tripDetails, configData);
   const { text, content } = STATUS_CONFIG[status] || {
     text: t("Unknown status."),
     content: null,

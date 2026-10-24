@@ -1,10 +1,8 @@
 import React from "react";
 import { Skeleton, styled, useMediaQuery, useTheme } from "@mui/material";
 import { Box } from "@mui/system";
-import Slider from "react-slick";
+import CustomSlider from "components/common/CustomSlider";
 import Link from "next/link";
-import "slick-carousel/slick/slick-theme.css";
-import "slick-carousel/slick/slick.css";
 import {
   CustomStackFullWidth,
   SliderCustom,
@@ -51,35 +49,17 @@ const RentalBanner = () => {
     return 3.1;
   };
 
-  const settings = {
-    dots: true,
-    infinite: false,
-    slidesToShow: getBannerCount(),
-    slidesToScroll: 1,
-    swipeToSlide: true,
-    autoplay: true,
-    speed: 800,
-    autoplaySpeed: 4000,
-    cssEase: "linear",
-    responsive: [
-      {
-        breakpoint: 600,
-        settings: {
-          slidesToShow: 1.15,
-          slidesToScroll: 1,
-          swipeToSlide: true,
-          infinite: false,
-          autoplay: false,
-        },
-      },
-    ],
+  // react-slick breakpoint:600 meant "apply for width <= 600" (descending);
+  // this Swiper breakpoint means "apply for width >= 601" (ascending).
+  const bannerBreakpoints = {
+    601: { slidesPerView: getBannerCount() },
   };
 
   // ── Business logic preserved (unchanged from the original RentalBanner) ──
   //   store_wise → rental provider page
   //   link       → external/internal link
   //   else       → no redirect
-  const renderBanner = (item, index) => {
+  const renderBanner = (item) => {
     const isClickable = item?.type === "store_wise" || !!item?.link;
 
     const banner = (
@@ -97,92 +77,80 @@ const RentalBanner = () => {
 
     if (item?.type === "store_wise") {
       return (
-        <Link
-          key={index}
-          href={`/rental/provider/${item?.slug || item?.provider_id}`}
-        >
+        <Link href={`/rental/provider/${item?.slug || item?.provider_id}`}>
           {banner}
         </Link>
       );
     }
 
     if (item?.link) {
-      return (
-        <Link key={index} href={item?.link || ""}>
-          {banner}
-        </Link>
-      );
+      return <Link href={item?.link || ""}>{banner}</Link>;
     }
 
-    return <Box key={index}>{banner}</Box>;
+    return <Box>{banner}</Box>;
   };
 
   return (
     <CustomStackFullWidth
       sx={{
         mt: { xs: 0, sm: "10px" },
-        pl: { xs: "16px", sm: "20px", md: "10px" },
-        "& .slick-track": { marginLeft: 0 },
-        "& .slick-list": {
-          marginRight: "-16px",
-        },
-        "& .slick-slide": {
-          paddingRight: "16px !important",
-        },
-        "& .slick-dots": {
+        "& .swiper-pagination": {
           position: "static",
-          marginTop: { xs: 0, sm: "10px" },
+          marginTop: { xs: "8px", sm: "10px" },
           display: "flex !important",
           justifyContent: "center",
           alignItems: "center",
           gap: "6px",
-          "& li": {
-            width: 8,
-            height: 8,
-            margin: 0,
-            display: "flex",
-          },
-          "& li button": {
-            width: 8,
-            height: 8,
-            padding: 0,
-          },
-          "& li button:before": {
-            content: '""',
-            width: 8,
-            height: 8,
-            top: 0,
-            left: 0,
-            borderRadius: "50%",
-            backgroundColor: (theme) =>
-              theme.palette.action?.disabled || "#C7C7CC",
-            opacity: 1,
-            fontSize: 0,
-            lineHeight: 0,
-          },
-          "& li.slick-active button:before": {
-            backgroundColor: "primary.main",
-            opacity: 1,
-            transform: "scale(1.1)",
-          },
+        },
+        "& .swiper-pagination-bullet": {
+          width: 8,
+          height: 8,
+          margin: "0 !important",
+          borderRadius: "50%",
+          backgroundColor: (theme) =>
+            theme.palette.action?.disabled || "#C7C7CC",
+          opacity: 1,
+        },
+        "& .swiper-pagination-bullet-active": {
+          backgroundColor: "primary.main",
+          opacity: 1,
+          transform: "scale(1.1)",
         },
         marginInlineStart: { xs: 0, sm: "-8px" },
       }}
     >
       {isLoading ? (
-        <Slider {...settings}>
-          {[...Array(2)].map((_, index) => (
-            <BannersWrapper key={index}>
+        <CustomSlider
+          items={Array.from({ length: 2 })}
+          renderItem={() => (
+            <BannersWrapper>
               <Skeleton variant="rectangular" height="100%" width="100%" />
             </BannersWrapper>
-          ))}
-        </Slider>
+          )}
+          arrowVariant="none"
+          allowOverflowY={false}
+          slidesPerView={1.15}
+          spaceBetween={16}
+          breakpoints={bannerBreakpoints}
+        />
       ) : (
         banners?.length > 0 && (
           <SliderCustom padding="0px">
-            <Slider {...settings}>
-              {banners.map((item, index) => renderBanner(item, index))}
-            </Slider>
+            <CustomSlider
+              items={banners}
+              getKey={(item, index) => index}
+              renderItem={(item) => renderBanner(item)}
+              arrowVariant="none"
+              allowOverflowY={false}
+              showDots
+              loop={banners.length > 1}
+              autoplay={banners.length > 1}
+              autoplayDelay={4000}
+              speed={800}
+              slidesPerView={1.15}
+              spaceBetween={16}
+              breakpoints={bannerBreakpoints}
+            />
           </SliderCustom>
         )
       )}

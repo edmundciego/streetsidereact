@@ -249,7 +249,7 @@ export const CustomSearch = styled("div")(({ theme }) => ({
 export const StyledInputBase = styled(InputBase)(({ theme, width }) => ({
 	color: "inherit",
 	width: "120px",
-	border: "2px solid #EF7822",
+	border: `2px solid ${theme.palette.divider}`, // V1 H8: was hardcoded parcel-orange #EF7822
 	padding: "5px 0",
 	marginLeft: "5px",
 	borderRadius: "5px",
@@ -313,13 +313,13 @@ export const CustomOverlayBox = styled(Box)(({ theme, height, top }) => ({
 }));
 
 export const CustomFab = styled(Fab)(({ theme, module_type }) => ({
-	width: "30px",
-	height: "30px",
-	minHeight: "30px",
+	width: "44px", // V1 H4: was 30px (<44px target)
+	height: "44px", // V1 H4: was 30px (<44px target)
+	minHeight: "44px", // V1 H4: was 30px (<44px target)
 
 	[theme.breakpoints.down("sm")]: {
-		width: "30px",
-		height: "30px",
+		width: "44px",
+		height: "44px",
 	},
 }));
 export const CustomImageContainerStyled = styled(Box)(

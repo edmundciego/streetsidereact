@@ -17,7 +17,7 @@ export const CustomButtonWarning = styled(Button)(({ theme }) => ({
     width: "11.5rem",
   },
   [theme.breakpoints.down("sm")]: {
-    padding: "0.313rem",
+    padding: "10px 16px", // V1 H4: was 0.313rem (≈5px, <44px target)
   },
 }));
 
@@ -33,7 +33,7 @@ export const CustomButtonCancel = styled(Button)(({ theme, width }) => ({
     width: width ? width : "11.5rem",
   },
   [theme.breakpoints.down("sm")]: {
-    padding: "0.313rem",
+    padding: "10px 16px", // V1 H4: was 0.313rem (≈5px, <44px target)
   },
 }));
 
@@ -46,7 +46,7 @@ export const CustomButtonSuccess = styled(LoadingButton)(
       width: width ? width : "11.5rem",
     },
     [theme.breakpoints.down("sm")]: {
-      padding: "0.313rem",
+      padding: "10px 16px", // V1 H4: was 0.313rem (≈5px, <44px target)
     },
     "&:hover": {
       backgroundColor: theme.palette.primary.dark,
@@ -62,7 +62,7 @@ export const CustomButtonGray = styled(Button)(({ theme }) => ({
     width: "11.5rem",
   },
   [theme.breakpoints.down("sm")]: {
-    padding: "0.313rem",
+    padding: "10px 16px", // V1 H4: was 0.313rem (≈5px, <44px target)
   },
   "&:hover": {
     backgroundColor: theme.palette.neutral[400],

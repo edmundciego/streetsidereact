@@ -3,13 +3,14 @@ import { onSingleErrorResponse } from "api-manage/api-error-response/ErrorRespon
 import { trip_list } from "../../../ApiRoutes";
 import { data_limit } from "api-manage/ApiRoutes";
 import MainApi from "api-manage/MainApi";
+import { getApiCollection } from "api-manage/getApiContent";
 
 const getData = async (pageParams) => {
 	const { orderType, offset } = pageParams;
 	const { data } = await MainApi.get(
 		`${trip_list}/${orderType}?limit=${data_limit}&offset=${offset}`
 	);
-	return data;
+	return getApiCollection(data, ["trips"]);
 };
 
 export default function useGetTripList(pageParams) {

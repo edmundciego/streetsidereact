@@ -7,9 +7,7 @@ import { getCurrentModuleType } from "helper-functions/getCurrentModuleType";
 import { ModuleTypes } from "helper-functions/moduleTypes";
 import announcementIcon from "assets/img/announcementIcon.png";
 import NextImage from "components/NextImage";
-import Slider from "components/common/LazySlider";
-import "slick-carousel/slick/slick.css";
-import SliderSectionHeader from "components/common/SliderSectionHeader";
+import CustomSlider from "components/common/CustomSlider";
 import { useRef, useState, useEffect } from "react";
 
 // ─── Background SVG (concentric circles, theme-aware) ─────────────────────
@@ -217,9 +215,7 @@ const GAP = 16; // px gap between cards
 
 const PaidAds = () => {
   const theme = useTheme();
-  const slider = useRef(null);
   const listRef = useRef(null);
-  const [currentSlide, setCurrentSlide] = useState(0);
   const [cardWidth, setCardWidth] = useState(0);
   const { data, isFetched, isLoading } = useGetAdds();
   const ads = Array.isArray(data) ? data : [];
@@ -255,88 +251,9 @@ const PaidAds = () => {
   }, [ads.length]);
   if (isFetched && ads.length === 0) return null;
 
-  // variableWidth lets react-slick lay slides out by their real pixel width, so
-  // however many fit in the container show up (with a natural partial "peek")
-  // — and infinite + autoplay stay perfectly aligned at any screen size.
-  const sliderSettings = {
-    dots: false,
-    arrows: false,
-    infinite: hasMore,
-    autoplay: hasMore,
-    autoplaySpeed: 3000,
-    speed: 500,
-    slidesToShow: 1, // ignored for layout when variableWidth is on
-    slidesToScroll: 1,
-    variableWidth: true,
-    swipeToSlide: true,
-  };
-
   return (
     <Container>
       <BgCircles color={theme.palette.info.blue} />
-
-      <SliderSectionHeader
-        sliderRef={slider}
-        currentSlide={currentSlide}
-        totalSlides={ads.length}
-        slidesToShow={3}
-        sx={{
-          mb: "16px",
-          position: "relative",
-          zIndex: 1,
-          px: { xs: "16px", md: "26px" },
-        }}
-        trailingAfterArrows
-        heading={
-          <Stack
-            direction={{ xs: "column", md: "row" }}
-            alignItems={{ xs: "flex-start", md: "center" }}
-            gap={{ xs: "4px", md: "8px" }}
-          >
-            <Typography
-              sx={{
-                fontSize: { xs: "18px", md: "24px" },
-                fontWeight: 700,
-                color: "neutral.1050",
-                lineHeight: 1.1,
-                letterSpacing: { xs: "-0.54px", md: "-1.2px" },
-                whiteSpace: "nowrap",
-              }}
-            >
-              {getCurrentModuleType() === ModuleTypes.FOOD
-                ? t("Featured Restaurants")
-                : getCurrentModuleType() === ModuleTypes.SERVICE
-                ? t("Featured Providers")
-                : t("Featured Stores")}
-            </Typography>
-            <SponsoredPill>
-              <Typography
-                sx={{
-                  fontSize: "12px",
-                  fontWeight: 400,
-                  color: "customColor.deliveryText",
-                  lineHeight: 1.2,
-                  letterSpacing: "-0.36px",
-                  whiteSpace: "nowrap",
-                }}
-              >
-                {t("Sponsored")}
-              </Typography>
-            </SponsoredPill>
-          </Stack>
-        }
-        trailing={
-          <Box sx={{ width: 40, height: 40, flexShrink: 0 }}>
-            <NextImage
-              src={announcementIcon.src}
-              alt=""
-              width={40}
-              height={40}
-              objectFit="contain"
-            />
-          </Box>
-        }
-      />
 
       {/* Cards row */}
       <Box
@@ -346,9 +263,6 @@ const PaidAds = () => {
           position: "relative",
           zIndex: 1,
           pl: { xs: "16px", md: "26px" },
-          "& .slick-track": { display: "flex", alignItems: "stretch" },
-          "& .slick-slide": { height: "auto" },
-          "& .slick-slide > div": { height: "100%" },
         }}
       >
         {isLoading ? (
@@ -358,26 +272,79 @@ const PaidAds = () => {
             ))}
           </Stack>
         ) : (
-          <Slider
-            key={`ads-slider-${cardWidth}`}
-            {...sliderSettings}
-            ref={slider}
-            afterChange={(idx) => setCurrentSlide(idx)}
-          >
-            {ads.map((ad) => {
+          <CustomSlider
+            items={ads}
+            getKey={(ad) => ad?.store?.id ?? ad?.id}
+            renderItem={(ad) => {
               const w = cardWidth || CARD_WIDTH;
               return (
-                <div
-                  key={ad?.store?.id ?? ad?.id}
-                  style={{ width: `${w + GAP}px` }}
-                >
-                  <Box sx={{ width: `${w}px` }}>
-                    <NewStoreCard variant="ads" ad={ad} />
-                  </Box>
-                </div>
+                <Box sx={{ width: `${w}px` }}>
+                  <NewStoreCard variant="ads" ad={ad} />
+                </Box>
               );
-            })}
-          </Slider>
+            }}
+            arrowVariant="section"
+            title={
+              <Stack
+                direction={{ xs: "column", md: "row" }}
+                alignItems={{ xs: "flex-start", md: "center" }}
+                gap={{ xs: "4px", md: "8px" }}
+              >
+                <Typography
+                  sx={{
+                    fontSize: { xs: "18px", md: "24px" },
+                    fontWeight: 700,
+                    color: "neutral.1050",
+                    lineHeight: 1.1,
+                    letterSpacing: { xs: "-0.54px", md: "-1.2px" },
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {getCurrentModuleType() === ModuleTypes.FOOD
+                    ? t("Featured Restaurants")
+                    : getCurrentModuleType() === ModuleTypes.SERVICE
+                    ? t("Featured Providers")
+                    : t("Featured Stores")}
+                </Typography>
+                <SponsoredPill>
+                  <Typography
+                    sx={{
+                      fontSize: "12px",
+                      fontWeight: 400,
+                      color: "customColor.deliveryText",
+                      lineHeight: 1.2,
+                      letterSpacing: "-0.36px",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {t("Sponsored")}
+                  </Typography>
+                </SponsoredPill>
+              </Stack>
+            }
+            trailing={
+              <Box sx={{ width: 40, height: 40, flexShrink: 0 }}>
+                <NextImage
+                  src={announcementIcon.src}
+                  alt=""
+                  width={40}
+                  height={40}
+                  objectFit="contain"
+                />
+              </Box>
+            }
+            headerSx={{
+              position: "relative",
+              zIndex: 1,
+              pr: { xs: "16px", md: "26px" },
+            }}
+            stretchItems={false}
+            autoplay={hasMore}
+            autoplayDelay={3000}
+            slidesPerView="auto"
+            spaceBetween={GAP}
+            swiperProps={{ rewind: hasMore }}
+          />
         )}
       </Box>
     </Container>

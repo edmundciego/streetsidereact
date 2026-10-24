@@ -11,6 +11,12 @@ import { useTheme } from "@mui/material/styles";
 import { useTranslation } from "react-i18next";
 import CloseIcon from "@mui/icons-material/Close";
 import SocialLogins from "components/auth/sign-in/social-login/SocialLogins";
+import {
+  hasEnabledSocialLogins,
+  isGuestCheckoutEnabled,
+  isManualLoginEnabled,
+  isOtpLoginEnabled,
+} from "helper-functions/loginOptions";
 
 const AuthLanding = ({
   handleClose,
@@ -30,8 +36,13 @@ const AuthLanding = ({
   const theme = useTheme();
   const { t } = useTranslation();
 
-  const hasSocialLogins =
-    configData?.social_login?.length > 0 || configData?.apple_login?.length > 0;
+  // The social_login / apple_login arrays are catalogues the backend always
+  // populates; centralize_login decides what is actually on. Checking length
+  // alone drew the heading and divider above an empty row.
+  const hasSocialLogins = hasEnabledSocialLogins(configData);
+  const showManualLogin = isManualLoginEnabled(configData);
+  const showOtpLogin = isOtpLoginEnabled(configData);
+  const showGuest = isGuestCheckoutEnabled(configData);
 
   const socialProps = {
     socialLogin: configData?.social_login ?? [],
@@ -153,6 +164,7 @@ const AuthLanding = ({
 
             {/* Action buttons */}
             <Stack sx={{ gap: "12px", width: "100%" }}>
+              {showManualLogin && (
               <Button
                 onClick={onSelectPassword}
                 fullWidth
@@ -176,7 +188,9 @@ const AuthLanding = ({
               >
                 {t("Login with Password")}
               </Button>
+              )}
 
+              {showOtpLogin && (
               <Button
                 onClick={onSelectOtp}
                 fullWidth
@@ -200,7 +214,9 @@ const AuthLanding = ({
               >
                 {t("Login with OTP")}
               </Button>
+              )}
 
+              {showGuest && (
               <Button
                 onClick={onGuestContinue}
                 fullWidth
@@ -219,6 +235,7 @@ const AuthLanding = ({
               >
                 {t("Continue as Guest")}
               </Button>
+              )}
             </Stack>
 
             {/* Sign Up prompt */}

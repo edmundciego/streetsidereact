@@ -3,14 +3,16 @@ import { onSingleErrorResponse } from "api-manage/api-error-response/ErrorRespon
 import { useQuery } from "react-query";
 import { service_booking_log_api } from "../../../ApiRoutes";
 import { getGuestId, getToken } from "helper-functions/getToken";
+import { getApiContent } from "api-manage/getApiContent";
 
 // GET /api/v1/service/booking/log/{id} — tracking stepper for a single booking,
 // or the parent + every child occurrence for a repeat booking.
 const getData = async (id) => {
   const guestParam = getToken() ? "" : `?guest_id=${getGuestId()}`;
-  const { data } = await MainApi.get(
+  const { data: __env } = await MainApi.get(
     `${service_booking_log_api}/${id}${guestParam}`
   );
+  const data = getApiContent(__env);
   return data ?? null;
 };
 

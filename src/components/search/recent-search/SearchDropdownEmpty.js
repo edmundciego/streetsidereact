@@ -5,15 +5,12 @@ import { useGetRecommendStores } from "api-manage/hooks/react-query/store/useGet
 import useGetTrendingSearches from "api-manage/hooks/react-query/useGetTrendingSearches";
 import NewStoreCard from "components/cards/newCard/NewStoreCard";
 import ClosedNow from "components/closed-now";
-import { createEnhancedArrows } from "components/common/EnhancedSliderArrows";
 import NextImage from "components/NextImage";
 import { getCurrentModuleType } from "helper-functions/getCurrentModuleType";
 import { getStoreRedirectURL } from "helper-functions/handleStoreRedirect";
 import Link from "next/link";
-import { useMemo, useRef, useState } from "react";
-import Slider from "react-slick";
-import "slick-carousel/slick/slick.css";
-import { CustomBoxFullWidth } from "styled-components/CustomStyles.style";
+import { useMemo } from "react";
+import CustomSlider from "components/common/CustomSlider";
 import useGetTopRatedStores from "api-manage/hooks/react-query/store/useGetTopRatedStores";
 import { ModuleTypes } from "helper-functions/moduleTypes";
 import { useGetRecommendedServices } from "components/home/module-wise-components/service/service-api-manage/hooks/react-query/recommended-services";
@@ -39,66 +36,21 @@ const StoreImageBox = styled(Box)(() => ({
   flexShrink: 0,
 }));
 
-const sliderSettings = (searchFromNav = false, itemCount = 0) => {
-  const slidesToShow = searchFromNav ? 4.8 : 8.2;
-  const canLoop = itemCount >= Math.ceil(slidesToShow);
-  return {
-    dots: false,
-    arrows: false,
-    infinite: false, //canLoop,
-    autoplay: canLoop,
-    autoplaySpeed: 2500,
-    speed: 600,
-    slidesToShow,
-    slidesToScroll: 1,
-    swipeToSlide: true,
-    responsive: [
-      {
-        breakpoint: 600,
-        settings: {
-          slidesToShow: 4.2,
-          slidesToScroll: 1,
-          swipeToSlide: true,
-          infinite: itemCount >= 5,
-          autoplay: itemCount >= 5,
-        },
-      },
-      {
-        breakpoint: 400,
-        settings: {
-          slidesToShow: 3.5,
-          slidesToScroll: 1,
-          swipeToSlide: true,
-          infinite: itemCount >= 4,
-          autoplay: itemCount >= 4,
-        },
-      },
-    ],
-  };
-};
+// react-slick breakpoint:X meant "apply for width <= X" (descending); these
+// Swiper breakpoints mean "apply for width >= X" (ascending) - shifted by +1.
+const topRestaurantsBreakpoints = (searchFromNav = false) => ({
+  401: { slidesPerView: 4.2 },
+  601: { slidesPerView: searchFromNav ? 4.8 : 8.2 },
+});
 
-// Used by FeaturedRestaurantsSection — gap 20px (Figma spec)
-const SliderWrapper = styled(CustomBoxFullWidth)(({ theme }) => ({
-  "& .slick-list": {
-    overflowX: "hidden",
-  },
-  "& .slick-track": {
-    marginLeft: 0,
-    marginRight: "auto",
-  },
-  "& .slick-slide": {
-    paddingRight: "20px",
-  },
-  "& .slick-slide:first-child": {
-    paddingLeft: 0,
-  },
-  "& .slick-slide > div > *": {
-    width: "100% !important",
-  },
-  [theme.breakpoints.down("sm")]: {
-    "& .slick-slide": { paddingRight: "12px" },
-  },
-}));
+const featuredRestaurantsBreakpoints = (searchFromNav = false) => ({
+  341: { slidesPerView: 1.4 },
+  481: { slidesPerView: 2 },
+  696: { slidesPerView: 1 },
+  761: { slidesPerView: 2.1 },
+  1025: { slidesPerView: 2.8 },
+  1451: { slidesPerView: searchFromNav ? 1.8 : 2.7 },
+});
 
 // ─── Section wrapper ───────────────────────────────────────────────────────
 
@@ -317,8 +269,6 @@ const TrendingSearchSection = ({ onItemClick, t, isLoading, items }) => {
 // ─── Section: Top Restaurants / Top Store / Top Providers ───────────────────
 
 const TopRestaurantsSection = ({ t, searchFromNav = false }) => {
-  const [isSliderHovered, setIsSliderHovered] = useState(false);
-  const slider = useRef(null);
   const moduleType = getCurrentModuleType();
   const isFoodModule = moduleType === "food";
   const isServiceModule = moduleType === "service";
@@ -356,14 +306,6 @@ const TopRestaurantsSection = ({ t, searchFromNav = false }) => {
   const rawStores = storesData?.pages?.[0]?.stores ?? [];
   const stores = isServiceModule ? flatTopRatedStoreList : rawStores;
 
-  const enhancedSettings = {
-    ...sliderSettings(searchFromNav, stores.length),
-    ...createEnhancedArrows(isSliderHovered, {
-      displayNoneOnMobile: true,
-      variant: "primary",
-    }),
-  };
-
   if (!isLoading && !topRatedLoading && stores.length === 0) return null;
 
   const sectionTitle = isFoodModule
@@ -372,72 +314,75 @@ const TopRestaurantsSection = ({ t, searchFromNav = false }) => {
     ? t("Top Providers")
     : t("Top Store");
 
-  const sliderItems = (
-    <SliderWrapper
-      onMouseEnter={() => setIsSliderHovered(true)}
-      onMouseLeave={() => setIsSliderHovered(false)}
-    >
-      {isLoading || topRatedLoading ? (
-        <Slider {...enhancedSettings}>
-          {[...Array(5)].map((_, i) => (
-            <Stack key={i} alignItems="center" gap="6px">
-              <Skeleton
-                variant="rounded"
+  const loading = isLoading || topRatedLoading;
+  const baseSlidesPerView = searchFromNav ? 4.8 : 8.2;
+  const canLoop = stores.length >= Math.ceil(baseSlidesPerView);
+
+  const sliderItems = loading ? (
+    <Stack direction="row" spacing="20px" sx={{ overflow: "hidden" }}>
+      {[...Array(5)].map((_, i) => (
+        <Stack key={i} alignItems="center" gap="6px">
+          <Skeleton
+            variant="rounded"
+            width={80}
+            height={80}
+            sx={{ borderRadius: "12px" }}
+          />
+          <Skeleton variant="text" width={60} height={14} />
+        </Stack>
+      ))}
+    </Stack>
+  ) : stores.length > 0 ? (
+    <CustomSlider
+      items={stores}
+      renderItem={(store) => (
+        <Link href={getStoreRedirectURL(store)}>
+          <StoreCard>
+            <StoreImageBox>
+              <NextImage
+                src={store?.logo_full_url}
+                alt={store?.name}
                 width={80}
                 height={80}
-                sx={{ borderRadius: "12px" }}
+                objectFit="cover"
+                style={{ width: "100%", height: "100%" }}
               />
-              <Skeleton variant="text" width={60} height={14} />
-            </Stack>
-          ))}
-        </Slider>
-      ) : (
-        <>
-          {stores.length > 0 && (
-            <Slider {...enhancedSettings} ref={slider}>
-              {stores.map((store, index) => (
-                <Link key={index} href={getStoreRedirectURL(store)}>
-                  <StoreCard>
-                    <StoreImageBox>
-                      <NextImage
-                        src={store?.logo_full_url}
-                        alt={store?.name}
-                        width={80}
-                        height={80}
-                        objectFit="cover"
-                        style={{ width: "100%", height: "100%" }}
-                      />
-                      <ClosedNow
-                        active={store?.active}
-                        open={store?.open}
-                        borderRadius="12px"
-                      />
-                    </StoreImageBox>
-                    <Typography
-                      sx={{
-                        fontSize: "14px",
-                        fontWeight: 400,
-                        color: "neutral.1050",
-                        letterSpacing: "-0.42px",
-                        textAlign: "center",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap",
-                        width: "80px",
-                        lineHeight: 1.2,
-                      }}
-                    >
-                      {store?.name}
-                    </Typography>
-                  </StoreCard>
-                </Link>
-              ))}
-            </Slider>
-          )}
-        </>
+              <ClosedNow
+                active={store?.active}
+                open={store?.open}
+                borderRadius="12px"
+              />
+            </StoreImageBox>
+            <Typography
+              sx={{
+                fontSize: "14px",
+                fontWeight: 400,
+                color: "neutral.1050",
+                letterSpacing: "-0.42px",
+                textAlign: "center",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+                width: "80px",
+                lineHeight: 1.2,
+              }}
+            >
+              {store?.name}
+            </Typography>
+          </StoreCard>
+        </Link>
       )}
-    </SliderWrapper>
-  );
+      stretchItems={false}
+      arrowVariant="inline"
+      loop={canLoop}
+      autoplay={canLoop}
+      autoplayDelay={2500}
+      speed={600}
+      slidesPerView={3.5}
+      spaceBetween={20}
+      breakpoints={topRestaurantsBreakpoints(searchFromNav)}
+    />
+  ) : null;
 
   return <Section title={sectionTitle}>{sliderItems}</Section>;
 };
@@ -448,144 +393,52 @@ const FeaturedRestaurantsSection = ({
   popularData,
   popularIsLoading,
 }) => {
-  const [isSliderHovered, setIsSliderHovered] = useState(false);
-  const slider = useRef(null);
   const moduleType = getCurrentModuleType();
   const isFoodModule = moduleType === "food";
   const isServiceModule = moduleType === "service";
 
-  const enhancedSettings = {
-    dots: false,
-    infinite: false,
-    speed: 500,
-    slidesToShow: searchFromNav ? 1.8 : 2.7,
-    slidesToScroll: 1,
-    swipeToSlide: true,
-    ...createEnhancedArrows(isSliderHovered, {
-      displayNoneOnMobile: true,
-      variant: "white",
-      noAnimation: true,
-      noHoverColor: true,
-    }),
-    responsive: [
-      {
-        breakpoint: 1450,
-        settings: {
-          slidesToShow: 2.8,
-          slidesToScroll: 1,
-          infinite: false,
-          swipeToSlide: true,
-        },
-      },
-      {
-        breakpoint: 1024,
-        settings: {
-          slidesToShow: 2.1,
-          slidesToScroll: 1,
-          infinite: false,
-          swipeToSlide: true,
-        },
-      },
-      {
-        breakpoint: 760,
-        settings: {
-          slidesToShow: 1,
-          slidesToScroll: 2,
-          infinite: false,
-          swipeToSlide: true,
-        },
-      },
-      {
-        breakpoint: 695,
-        settings: {
-          slidesToShow: 2,
-          slidesToScroll: 2,
-          swipeToSlide: true,
-          initialSlide: 2,
-          infinite: false,
-        },
-      },
-      {
-        breakpoint: 600,
-        settings: {
-          slidesToShow: 2,
-          slidesToScroll: 2,
-          swipeToSlide: true,
-          initialSlide: 2,
-          infinite: false,
-        },
-      },
-      {
-        breakpoint: 480,
-        settings: {
-          slidesToShow: 1.4,
-          slidesToScroll: 1,
-          swipeToSlide: true,
-          initialSlide: 1,
-          infinite: false,
-        },
-      },
-      {
-        breakpoint: 340,
-        settings: {
-          slidesToShow: 1.2,
-          slidesToScroll: 1,
-          swipeToSlide: true,
-          initialSlide: 1,
-          infinite: false,
-        },
-      },
-    ],
-  };
-  const sliderItems = (
-    <SliderWrapper
-      onMouseEnter={() => setIsSliderHovered(true)}
-      onMouseLeave={() => setIsSliderHovered(false)}
-    >
-      {popularIsLoading ? (
-        <Slider {...enhancedSettings}>
-          {[...Array(4)].map((_, i) => (
-            <Box
-              key={i}
-              sx={{
-                flex: 1,
-                borderRadius: "12px",
-                overflow: "hidden",
-                border: "1px solid",
-                borderColor: "divider",
-              }}
-            >
-              <Skeleton variant="rectangular" width="100%" height={120} />
-              <Box sx={{ p: "10px" }}>
-                <Skeleton variant="text" width="70%" height={16} />
-                <Skeleton
-                  variant="text"
-                  width="50%"
-                  height={14}
-                  sx={{ mt: "4px" }}
-                />
-              </Box>
-            </Box>
-          ))}
-        </Slider>
-      ) : (
-        <>
-          {popularData?.stores?.length > 0 && (
-            <Slider {...enhancedSettings} ref={slider}>
-              {popularData.stores.map((item, index) => (
-                <NewStoreCard
-                  key={index}
-                  variant="normal"
-                  item={item}
-                  imageUrl={item?.cover_photo_full_url}
-                />
-              ))}
-            </Slider>
-          )}
-        </>
+  const sliderItems = popularIsLoading ? (
+    <Stack direction="row" spacing="20px" sx={{ overflow: "hidden" }}>
+      {[...Array(4)].map((_, i) => (
+        <Box
+          key={i}
+          sx={{
+            flex: 1,
+            borderRadius: "12px",
+            overflow: "hidden",
+            border: "1px solid",
+            borderColor: "divider",
+          }}
+        >
+          <Skeleton variant="rectangular" width="100%" height={120} />
+          <Box sx={{ p: "10px" }}>
+            <Skeleton variant="text" width="70%" height={16} />
+            <Skeleton
+              variant="text"
+              width="50%"
+              height={14}
+              sx={{ mt: "4px" }}
+            />
+          </Box>
+        </Box>
+      ))}
+    </Stack>
+  ) : popularData?.stores?.length > 0 ? (
+    <CustomSlider
+      items={popularData.stores}
+      renderItem={(item) => (
+        <NewStoreCard
+          variant="normal"
+          item={item}
+          imageUrl={item?.cover_photo_full_url}
+        />
       )}
-    </SliderWrapper>
-  );
+      arrowVariant="none"
+      slidesPerView={1.2}
+      spaceBetween={20}
+      breakpoints={featuredRestaurantsBreakpoints(searchFromNav)}
+    />
+  ) : null;
   if (!popularData?.stores?.length) return null;
 
   return (

@@ -3,10 +3,7 @@ import FavoriteBorderIcon from "@mui/icons-material/FavoriteBorder";
 import DirectionsIcon from "@mui/icons-material/Directions";
 import LocationOnOutlinedIcon from "@mui/icons-material/LocationOnOutlined";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
-import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import HomeOutlinedIcon from "@mui/icons-material/HomeOutlined";
-import LoyaltyRoundedIcon from "@mui/icons-material/LoyaltyRounded";
-import LocalOfferRoundedIcon from "@mui/icons-material/LocalOfferRounded";
 import StarIcon from "@mui/icons-material/Star";
 import {
   alpha,
@@ -20,9 +17,7 @@ import {
   useMediaQuery,
   useTheme,
 } from "@mui/material";
-import Slider from "react-slick";
-import "slick-carousel/slick/slick-theme.css";
-import "slick-carousel/slick/slick.css";
+import CustomSlider from "components/common/CustomSlider";
 import { Box, Stack, keyframes } from "@mui/system";
 import React, { useEffect, useReducer, useRef, useState } from "react";
 import toast from "react-hot-toast";
@@ -31,8 +26,13 @@ import { useDispatch, useSelector } from "react-redux";
 import { useAddStoreToWishlist } from "api-manage/hooks/react-query/wish-list/useAddStoreToWishLists";
 import { useWishListStoreDelete } from "api-manage/hooks/react-query/wish-list/useWishListStoreDelete";
 import { useGetStoreCouponList } from "api-manage/hooks/react-query/coupon/useGetStoreCouponList";
+import useGetCartDiscountEligibility from "api-manage/hooks/react-query/add-cart/useGetCartDiscountEligibility";
+import useGetProActiveOffer from "api-manage/hooks/react-query/pro-plans/useGetProActiveOffer";
+import useSubscribeProPlan from "api-manage/hooks/react-query/pro-plans/useSubscribeProPlan";
+import LocalOfferOutlinedIcon from "@mui/icons-material/LocalOfferOutlined";
 import { getAmountWithSign } from "helper-functions/CardHelpers";
 import { getCurrentModuleType } from "helper-functions/getCurrentModuleType";
+import { getToken } from "helper-functions/getToken";
 import { ModuleTypes } from "helper-functions/moduleTypes";
 import { addWishListStore, removeWishListStore } from "redux/slices/wishList";
 import ShareOutlinedIcon from "@mui/icons-material/ShareOutlined";
@@ -49,6 +49,14 @@ import StoreShare from "components/store-details/StoreShare";
 import CustomPageBreadCrumb from "components/common/CustomPageBreadCrumb";
 import ClosedNowScheduleWise from "components/closed-now/ClosedNowScheduleWise";
 import CustomModal from "components/modal";
+import dynamic from "next/dynamic";
+
+const ProPlanSubscriptionModal = dynamic(() =>
+  import("components/pro-plan/ProPlanSubscriptionModal")
+);
+const ProPlanPaymentModal = dynamic(() =>
+  import("components/pro-plan/ProPlanPaymentModal")
+);
 
 // Announcement icon left-right flip animation (default facing left)
 const adSpin = keyframes`
@@ -56,6 +64,87 @@ const adSpin = keyframes`
   50%  { transform: scaleX(1); }
   100% { transform: scaleX(-1); }
 `;
+
+// Card visuals ported from store-details/Top-2.js, adapted for the
+// provider (service) dataset — no BOGO here, so only the pro / discount /
+// coupon cards are needed.
+const COUPON_PRO_ACCENT = "#3979E0";
+
+// react-slick breakpoint:X meant "apply for width <= X" (descending); these
+// Swiper breakpoints mean "apply for width >= X" (ascending) - shifted by +1.
+const COUPON_SLIDER_BREAKPOINTS = {
+  901: { slidesPerView: 2.8 },
+  1201: { slidesPerView: 3.1 },
+};
+
+const CouponCard2 = styled(Box)(({ theme, variant }) => {
+  const isDark = theme.palette.mode === "dark";
+  const bg = {
+    pro: isDark ? alpha("#2A61BA", 0.18) : "#F1F6FD",
+    discount: isDark ? alpha(theme.palette.warning.main, 0.14) : "#FFFBEB",
+  };
+  return {
+    position: "relative",
+    width: "100%",
+    boxSizing: "border-box",
+    height: "100%",
+    minHeight: 100,
+    flexShrink: 0,
+    borderRadius: "16px",
+    border: `2px solid ${theme.palette.background.paper}`,
+    backgroundColor: bg[variant] || bg.discount,
+    padding: "16px",
+    display: "flex",
+    flexDirection: "column",
+    gap: "12px",
+    overflow: "hidden",
+  };
+});
+
+const ProBadge2 = styled(Box)(({ theme }) => ({
+  display: "inline-flex",
+  alignItems: "center",
+  gap: "2px",
+  height: 20,
+  padding: "2px 6px",
+  borderRadius: 999,
+  backgroundColor: theme.palette.background.paper,
+  color: COUPON_PRO_ACCENT,
+  fontSize: 14,
+  fontWeight: 600,
+  lineHeight: 1.2,
+  letterSpacing: "-0.42px",
+  flexShrink: 0,
+}));
+
+const PromoCouponCard2 = styled(Box)(({ theme }) => ({
+  position: "relative",
+  width: "100%",
+  boxSizing: "border-box",
+  height: "100%",
+  minHeight: 100,
+  flexShrink: 0,
+  borderRadius: "16px",
+  border: `2px solid ${theme.palette.background.paper}`,
+  backgroundColor:
+    theme.palette.mode === "dark"
+      ? alpha(theme.palette.error.main, 0.14)
+      : "#FEE9E7",
+  overflow: "hidden",
+  cursor: "pointer",
+}));
+
+const TicketCutOut2 = styled(Box)(({ theme, side }) => ({
+  position: "absolute",
+  top: "50%",
+  transform: "translateY(-50%)",
+  width: 20,
+  height: 20,
+  borderRadius: "50%",
+  backgroundColor: theme.palette.background.default,
+  border: `2px solid ${theme.palette.background.paper}`,
+  ...(side === "left" ? { left: -10 } : { right: -10 }),
+}));
 
 const PageBackground = styled(Box)(() => ({
   width: "100%",
@@ -117,94 +206,6 @@ const FloatingIconButton = styled(IconButton)(({ theme }) => ({
   },
 }));
 
-// Coupon variants — based on Figma 6amMart React Redesign (node 2042:50829)
-const CouponCard = styled(Box)(({ theme, variant }) => {
-  const bgMap = {
-    pro: theme.palette.couponBg.pro,
-    discount: theme.palette.couponBg.discount,
-    ticket: theme.palette.couponBg.ticket,
-  };
-  return {
-    position: "relative",
-    width: 300,
-    height: 100,
-    flexShrink: 0,
-    borderRadius: "16px",
-    border: `2px solid ${theme.palette.background.paper}`,
-    backgroundColor: bgMap[variant] || theme.palette.couponBg.discount,
-    padding: "16px",
-    display: "flex",
-    flexDirection: "column",
-    gap: "12px",
-    overflow: variant === "ticket" ? "visible" : "hidden",
-    [theme.breakpoints.down("md")]: {
-      width: "100%",
-    },
-  };
-});
-
-const ProBadge = styled(Box)(({ theme }) => ({
-  display: "inline-flex",
-  alignItems: "center",
-  gap: "2px",
-  height: 20,
-  padding: "2px 6px",
-  borderRadius: 999,
-  backgroundColor: theme.palette.background.paper,
-  color: theme.palette.info.blue,
-  fontSize: 14,
-  fontWeight: 600,
-  lineHeight: 1.2,
-  letterSpacing: "-0.42px",
-}));
-
-const TicketCutOut = styled(Box)(({ theme, side }) => ({
-  position: "absolute",
-  top: "50%",
-  transform: "translateY(-50%)",
-  width: 20,
-  height: 20,
-  borderRadius: "50%",
-  backgroundColor: theme.palette.background.default,
-  border: `2px solid ${theme.palette.background.paper}`,
-  ...(side === "left" ? { left: -10 } : { right: -10 }),
-}));
-
-const CouponArrow = ({ direction, onClick }) => {
-  const { t } = useTranslation();
-  return (
-    <IconButton
-      onClick={onClick}
-      size="small"
-      aria-label={
-        direction === "prev" ? t("Previous coupon") : t("Next coupon")
-      }
-      sx={{
-        position: "absolute",
-        top: "50%",
-        [direction === "prev" ? "left" : "right"]: -8,
-        transform: "translateY(-50%)",
-        zIndex: 3,
-        width: 32,
-        height: 32,
-        borderRadius: "50%",
-        backgroundColor: (theme) => theme.palette.background.paper,
-        boxShadow: (theme) =>
-          `0px 4px 12px ${alpha(theme.palette.text.primary, 0.12)}`,
-        "&:hover": {
-          backgroundColor: (theme) => theme.palette.background.paper,
-        },
-      }}
-    >
-      {direction === "prev" ? (
-        <ChevronLeftIcon fontSize="small" />
-      ) : (
-        <ChevronRightIcon fontSize="small" />
-      )}
-    </IconButton>
-  );
-};
-
 const initialState = {
   viewMap: false,
 };
@@ -224,6 +225,7 @@ const Top = (props) => {
   const {
     bannerCover,
     providerDetails,
+    configData,
     logo,
     storeShare,
     bannersData,
@@ -241,6 +243,65 @@ const Top = (props) => {
   const { t } = useTranslation();
   const router = useRouter();
 
+  // Pro benefit + store-discount eligibility — same data sources Top-2.js
+  // (store-details) uses, keyed on the provider instead of a store.
+  const proFeatureEnabled = configData?.pro_member_status === 1;
+  const hasToken = !!getToken();
+  const { data: activeOfferRaw, isLoading: activeOfferLoading } =
+    useGetProActiveOffer({ enabled: proFeatureEnabled && hasToken });
+  const activeOffer = activeOfferRaw?.data ?? activeOfferRaw ?? null;
+  const isProActive = hasToken && activeOffer?.status === true;
+  const proBenefit = activeOffer?.benefit ?? null;
+  const { data: cartDiscountEligibility } = useGetCartDiscountEligibility(
+    providerDetails?.id,
+    !!providerDetails?.id
+  );
+  const [proModalOpen, setProModalOpen] = useState(false);
+  const [proPaymentOpen, setProPaymentOpen] = useState(false);
+  const [proSelectedPlan, setProSelectedPlan] = useState(null);
+  const subscribeProMutation = useSubscribeProPlan();
+  const handleProSubscribeClick = () => {
+    if (!hasToken) {
+      toast.error(t("Please login to subscribe"));
+      return;
+    }
+    setProModalOpen(true);
+  };
+  const handleProSubscribe = (plan) => {
+    if (!plan) return;
+    if (plan.price === 0) {
+      subscribeProMutation.mutate(
+        {
+          plan_id: plan.id,
+          payment_type: "free_trial",
+          payment_method: "free_trial",
+          callback_url:
+            typeof window !== "undefined" ? window.location.href : "",
+        },
+        {
+          onSuccess: (res) => {
+            const redirect = res?.redirect_link ?? res?.data?.redirect_link;
+            if (redirect && typeof window !== "undefined") {
+              window.location.href = redirect;
+              return;
+            }
+            toast.success(t("Subscribed successfully"));
+            setProModalOpen(false);
+          },
+          onError: (err) => {
+            toast.error(
+              err?.response?.data?.message || t("Subscription failed")
+            );
+          },
+        }
+      );
+      return;
+    }
+    setProSelectedPlan(plan);
+    setProModalOpen(false);
+    setProPaymentOpen(true);
+  };
+
   const { data: providerCouponData } = useGetStoreCouponList(
     providerDetails?.id
   );
@@ -251,10 +312,32 @@ const Top = (props) => {
     : [];
   const apiProviderCoupons = rawApiCoupons.filter((coupon) => {
     if (coupon?.coupon_type === "pro_customer") return true;
+    // Zone-wide coupons carry no store_id at all — they apply to every
+    // store/provider in the zone, so they're always relevant here.
+    if (coupon?.coupon_type === "zone_wise") return true;
     return (
       coupon?.store_id != null &&
       String(coupon.store_id) === String(providerDetails?.id)
     );
+  });
+
+  console.log("[Top.jsx] debug", {
+    providerDetails,
+    proFeatureEnabled,
+    hasToken,
+    activeOfferRaw,
+    activeOfferLoading,
+    activeOffer,
+    isProActive,
+    proBenefit,
+    cartDiscountEligibility,
+    providerCouponData,
+    rawApiCoupons,
+    apiProviderCoupons,
+    "providerDetails.coupons": providerDetails?.coupons,
+    "providerDetails.is_pro_discount_available":
+      providerDetails?.is_pro_discount_available,
+    "providerDetails.discount": providerDetails?.discount,
   });
 
   const handleBack = () => {
@@ -308,18 +391,6 @@ const Top = (props) => {
 
   const ACTION = {
     setViewMap: "setViewMap",
-  };
-
-  const sliderSettings = {
-    dots: false,
-    infinite: true,
-    slidesToShow: 1,
-    slidesToScroll: 1,
-    autoplay: true,
-    speed: 800,
-    autoplaySpeed: 4000,
-    cssEase: "linear",
-    arrows: false,
   };
 
   const openMapHandler = () => {
@@ -402,21 +473,12 @@ const Top = (props) => {
     }
     if (bannersData?.length) {
       return (
-        <Box
-          sx={{
-            width: "100%",
-            height: "100%",
-            "& .slick-slider, & .slick-list, & .slick-track, & .slick-slide > div":
-              {
-                height: "100%",
-              },
-            "& .slick-slide": { height: "100%" },
-          }}
-        >
-          <Slider {...sliderSettings}>
-            {bannersData.map((banner) => (
+        <Box sx={{ width: "100%", height: "100%" }}>
+          <CustomSlider
+            items={bannersData}
+            getKey={(banner) => banner?.id}
+            renderItem={(banner) => (
               <Stack
-                key={banner?.id}
                 onClick={() => handleBannerClick(banner?.default_link)}
                 sx={{ cursor: "pointer", width: "100%", height: "100%" }}
               >
@@ -428,8 +490,15 @@ const Top = (props) => {
                   borderRadius="16px"
                 />
               </Stack>
-            ))}
-          </Slider>
+            )}
+            arrowVariant="none"
+            allowOverflowY={false}
+            loop={bannersData.length > 1}
+            autoplay={bannersData.length > 1}
+            autoplayDelay={4000}
+            speed={800}
+            slidesPerView={1}
+          />
         </Box>
       );
     }
@@ -550,6 +619,7 @@ const Top = (props) => {
                   <ClosedNowScheduleWise
                     active={providerDetails?.active}
                     schedules={providerDetails?.schedules}
+                    open={providerDetails?.open}
                     borderRadius="12px"
                   />
                 </LogoBox>
@@ -931,42 +1001,89 @@ const Top = (props) => {
           </Grid>
         </HeroCard>
 
-        {/* Coupons & discount slider */}
+        {/* Coupons & discount slider — StackFood-style cards ported from
+            store-details/Top-2.js, adapted to the provider dataset (no
+            BOGO for service). */}
         {(() => {
           const coupons = [];
-          if (
-            Number(providerDetails?.is_pro_discount_available) === 1 &&
-            discount
-          ) {
-            coupons.push({
-              key: "pro",
-              variant: "pro",
-              icon: (
-                <StarIcon
-                  sx={{ fontSize: 12, color: theme.palette.info.blue }}
-                />
-              ),
-              heading: discountPercentText,
-              body: `${t("Min purchase")} ${getAmountWithSign(
-                discount?.min_purchase
-              )} ${t("and special saving for mart pro members")}`,
-            });
+          // Same reasoning as Top-2.js: skip the Pro card entirely while
+          // still waiting to know the real Pro benefit, rather than
+          // flashing the generic provider discount first.
+          const proBenefitPending = hasToken && activeOfferLoading;
+          // Unlike stores, the service provider API never sends an
+          // `is_pro_discount_available` flag — `proBenefit` itself (from
+          // useGetProActiveOffer) is the only signal of whether Pro
+          // discount applies here.
+          if (proFeatureEnabled && proBenefit && !proBenefitPending) {
+            const proHeading =
+              Number(proBenefit?.percentage) > 0
+                ? `${proBenefit.percentage}% ${t("OFF")}`
+                : discountPercentText;
+            if (proHeading) {
+              const proCapAmount =
+                Number(proBenefit?.max_amount) > 0
+                  ? proBenefit.max_amount
+                  : Number(discount?.max_discount) > 0
+                  ? discount.max_discount
+                  : null;
+              const proCapText = proCapAmount
+                ? ` (${t("up to")} ${getAmountWithSign(proCapAmount)})`
+                : "";
+              const proBody =
+                proBenefit?.min_order_status &&
+                Number(proBenefit?.min_order_amount) > 0
+                  ? `${t("Min purchase")} ${getAmountWithSign(
+                      proBenefit.min_order_amount
+                    )}${proCapText} ${t(
+                      "and special saving for mart pro members"
+                    )}`
+                  : Number(discount?.min_purchase) > 0
+                  ? `${t("Min purchase")} ${getAmountWithSign(
+                      discount.min_purchase
+                    )}${proCapText} ${t(
+                      "and special saving for mart pro members"
+                    )}`
+                  : proCapText
+                  ? `${t("Special saving for mart pro members")}${proCapText}`
+                  : t("Special saving for mart pro members");
+              coupons.push({
+                key: "pro",
+                variant: "pro",
+                heading: proHeading,
+                body: proBody,
+                showSubscribeButton: !isProActive,
+              });
+            }
           }
+          // Provider discount can be null even when a live discount exists
+          // — the eligibility endpoint is the fallback source, same as
+          // Top-2.js's store-discount handling.
+          const eligibilityPercent =
+            Number(cartDiscountEligibility?.percentage) || 0;
           if (discount) {
             coupons.push({
               key: "discount",
               variant: "discount",
-              icon: (
-                <LoyaltyRoundedIcon
-                  sx={{ fontSize: 18, color: theme.palette.warning.main }}
-                />
-              ),
               heading: discountPercentText,
               body: `${t("Min purchase")} ${getAmountWithSign(
                 discount?.min_purchase
               )} ${t("and special saving for")} ${getAmountWithSign(
                 discount?.max_discount
               )}`,
+            });
+          } else if (eligibilityPercent > 0) {
+            coupons.push({
+              key: "discount",
+              variant: "discount",
+              heading: `${eligibilityPercent}% ${t("OFF")}`,
+              body:
+                Number(cartDiscountEligibility?.min_purchase) > 0
+                  ? `${t("Min purchase")} ${getAmountWithSign(
+                      cartDiscountEligibility.min_purchase
+                    )} ${t("and special saving for")} ${getAmountWithSign(
+                      cartDiscountEligibility?.max_discount
+                    )}`
+                  : t("Discount on all items"),
             });
           }
           const seenCouponKeys = new Set();
@@ -980,111 +1097,190 @@ const Top = (props) => {
             seenCouponKeys.add(key);
             return true;
           });
-
-          allCoupons.forEach((coupon, idx) => {
+          const ticketCoupons = allCoupons.map((coupon, idx) => {
             const expireDate = coupon?.expire_date || coupon?.end_date;
-            const isPro = coupon?.coupon_type === "pro_customer";
-            coupons.push({
+            return {
               key: `coupon-${coupon?.id ?? coupon?.code ?? idx}`,
-              variant: isPro ? "pro" : "ticket",
-              icon: isPro ? (
-                <StarIcon
-                  sx={{ fontSize: 12, color: theme.palette.info.blue }}
-                />
-              ) : (
-                <LocalOfferRoundedIcon
-                  sx={{ fontSize: 18, color: theme.palette.error.main }}
-                />
-              ),
+              code: coupon?.code,
               heading:
                 coupon?.discount_type === "percent"
                   ? `${coupon?.discount}% ${t("OFF")}`
                   : `${getAmountWithSign(coupon?.discount)} ${t("OFF")}`,
-              body:
-                coupon?.start_date && expireDate
-                  ? `${t("Valid from")} ${
-                      coupon.start_date
-                    } - ${expireDate}. ${t(
-                      "Minimum order"
-                    )} ${getAmountWithSign(coupon?.min_purchase)}.`
-                  : `${t("Minimum order")} ${getAmountWithSign(
-                      coupon?.min_purchase
-                    )}.`,
-            });
+              startDate: coupon?.start_date,
+              expireDate,
+              minPurchase: coupon?.min_purchase,
+            };
           });
 
-          if (coupons.length === 0) return null;
-
-          const couponSliderSettings = {
-            dots: false,
-            infinite: coupons.length > 2,
-            speed: 400,
-            slidesToShow: 1,
-            slidesToScroll: 1,
-            variableWidth: true,
-            swipeToSlide: true,
-            arrows: coupons.length > 3,
-            prevArrow: <CouponArrow direction="prev" />,
-            nextArrow: <CouponArrow direction="next" />,
-            responsive: [
-              {
-                breakpoint: 900,
-                settings: {
-                  slidesToShow: 1,
-                  slidesToScroll: 1,
-                  variableWidth: false,
-                  arrows: false,
-                },
-              },
-            ],
-          };
+          const slideCount = coupons.length + ticketCoupons.length;
+          if (slideCount === 0) return null;
 
           return (
             <Box
               sx={{
                 position: "relative",
-                pt: { xs: 1, md: 0.5 },
-                pb: { xs: 0, md: 0 },
-                pl: { xs: 0, md: 0 },
-                pr: { xs: 0, md: 0 },
-                "& .slick-list": {
-                  margin: { xs: 0, md: "0 -8px" },
-                  paddingTop: { xs: 0, md: "4px" },
-                  // paddingBottom: { xs: "0px", md: "4px" },
-                  overflow: "hidden",
-                },
-                "& .slick-slide > div": {
-                  padding: { xs: 0, md: "0 8px" },
-                },
-                "& .slick-track": {
-                  display: "flex",
-                  alignItems: "stretch",
-                  justifyContent: "flex-start",
-                  marginLeft: 0,
-                },
+                pl: { xs: 1, md: 0 },
+                pr: { xs: 1, md: 0 },
               }}
             >
-              <Slider {...couponSliderSettings}>
-                {coupons.map((c) => (
-                  <Box key={c.key}>
-                    <CouponCard variant={c.variant}>
-                      {c.variant === "ticket" && (
-                        <>
-                          <TicketCutOut side="left" />
-                          <TicketCutOut side="right" />
-                        </>
-                      )}
-                      {c.variant === "pro" ? (
-                        <Stack direction="row" alignItems="center" spacing={1}>
-                          <ProBadge>
-                            {c.icon}
-                            {t("Pro")}
-                          </ProBadge>
+              <CustomSlider
+                items={[
+                  ...coupons.map((c) => ({ ...c, _kind: "coupon" })),
+                  ...ticketCoupons.map((c) => ({ ...c, _kind: "ticket" })),
+                ]}
+                getKey={(item) => item.key}
+                arrowVariant="none"
+                allowOverflowY={false}
+                speed={400}
+                slidesPerView={1.15}
+                spaceBetween={16}
+                breakpoints={COUPON_SLIDER_BREAKPOINTS}
+                renderItem={(c) =>
+                  c._kind === "ticket" ? (
+                    <PromoCouponCard2
+                      onClick={() => {
+                        if (!c.code) return;
+                        navigator.clipboard.writeText(c.code);
+                        toast.success(t("Coupon code copied."));
+                      }}
+                    >
+                      <Stack
+                        direction="row"
+                        alignItems="center"
+                        spacing={1.5}
+                        sx={{ pt: "12px", pb: "4px", px: "16px" }}
+                      >
+                        <Stack
+                          direction="row"
+                          alignItems="center"
+                          spacing={1}
+                          sx={{ flex: 1, minWidth: 0 }}
+                        >
+                          <LocalOfferOutlinedIcon
+                            sx={{
+                              fontSize: 18,
+                              color: "error.main",
+                              flexShrink: 0,
+                            }}
+                          />
                           <Typography
+                            noWrap
+                            sx={{
+                              fontSize: 14,
+                              fontWeight: 500,
+                              color:
+                                theme.palette.mode === "dark"
+                                  ? theme.palette.text.primary
+                                  : "#1E1E1E",
+                              lineHeight: 1.1,
+                              letterSpacing: "-0.42px",
+                            }}
+                          >
+                            {t("Code")}: {c.code}
+                          </Typography>
+                        </Stack>
+                        <Typography
+                          sx={{
+                            fontSize: 16,
+                            fontWeight: 700,
+                            color:
+                              theme.palette.mode === "dark"
+                                ? theme.palette.text.primary
+                                : "#1E1E1E",
+                            lineHeight: 1.1,
+                            letterSpacing: "-0.48px",
+                            whiteSpace: "nowrap",
+                            flexShrink: 0,
+                          }}
+                        >
+                          {c.heading}
+                        </Typography>
+                      </Stack>
+
+                      <Box
+                        sx={{
+                          position: "relative",
+                          width: "100%",
+                          height: "20px",
+                        }}
+                      >
+                        <Box
+                          sx={{
+                            position: "absolute",
+                            left: "10px",
+                            right: "10px",
+                            top: "50%",
+                            transform: "translateY(-50%)",
+                            borderTop: (theme) =>
+                              `2px dashed ${theme.palette.background.paper}`,
+                          }}
+                        />
+                        <TicketCutOut2 side="left" />
+                        <TicketCutOut2 side="right" />
+                      </Box>
+
+                      <Box sx={{ pb: "12px", px: "16px" }}>
+                        <Typography
+                          sx={{
+                            fontSize: 12,
+                            color:
+                              theme.palette.mode === "dark"
+                                ? theme.palette.text.secondary
+                                : "#757575",
+                            lineHeight: 1.3,
+                          }}
+                        >
+                          {c.startDate && c.expireDate
+                            ? `${t("Valid from")} ${c.startDate} - ${
+                                c.expireDate
+                              }. ${t("Minimum order")} ${getAmountWithSign(
+                                c.minPurchase
+                              )}.`
+                            : `${t("Minimum order")} ${getAmountWithSign(
+                                c.minPurchase
+                              )}.`}
+                        </Typography>
+                      </Box>
+                    </PromoCouponCard2>
+                  ) : (
+                    <CouponCard2 variant={c.variant}>
+                      <Stack
+                        direction="row"
+                        alignItems="center"
+                        spacing={1}
+                        justifyContent="space-between"
+                      >
+                        <Stack
+                          direction="row"
+                          alignItems="center"
+                          spacing={1}
+                          sx={{ minWidth: 0 }}
+                        >
+                          {c.variant === "pro" ? (
+                            <ProBadge2>
+                              <StarIcon
+                                sx={{ fontSize: 12, color: "#F0C048" }}
+                              />
+                              {t("Pro")}
+                            </ProBadge2>
+                          ) : (
+                            <LocalOfferOutlinedIcon
+                              sx={{
+                                fontSize: 18,
+                                color: "warning.main",
+                                flexShrink: 0,
+                              }}
+                            />
+                          )}
+                          <Typography
+                            noWrap
                             sx={{
                               fontSize: 16,
                               fontWeight: 700,
-                              color: theme.palette.text.primary,
+                              color:
+                                theme.palette.mode === "dark"
+                                  ? theme.palette.text.primary
+                                  : "#303030",
                               lineHeight: 1.1,
                               letterSpacing: "-0.48px",
                               textTransform: "capitalize",
@@ -1093,36 +1289,49 @@ const Top = (props) => {
                             {c.heading}
                           </Typography>
                         </Stack>
-                      ) : (
-                        <Stack direction="row" alignItems="center" spacing={1}>
-                          {c.icon}
-                          <Typography
+                        {c.showSubscribeButton && (
+                          <Box
+                            component="button"
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleProSubscribeClick();
+                            }}
                             sx={{
-                              fontSize: 16,
+                              flexShrink: 0,
+                              appearance: "none",
+                              border: "none",
+                              cursor: "pointer",
+                              fontFamily: "inherit",
+                              fontSize: 12,
                               fontWeight: 700,
-                              color: theme.palette.text.primary,
-                              lineHeight: 1.1,
-                              letterSpacing: "-0.48px",
-                              textTransform: "capitalize",
+                              color: "#FFFFFF",
+                              backgroundColor: COUPON_PRO_ACCENT,
+                              borderRadius: "999px",
+                              px: "10px",
+                              py: "4px",
                             }}
                           >
-                            {c.heading}
-                          </Typography>
-                        </Stack>
-                      )}
+                            {t("Subscribe")}
+                          </Box>
+                        )}
+                      </Stack>
                       <Typography
                         sx={{
                           fontSize: 12,
-                          color: theme.palette.text.primary,
+                          color:
+                            theme.palette.mode === "dark"
+                              ? theme.palette.text.secondary
+                              : "#757575",
                           lineHeight: 1.3,
                         }}
                       >
                         {c.body}
                       </Typography>
-                    </CouponCard>
-                  </Box>
-                ))}
-              </Slider>
+                    </CouponCard2>
+                  )
+                }
+              />
             </Box>
           );
         })()}
@@ -1203,6 +1412,22 @@ const Top = (props) => {
           </Typography>
         </Box>
       </CustomModal>
+
+      {proFeatureEnabled && proModalOpen && (
+        <ProPlanSubscriptionModal
+          open={proModalOpen}
+          onClose={() => setProModalOpen(false)}
+          onSubscribe={handleProSubscribe}
+          isSubmitting={subscribeProMutation.isLoading}
+        />
+      )}
+      {proFeatureEnabled && proPaymentOpen && (
+        <ProPlanPaymentModal
+          open={proPaymentOpen}
+          onClose={() => setProPaymentOpen(false)}
+          plan={proSelectedPlan}
+        />
+      )}
     </PageBackground>
   );
 };

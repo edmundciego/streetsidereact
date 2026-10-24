@@ -1,6 +1,8 @@
 import { Box, Typography, useMediaQuery, useTheme } from "@mui/material";
-import { useEffect } from "react";
-import { useSelector } from "react-redux";
+import { useEffect, useRef } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import useGetModule from "api-manage/hooks/react-query/useGetModule";
+import { setModules } from "redux/slices/configData";
 
 /**
  * Presentational module-tab layout shared by Orders & Coupons profile pages.
@@ -21,21 +23,29 @@ const ModuleTabbedLayout = ({
   mobileBareContent = false,
 }) => {
   const theme = useTheme();
+  const dispatch = useDispatch();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
   const bareContent = isMobile && mobileBareContent;
   const { modules: allModules } = useSelector((state) => state.configData);
 
+  const { data: fetchedModules, refetch: refetchModules } = useGetModule();
+  useEffect(() => {
+    if (!allModules?.length) refetchModules();
+  }, []);
+  useEffect(() => {
+    if (fetchedModules?.length) dispatch(setModules(fetchedModules));
+  }, [fetchedModules, dispatch]);
+
   // Hide the rider/rental (ride-share) module from the order/coupon tab bar —
   // it doesn't belong to the order or coupon flows.
   const modules = allModules?.filter((m) => m?.module_type !== "ride-share");
-  console.log({ allModules });
 
   const activeModule =
     modules?.find((m) => m.id === activeModuleId) ?? modules?.[0];
 
   const activeIndex =
     modules?.findIndex(
-      (m) => m.id === (activeModule?.id ?? modules?.[0]?.id)
+      (m) => m.id === (activeModule?.id ?? modules?.[0]?.id),
     ) ?? 0;
   const isFirst = activeIndex === 0;
   const isLast = activeIndex === (modules?.length ?? 1) - 1;
@@ -51,6 +61,64 @@ const ModuleTabbedLayout = ({
       onModuleChange?.(modules[0]);
     }
   }, [modules]);
+
+  // Mouse-drag-to-scroll for the desktop tab row — touch devices already
+  // get native swipe scrolling from `overflowX: auto`; this adds the same
+  // "slideable" feel with a mouse on desktop.
+  const moduleTabsRef = useRef(null);
+  const moduleDragState = useRef({
+    isDown: false,
+    startX: 0,
+    startScrollLeft: 0,
+    moved: false,
+  });
+
+  const handleModuleDragStart = (e) => {
+    const el = moduleTabsRef.current;
+    if (!el) return;
+    moduleDragState.current = {
+      isDown: true,
+      startX: e.pageX - el.offsetLeft,
+      startScrollLeft: el.scrollLeft,
+      moved: false,
+    };
+  };
+
+  const handleModuleDragMove = (e) => {
+    const el = moduleTabsRef.current;
+    if (!el || !moduleDragState.current.isDown) return;
+    e.preventDefault();
+    const x = e.pageX - el.offsetLeft;
+    const walk = x - moduleDragState.current.startX;
+    if (Math.abs(walk) > 3) moduleDragState.current.moved = true;
+    el.scrollLeft = moduleDragState.current.startScrollLeft - walk;
+  };
+
+  const handleModuleDragEnd = () => {
+    moduleDragState.current.isDown = false;
+  };
+
+  const handleTabClick = (mod) => {
+    // Swallow the click that follows a drag so dragging past a tab doesn't
+    // also select it.
+    if (moduleDragState.current.moved) {
+      moduleDragState.current.moved = false;
+      return;
+    }
+    onModuleChange?.(mod);
+  };
+
+  // Keep the active module tab visible.
+  useEffect(() => {
+    const el = moduleTabsRef.current?.querySelector("[data-active='true']");
+    if (el && el.scrollIntoView) {
+      el.scrollIntoView({
+        behavior: "smooth",
+        inline: "center",
+        block: "nearest",
+      });
+    }
+  }, [activeModule?.id]);
 
   if (!modules?.length) return null;
 
@@ -114,6 +182,11 @@ const ModuleTabbedLayout = ({
       ) : (
         /* Desktop: card tab style */
         <Box
+          ref={moduleTabsRef}
+          onMouseDown={handleModuleDragStart}
+          onMouseMove={handleModuleDragMove}
+          onMouseUp={handleModuleDragEnd}
+          onMouseLeave={handleModuleDragEnd}
           sx={{
             display: "flex",
             alignItems: "flex-end",
@@ -122,6 +195,8 @@ const ModuleTabbedLayout = ({
             scrollbarWidth: "none",
             "&::-webkit-scrollbar": { display: "none" },
             backgroundColor: "background.default",
+            cursor: "grab",
+            "&:active": { cursor: "grabbing" },
           }}
         >
           {modules.map((mod) => {
@@ -129,12 +204,13 @@ const ModuleTabbedLayout = ({
             return (
               <Box
                 key={mod.id}
-                onClick={() => onModuleChange?.(mod)}
+                data-active={isActive}
+                onClick={() => handleTabClick(mod)}
                 sx={{
-                  // Grow to share the row, but never shrink below the nowrap
-                  // label — a fixed 100px minimum let long module names
-                  // (centered) overflow their tab and overlap the neighbors.
-                  // If all tabs can't fit, the row scrolls instead.
+                  // Share the row when everything fits, but never shrink
+                  // below the nowrap label or the 100px minimum — once the
+                  // tabs can no longer all fit, they keep their natural
+                  // width and the row scrolls instead of overlapping.
                   flex: "1 0 auto",
                   minWidth: "100px",
                   px: "24px",

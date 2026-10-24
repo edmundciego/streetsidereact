@@ -35,7 +35,7 @@ const VehicleSearchPage = () => {
     if (!footer || typeof IntersectionObserver === "undefined") return;
     const io = new IntersectionObserver(
       ([entry]) => setFooterVisible(entry.isIntersecting),
-      { rootMargin: "0px", threshold: 0 }
+      { rootMargin: "0px", threshold: 0 },
     );
     io.observe(footer);
     return () => io.disconnect();
@@ -67,7 +67,9 @@ const VehicleSearchPage = () => {
         api_endpoint={search_api}
         isSticky={isSticky}
         topContent={
-          <CustomStackFullWidth sx={{ position: "relative" }}>
+          <CustomStackFullWidth
+            sx={{ position: "relative", mt: { xs: "0px", md: "10px" } }}
+          >
             <CustomContainer>
               <ModuleSearchBanner
                 isRental

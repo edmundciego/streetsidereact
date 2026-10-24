@@ -12,7 +12,6 @@ import {
 } from "@mui/material";
 import useGetStoreCategoriesItems from "api-manage/hooks/react-query/stores-categories/useGetStoreCategoriesItems";
 import useGetSearchPageData from "api-manage/hooks/react-query/search/useGetSearchPageData";
-import { CardWrapper } from "components/cards/ProductCard";
 import NewProductCard from "components/cards/newCard/NewProductCard";
 import CustomEmptyResult from "components/custom-empty-result";
 import { getModuleId } from "helper-functions/getModuleId";
@@ -21,90 +20,39 @@ import notFoundImage from "public/static/empty.png";
 import React, { useEffect, useReducer, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useSelector } from "react-redux";
-import Slider from "react-slick";
-import "slick-carousel/slick/slick-theme.css";
-import "slick-carousel/slick/slick.css";
+import CustomSlider from "components/common/CustomSlider";
 import {
   CustomBoxFullWidth,
   CustomStackFullWidth,
 } from "styled-components/CustomStyles.style";
-import CategoryTabs from "./CategoryTabs";
+import CategoryTabs, { BUNDLE_TAB_ID } from "./CategoryTabs";
 import { ACTION, initialState, reducer } from "./states";
+import BundleProductCard from "components/cards/newCard/BundleProductCard";
+import useGetStoreBundles from "api-manage/hooks/react-query/bundle/useGetStoreBundles";
 
 import SearchIcon from "@mui/icons-material/Search";
 import DotSpin from "components/DotSpin";
-import SliderSectionHeader from "components/common/SliderSectionHeader";
 import StoreFilter from "components/store-details/middle-section/StoreFilter";
-import { normalizeItemsResponse } from "components/store-details/middle-section";
+import {
+  normalizeItemsResponse,
+  handleShimmerProducts,
+} from "components/store-details/middle-section";
 import { getDiscountedAmount } from "helper-functions/CardHelpers";
 import { useInView } from "react-intersection-observer";
 import { removeDuplicates } from "utils/CustomFunctions";
 
-export const handleShimmerProducts = () => {
-  return (
-    <>
-      {[...Array(3)].map((item, index) => {
-        return (
-          <Grid item key={index} xs={6} sm={4} md={3} lg={3}>
-            <CardWrapper>
-              <CustomStackFullWidth
-                spacing={1}
-                alignItems="center"
-                justifyContent="center"
-              >
-                <Skeleton
-                  variant="rectangular"
-                  animation="pulse"
-                  width="100%"
-                  height={170}
-                />
-                <CustomStackFullWidth
-                  padding="1rem"
-                  alignItems="center"
-                  justifyContent="center"
-                >
-                  <Skeleton
-                    variant="text"
-                    animation="wave"
-                    height={20}
-                    width="80%"
-                  />
-                  <Skeleton
-                    variant="text"
-                    animation="wave"
-                    height={20}
-                    width="40%"
-                  />
-                  <Skeleton
-                    variant="text"
-                    animation="wave"
-                    height={20}
-                    width="30%"
-                  />
-                  {/*<RatingStarIcon fontSize="small" color="#808080" />*/}
-                  <Stack direction="row" spacing={2}>
-                    <Skeleton
-                      variant="text"
-                      animation="wave"
-                      width={70}
-                      height={20}
-                    />
-
-                    <Skeleton
-                      variant="text"
-                      animation="wave"
-                      width={70}
-                      height={20}
-                    />
-                  </Stack>
-                </CustomStackFullWidth>
-              </CustomStackFullWidth>
-            </CardWrapper>
-          </Grid>
-        );
-      })}
-    </>
-  );
+// react-slick breakpoint:X meant "apply for width <= X" (descending); these
+// Swiper breakpoints mean "apply for width >= X" (ascending) - shifted by +1.
+// Note: the 601-900 dip back down to 2.5 (below the 451-600 value of 2.8) is
+// preserved exactly as the original react-slick config specified.
+const POPULAR_SLIDER_BREAKPOINTS = {
+  341: { slidesPerView: 2 },
+  371: { slidesPerView: 2.2 },
+  401: { slidesPerView: 2.3 },
+  451: { slidesPerView: 2.8 },
+  601: { slidesPerView: 2.5 },
+  901: { slidesPerView: 3.2, spaceBetween: 20 },
+  1201: { slidesPerView: 4.5, spaceBetween: 20 },
 };
 
 export const getDiscountedPriceAmount = (item) => {
@@ -158,8 +106,15 @@ const MiddleSection = (props) => {
   const { id } = router.query;
   const storeId = providerDetails?.id;
 
-  const popularSliderRef = useRef(null);
-  const [popularCurrentSlide, setPopularCurrentSlide] = useState(0);
+  // This provider's bundles — surfaced as a "Bundle Items" tab, right after
+  // "Most Popular", only when the provider actually has any.
+  const { data: storeBundlesData } = useGetStoreBundles({
+    store_id: storeId,
+    limit: 10,
+    offset: 1,
+  });
+  const storeBundles = storeBundlesData?.bundles ?? [];
+
   const sectionRefs = useRef({});
   const [selectedCategoryTabId, setSelectedCategoryTabId] = useState(null);
 
@@ -619,6 +574,7 @@ const MiddleSection = (props) => {
                     onSelect={handleSelectCategoryTab}
                     isLoading={categoriesLoading && categoryList.length === 0}
                     showAllTab={recommendedItems.length > 0}
+                    showBundleTab={storeBundles.length > 0}
                   />
                 </Box>
                 <Stack
@@ -716,9 +672,7 @@ const MiddleSection = (props) => {
                   </Box>
                 )}
               {isLoading && !state.data?.products?.length ? (
-                <Grid container spacing={2}>
-                  {handleShimmerProducts()}
-                </Grid>
+                <Stack gap={4}>{handleShimmerProducts()}</Stack>
               ) : state.data?.products?.length === 0 && !isRefetching ? (
                 <Stack width="100%" paddingTop={{ xs: "0px", md: "30px" }}>
                   <CustomEmptyResult
@@ -784,6 +738,12 @@ const MiddleSection = (props) => {
                       title: t("Most Popular"),
                       items: sortItems(popularSource),
                     },
+                    {
+                      key: BUNDLE_TAB_ID,
+                      title: t("Bundle Items"),
+                      items: storeBundles,
+                      isBundle: true,
+                    },
                     ...categoryList.map((cat) => ({
                       key: String(cat?.id),
                       title: cat?.name,
@@ -793,53 +753,10 @@ const MiddleSection = (props) => {
                     })),
                   ].filter((s) => s.items?.length > 0);
 
-                  const popularSliderSettings = {
-                    dots: false,
-                    arrows: false,
-                    infinite: false,
-                    speed: 400,
-                    slidesToShow: 4.5,
-                    slidesToScroll: 4,
-                    swipeToSlide: true,
-                    responsive: [
-                      {
-                        breakpoint: 1200,
-                        settings: { slidesToShow: 3.2, slidesToScroll: 3 },
-                      },
-                      {
-                        breakpoint: 900,
-                        settings: { slidesToShow: 2.5, slidesToScroll: 2 },
-                      },
-                      {
-                        breakpoint: 600,
-                        settings: { slidesToShow: 2.8, slidesToScroll: 2 },
-                      },
-                      {
-                        breakpoint: 500,
-                        settings: { slidesToShow: 2.8, slidesToScroll: 2 },
-                      },
-                      {
-                        breakpoint: 450,
-                        settings: { slidesToShow: 2.3, slidesToScroll: 2 },
-                      },
-                      {
-                        breakpoint: 400,
-                        settings: { slidesToShow: 2.2, slidesToScroll: 1 },
-                      },
-                      {
-                        breakpoint: 370,
-                        settings: { slidesToShow: 2, slidesToScroll: 1 },
-                      },
-                      {
-                        breakpoint: 340,
-                        settings: { slidesToShow: 1.8, slidesToScroll: 1 },
-                      },
-                    ],
-                  };
-
                   return (
                     <Stack spacing={{ xs: 2, md: 4 }}>
                       {sections.map((section) => {
+                        const isBundle = !!section.isBundle;
                         return (
                           <Stack
                             key={section.key}
@@ -847,66 +764,88 @@ const MiddleSection = (props) => {
                               sectionRefs.current[section.key] = el;
                             }}
                           >
-                            <>
-                              <SliderSectionHeader
-                                sliderRef={popularSliderRef}
-                                currentSlide={popularCurrentSlide}
-                                totalSlides={section.items.length}
-                                slidesToShow={
-                                  popularSliderSettings.slidesToShow
-                                }
-                                sx={{ mb: 2, mt: { xs: "0rem", md: "1rem" } }}
-                                heading={
-                                  <Typography
-                                    sx={{
-                                      fontSize: { xs: "16px", md: "18px" },
-                                      fontWeight: 700,
-                                      lineHeight: 1.2,
-                                      color: theme.palette.text.primary,
-                                    }}
-                                  >
-                                    {section.title}
-                                  </Typography>
-                                }
-                              />
-                              <Box
-                                sx={{
-                                  position: "relative",
-                                  "& .slick-list": {
-                                    py: 0.5,
-                                    overflow: "hidden",
-                                    maskImage:
-                                      "linear-gradient(to right, black 0, black 88%, transparent 100%)",
-                                    WebkitMaskImage:
-                                      "linear-gradient(to right, black 0, black 88%, transparent 100%)",
-                                  },
-                                  "& .slick-slide": { px: 0 },
-                                  "& .slick-slide > div": { px: 1 },
-                                  "& .slick-track": {
-                                    display: "flex",
-                                    alignItems: "stretch",
-                                    ml: 0,
-                                  },
-                                }}
-                              >
-                                <Slider
-                                  key={`popular-${state.sortBy}`}
-                                  ref={popularSliderRef}
-                                  afterChange={(i) => setPopularCurrentSlide(i)}
-                                  {...popularSliderSettings}
+                            {isBundle ? (
+                              <>
+                                <Typography
+                                  sx={{
+                                    fontSize: { xs: "16px", md: "18px" },
+                                    fontWeight: 700,
+                                    lineHeight: 1.2,
+                                    color: theme.palette.text.primary,
+                                    mb: 2,
+                                  }}
+                                >
+                                  {section.title}
+                                </Typography>
+                                <Box
+                                  sx={{
+                                    display: "grid",
+                                    gap: 2,
+                                    gridTemplateColumns: {
+                                      xs: "1fr",
+                                      sm: "repeat(2, 1fr)",
+                                    },
+                                  }}
                                 >
                                   {section.items.map((item) => (
-                                    <Box key={`${section.key}-${item?.id}`}>
-                                      <NewProductCard
-                                        item={item}
-                                        variant="vertical"
-                                        isStore
-                                      />
-                                    </Box>
+                                    <BundleProductCard
+                                      key={`${section.key}-${item?.id}`}
+                                      item={item}
+                                      images={
+                                        item?.items?.map(
+                                          (i) => i?.image_full_url,
+                                        ) ?? []
+                                      }
+                                      variant="horizontal"
+                                      isStore
+                                      max_width="100%"
+                                    />
                                   ))}
-                                </Slider>
+                                </Box>
+                              </>
+                            ) : (
+                              <Box sx={{ position: "relative" }}>
+                                <CustomSlider
+                                  key={`popular-${state.sortBy}`}
+                                  items={section.items}
+                                  getKey={(item) => item?.id}
+                                  renderItem={(item) => (
+                                    <NewProductCard
+                                      item={item}
+                                      variant="vertical"
+                                      isStore
+                                    />
+                                  )}
+                                  arrowVariant="section"
+                                  title={
+                                    <Typography
+                                      sx={{
+                                        fontSize: { xs: "16px", md: "18px" },
+                                        fontWeight: 700,
+                                        lineHeight: 1.2,
+                                        color: theme.palette.text.primary,
+                                      }}
+                                    >
+                                      {section.title}
+                                    </Typography>
+                                  }
+                                  headerSx={{ mt: { xs: "0rem", md: "1rem" } }}
+                                  speed={400}
+                                  slidesPerView={1.8}
+                                  spaceBetween={16}
+                                  breakpoints={POPULAR_SLIDER_BREAKPOINTS}
+                                  wrapperSx={{
+                                    "& .swiper": {
+                                      py: 0.5,
+                                      maskImage:
+                                        "linear-gradient(to right, black 0, black 88%, transparent 100%)",
+                                      WebkitMaskImage:
+                                        "linear-gradient(to right, black 0, black 88%, transparent 100%)",
+                                    },
+                                  }}
+                                />
                               </Box>
-                            </>
+                            )}
                           </Stack>
                         );
                       })}

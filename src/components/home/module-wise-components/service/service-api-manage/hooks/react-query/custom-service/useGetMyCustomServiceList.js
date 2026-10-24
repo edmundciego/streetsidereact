@@ -2,6 +2,7 @@ import MainApi from "api-manage/MainApi";
 import { data_limit } from "../../../ApiRoutes";
 import { useQuery } from "react-query";
 import { onSingleErrorResponse } from "api-manage/api-error-response/ErrorResponses";
+import { getApiCollection } from "api-manage/getApiContent";
 
 // GET /api/v1/service/custom-requests
 const CUSTOM_REQUESTS_API = "/api/v1/service/custom-requests";
@@ -22,9 +23,10 @@ const getData = async ({ offset, type }) => {
   params.set("limit", String(data_limit));
   params.set("offset", String(offset ?? 1));
   if (type) params.set("status", type);
-  const { data } = await MainApi.get(
+  const { data: __env } = await MainApi.get(
     `${CUSTOM_REQUESTS_API}?${params.toString()}`
   );
+  const data = getApiCollection(__env, "custom_services");
   return {
     custom_services: (data?.data ?? []).map(normalizeItem),
     total_size: data?.total_size ?? 0,

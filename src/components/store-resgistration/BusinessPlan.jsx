@@ -1,9 +1,6 @@
 import React, { useState } from "react";
-import { alpha, styled, Typography, useTheme } from "@mui/material";
-import {
-  CustomStackFullWidth,
-  SliderCustom,
-} from "styled-components/CustomStyles.style";
+import { alpha, Typography, useTheme } from "@mui/material";
+import { CustomStackFullWidth } from "styled-components/CustomStyles.style";
 import { Stack } from "@mui/system";
 import { useTranslation } from "react-i18next";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
@@ -11,16 +8,20 @@ import Plan from "components/store-resgistration/Plan";
 import FormSubmitButton from "components/profile/FormSubmitButton";
 import { useDispatch, useSelector } from "react-redux";
 import useGetSubscriptionPackage from "api-manage/hooks/react-query/store-registration/useGetSubscriptionPackage";
-import "slick-carousel/slick/slick.css";
-import Slider from "react-slick";
+import CustomSlider from "components/common/CustomSlider";
 import Box from "@mui/material/Box";
 import { setActiveStep, setAllData } from "redux/slices/storeRegistrationData";
 import { ResetButton } from "components/profile/basic-information/BasicInformationForm";
 import { SaveButton } from "components/profile/basic-information/Profile.style";
-import {
-  NextFood,
-  PrevFood,
-} from "components/home/best-reviewed-items/SliderSettings";
+
+// react-slick breakpoints meant "apply for width <= X" (descending); these
+// Swiper breakpoints mean "apply for width >= X" (ascending) - re-derived,
+// with the 901px gap bump merged in.
+const businessPlanBreakpoints = {
+  601: { slidesPerView: 2 },
+  901: { slidesPerView: 2, spaceBetween: 20 },
+  1025: { slidesPerView: 3, spaceBetween: 20 },
+};
 
 const BusinessPlan = ({ formSubmit, isLoading }) => {
   const theme = useTheme();
@@ -31,50 +32,6 @@ const BusinessPlan = ({ formSubmit, isLoading }) => {
   const [selectedPlan, setSelectedPlan] = useState("commission");
   const { data } = useGetSubscriptionPackage(selectedPlan);
   const [selectedPackage, setSelectedPackage] = useState(null);
-  const [isHover, setIsHover] = useState(false);
-  const settings = {
-    infinite: false,
-    speed: 500,
-    slidesToShow: 3,
-    slidesToScroll: 1,
-    prevArrow: isHover && <PrevFood displayNoneOnMobile />,
-    nextArrow: isHover && <NextFood displayNoneOnMobile />,
-    responsive: [
-      {
-        breakpoint: 2024,
-        settings: {
-          slidesToShow: 3,
-        },
-      },
-
-      {
-        breakpoint: 1624,
-        settings: {
-          slidesToShow: 3,
-        },
-      },
-
-      {
-        breakpoint: 1424,
-        settings: {
-          slidesToShow: 3,
-        },
-      },
-
-      {
-        breakpoint: 1024,
-        settings: {
-          slidesToShow: 2,
-        },
-      },
-      {
-        breakpoint: 600,
-        settings: {
-          slidesToShow: 1,
-        },
-      },
-    ],
-  };
   const handleSubmit = () => {
     const tempValues = {
       business_plan: selectedPlan,
@@ -223,10 +180,8 @@ const BusinessPlan = ({ formSubmit, isLoading }) => {
               {t("Choose Subscription Package")}
             </Typography>
             <Box
-              onMouseEnter={() => setIsHover(true)}
-              onMouseLeave={() => setIsHover(false)}
               sx={{
-                ".slick-slide": {
+                ".swiper-slide": {
                   "&:nth-of-type(3n+1) .plan-item": {
                     background: "#E2F4EB",
                   },
@@ -242,18 +197,21 @@ const BusinessPlan = ({ formSubmit, isLoading }) => {
                 },
               }}
             >
-              <SliderCustom padding="15px">
-                <Slider {...settings}>
-                  {data?.packages?.map((item) => (
-                    <Plan
-                      key={item.id}
-                      item={item}
-                      setSelectedPackage={setSelectedPackage}
-                      selectedPackage={selectedPackage}
-                    />
-                  ))}
-                </Slider>
-              </SliderCustom>
+              <CustomSlider
+                items={data?.packages ?? []}
+                getKey={(item) => item.id}
+                renderItem={(item) => (
+                  <Plan
+                    item={item}
+                    setSelectedPackage={setSelectedPackage}
+                    selectedPackage={selectedPackage}
+                  />
+                )}
+                arrowVariant="inline"
+                slidesPerView={1}
+                spaceBetween={16}
+                breakpoints={businessPlanBreakpoints}
+              />
             </Box>
           </Stack>
         )}

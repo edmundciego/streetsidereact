@@ -1,3 +1,4 @@
+import { getApiContent } from "api-manage/getApiContent";
 import CssBaseline from "@mui/material/CssBaseline";
 
 import SEO from "../../../../src/components/seo";
@@ -64,8 +65,9 @@ export default Index;
 export const getServerSideProps = async (context) => {
   const { id, module, module_id: legacyModuleId } = context.query;
   const { req } = context;
+  const moduleId = module || legacyModuleId;
   const language = req.cookies.languageSetting || "en";
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
+  const baseUrl = (process.env.NEXT_PUBLIC_BASE_URL || "").replace(/\/+$/, "");
   const origin = process.env.NEXT_CLIENT_HOST_URL;
 
   let providerMetaData = null;
@@ -78,6 +80,12 @@ export const getServerSideProps = async (context) => {
     "X-localization": language,
   };
 
+  const providerHeaders = { ...headers };
+  if (moduleId) {
+    providerHeaders.moduleId = String(moduleId);
+    providerHeaders.module_id = String(moduleId);
+  }
+
   // Config and provider details are independent documents — fetch both in
   // parallel; both can gracefully degrade to null on failure.
   const [configSettled, providerSettled] = await Promise.allSettled([
@@ -85,7 +93,7 @@ export const getServerSideProps = async (context) => {
     id
       ? fetch(`${baseUrl}/api/v1/rental/provider/get-provider-details/${id}`, {
           method: "GET",
-          headers,
+          headers: providerHeaders,
         })
       : Promise.resolve(null),
   ]);
@@ -97,7 +105,7 @@ export const getServerSideProps = async (context) => {
     );
   } else if (configSettled.value?.ok) {
     try {
-      config = await configSettled.value.json();
+      config = getApiContent(await configSettled.value.json());
     } catch (error) {
       console.error("SSR config parse failed:", error?.message);
     }
@@ -112,7 +120,7 @@ export const getServerSideProps = async (context) => {
     );
   } else if (providerSettled.value?.ok) {
     try {
-      const providerDetailsData = await providerSettled.value.json();
+      const providerDetailsData = getApiContent(await providerSettled.value.json());
 
       providerMetaData = {
         meta_title: providerDetailsData?.meta_title || null,

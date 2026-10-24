@@ -3,13 +3,14 @@ import { useQuery } from "react-query";
 import { getModuleId } from "helper-functions/getModuleId";
 import { onSingleErrorResponse } from "api-manage/api-error-response/ErrorResponses";
 import { provider_details_banner } from "../../../ApiRoutes";
+import { getApiContent } from "api-manage/getApiContent";
 
 const fetchProviderDetails = async (id, moduleId) => {
   console.log({moduleId});
   
   if (!id || !moduleId) return null;
   const { data } = await MainApi.get(`${provider_details_banner}/${id}`);
-  return data;
+  return getApiContent(data);
 };
 
 // Use the fetcher function in useQuery

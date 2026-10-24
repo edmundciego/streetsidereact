@@ -2,12 +2,13 @@ import { useQuery } from "react-query";
 import MainApi from "api-manage/MainApi";
 import { onSingleErrorResponse } from "api-manage/api-error-response/ErrorResponses";
 import { provider_details } from "components/home/module-wise-components/rental/rental-api-manage/ApiRoutes";
+import { getApiCollection } from "api-manage/getApiContent";
 
 const getData = async (provider_id) => {
   const { data } = await MainApi.get(
     `${provider_details}?provider_id=${provider_id || null}`
   );
-  return data;
+  return getApiCollection(data, "vehicles");
 };
 
 export default function useGetVehicleFromThisVendor(

@@ -14,6 +14,7 @@ import TrendingBites from "components/home/trending-bites";
 import QuickDeliverySection from "./components/home/QuickDeliverySection";
 import PopularServices from "./components/home/PopularServices";
 import MobileAppBanner from "components/home/MobileAppBanner";
+import BundleItemsSection from "../shared/BundleItemsSection";
 import RecommendedServices from "./components/home/RecommendedServices";
 import { getServiceSections } from "./serviceSectionsConfig";
 import isVerifiedStoreEnabled from "helper-functions/isVerifiedStoreEnabled";
@@ -26,8 +27,8 @@ import { getToken } from "helper-functions/getToken";
 import VerifiedProvider from "./components/home/VerifiedProvider";
 import { setOpenSignInModal } from "redux/slices/utils";
 import useServiceBusinessConfig from "components/home/module-wise-components/service/service-api-manage/hooks/custom-hooks/useServiceBusinessConfig";
-import ServiceCampaigns from "./components/home/ServiceCampaigns";
-import PharmacyStaticBanners from "../pharmacy/pharmacy-banners/PharmacyStaticBanners";
+import ServiceBasicCampaign from "./components/home/ServiceBasicCampaign";
+import BasicCampaign from "../../basic-campaign/BasicCampaign";
 import RecommendedStore from "components/home/recommended-store";
 import { getCurrentModuleType } from "helper-functions/getCurrentModuleType";
 
@@ -156,6 +157,12 @@ const ServiceModule = (props) => {
         </S>
       )}
       <S>
+        <CustomContainer>
+          <BundleItemsSection />
+        </CustomContainer>
+      </S>
+
+      <S>
         <CustomContainer noMobilePadding>
           <MobileAppBanner />
         </CustomContainer>
@@ -172,7 +179,7 @@ const ServiceModule = (props) => {
       </S>
       <S>
         <CustomContainer>
-          <PharmacyStaticBanners /> {/* basic campaign */}
+          <BasicCampaign />
         </CustomContainer>
       </S>
       <S>
@@ -182,7 +189,7 @@ const ServiceModule = (props) => {
       </S>
       <S>
         <CustomContainer>
-          <ServiceCampaigns />
+          <ServiceBasicCampaign />
         </CustomContainer>
       </S>
 

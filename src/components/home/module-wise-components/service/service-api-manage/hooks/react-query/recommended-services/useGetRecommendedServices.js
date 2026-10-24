@@ -2,13 +2,15 @@ import MainApi from "api-manage/MainApi";
 import { recommended_service_api, data_limit } from "../../../ApiRoutes";
 import { useQuery } from "react-query";
 import { onSingleErrorResponse } from "api-manage/api-error-response/ErrorResponses";
+import { getApiContent } from "api-manage/getApiContent";
 
 const getData = async ({ offset = 1, type = "all" }) => {
-  const { data } = await MainApi.get(
+  const { data: __env } = await MainApi.get(
     `${recommended_service_api}?limit=${data_limit}&offset=${offset}${
       type ? `&type=${type}` : ""
     }`
   );
+  const data = getApiContent(__env);
   return data;
 };
 

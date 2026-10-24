@@ -31,7 +31,10 @@ import { setCartList } from "redux/slices/cart";
 import useGetDistance from "api-manage/hooks/react-query/google-api/useGetDistance";
 import usePostLocationUpdate from "components/home/module-wise-components/rental/rental-api-manage/hooks/react-query/confirm-booking/usePostLocationUpdate";
 import CloseIcon from "@mui/icons-material/Close";
-import { bookingConfirm, formattedDate } from "components/home/module-wise-components/rental/components/global/search/searchHepler";
+import {
+  bookingConfirm,
+  formattedDate,
+} from "components/home/module-wise-components/rental/components/global/search/searchHepler";
 import dayjs from "dayjs";
 import LoadingButton from "@mui/lab/LoadingButton";
 import useGetZoneList from "api-manage/hooks/react-query/zone-list/zone-list";
@@ -89,12 +92,12 @@ export function isPointInPolygon(point, polygon) {
     }
   }
 
-
   return intersects % 2 !== 0;
 }
 
 const CarBookingModal = (props) => {
-  const {open,
+  const {
+    open,
     handleClose,
     id,
     update,
@@ -110,8 +113,9 @@ const CarBookingModal = (props) => {
     isDistence,
     card,
     setIsSameOpen,
-    isDayWise
-  }=props
+    isDayWise,
+    scheduleOrderEnabled,
+  } = props;
   const mode = "DRIVE";
   const theme = useTheme();
   const router = useRouter();
@@ -122,7 +126,7 @@ const CarBookingModal = (props) => {
   const [locations, setLocations] = useState({
     pickup: {
       lat: configData && JSON.parse(configData?.default_location?.lat),
-      lng:configData && JSON.parse(configData?.default_location?.lng),
+      lng: configData && JSON.parse(configData?.default_location?.lng),
     },
     // destination: calculateDestination(configData?.default_location),
     destination: null,
@@ -136,7 +140,9 @@ const CarBookingModal = (props) => {
   const [searchKey2, setSearchKey2] = useState(""); // For Destination
   const [predictions2, setPredictions2] = useState([]);
   const [placeId2, setPlaceId2] = useState("");
-  const [tripType, setTripType] = useState(isDistence?"distance_wise":"hourly");
+  const [tripType, setTripType] = useState(
+    isDistence ? "distance_wise" : "hourly",
+  );
   const [isFocused, setIsFocused] = useState(false);
   const [focusedField, setFocusedField] = useState("pickup");
   // API Hooks
@@ -145,7 +151,7 @@ const CarBookingModal = (props) => {
   const { data: placeDetails1 } = useGetPlaceDetails(placeId1, !!placeId1);
   const { data: placeDetails2 } = useGetPlaceDetails(placeId2, !!placeId2);
   const { data: geoCodeData, isFetching: isFetchingGeoCode } = useGetGeoCode(
-    locations[focusedField]
+    locations[focusedField],
   );
   const {
     data: zoneData,
@@ -153,14 +159,14 @@ const CarBookingModal = (props) => {
     isLoading: zoneLoading,
   } = useGetZoneId(locations?.pickup, true);
 
-  const {mutate} = useDeleteAllCarts();
+  const { mutate } = useDeleteAllCarts();
   const { mutate: confirmMutate, isLoading } = useConfirmBooking();
   const { mutate: userDataUpdateMutate, isLoading: userDataIsLoading } =
     usePostLocationUpdate();
   const { data, refetch } = useGetDistance(
     locations?.pickup,
     locations?.destination,
-    mode
+    mode,
   );
   const {
     data: zoneList,
@@ -197,7 +203,7 @@ const CarBookingModal = (props) => {
   }, []);
 
   const result = zoneList?.some((zone) =>
-    isPointInPolygon(locations?.pickup, zone.coordinates)
+    isPointInPolygon(locations?.pickup, zone.coordinates),
   );
   useEffect(() => {
     if (result === false && zoneList) {
@@ -205,20 +211,17 @@ const CarBookingModal = (props) => {
     }
   }, [result, locations?.pickup]);
 
-
   useEffect(() => {
     refetch();
   }, [locations?.pickup, locations?.destination]);
-  const isProductExist = () => cartList?.carts?.find(
-    (item) => item.vehicle?.id === id
-  );
-
+  const isProductExist = () =>
+    cartList?.carts?.find((item) => item.vehicle?.id === id);
 
   useEffect(() => {
     if (selectedPricing) {
       setTripType(selectedPricing);
     }
-    if ((update && cartList?.carts?.length>0) || fromCard ) {
+    if ((update && cartList?.carts?.length > 0) || fromCard) {
       setSearchKey1(cartList?.user_data?.pickup_location?.location_name);
       setSearchKey2(cartList?.user_data?.destination_location?.location_name);
       setLocations({
@@ -231,15 +234,31 @@ const CarBookingModal = (props) => {
           lng: JSON.parse(cartList?.user_data?.destination_location?.lng),
         },
       });
-      setDateValue(isCurrentTime(cartList)?cartList?.user_data?.pickup_time:new Date());
+      setDateValue(
+        isCurrentTime(cartList) ? cartList?.user_data?.pickup_time : new Date(),
+      );
       const rentalType = cartList?.user_data?.rental_type;
 
-      setTripType(update?rentalType:rentalType?((rentalType==="distance_wise" && isDistence)?"distance_wise":((rentalType==="hourly" && isHourly)?"hourly":(isDistence
-        ? "distance_wise"
-        : "hourly")) ):isDistence
-        ? "distance_wise"
-        : "hourly")
-      setDurationValue(rentalType==="day_wise" ? cartList?.user_data?.estimated_hours/24: cartList?.user_data?.estimated_hours||1);
+      setTripType(
+        update
+          ? rentalType
+          : rentalType
+          ? rentalType === "distance_wise" && isDistence
+            ? "distance_wise"
+            : rentalType === "hourly" && isHourly
+            ? "hourly"
+            : isDistence
+            ? "distance_wise"
+            : "hourly"
+          : isDistence
+          ? "distance_wise"
+          : "hourly",
+      );
+      setDurationValue(
+        rentalType === "day_wise"
+          ? cartList?.user_data?.estimated_hours / 24
+          : cartList?.user_data?.estimated_hours || 1,
+      );
     }
   }, [update, cartList?.user_data, selectedPricing]);
 
@@ -254,20 +273,34 @@ const CarBookingModal = (props) => {
     data,
   };
 
+  const ensureDistanceData = async () => {
+    if (tripType !== "distance_wise") return data;
+    if (data?.duration) return data;
+    const fresh = await refetch();
+    if (!fresh?.data?.duration) {
+      toast.error(
+        t("Could not calculate the route distance, please try again"),
+      );
+      return null;
+    }
+    return fresh.data;
+  };
 
-
-  const confirmBooking = () => {
+  const confirmBooking = async () => {
     if (!locations?.destination) {
       toast.error("Please select destination location");
       return;
     }
-    if(cartList?.carts?.length>0){
+    const distanceData = await ensureDistanceData();
+    if (!distanceData) return;
+    const freshBookingDetails = { ...bookingDetails, data: distanceData };
+    if (cartList?.carts?.length > 0) {
       if (isDifferentProvider) {
-        setCartItemData?.(bookingDetails);
+        setCartItemData?.(freshBookingDetails);
         handleProviderCheck?.(true);
         handleClose();
       } else {
-        if(tripType===cartList?.user_data?.rental_type ){
+        if (tripType === cartList?.user_data?.rental_type) {
           bookingConfirm({
             id,
             locations,
@@ -276,7 +309,7 @@ const CarBookingModal = (props) => {
             tripType,
             durationValue,
             dateValue,
-            data,
+            data: distanceData,
             confirmMutate,
             dispatch,
             setCartList,
@@ -284,15 +317,19 @@ const CarBookingModal = (props) => {
             handleClose,
             onErrorResponse,
           });
-        }else{
-          setUpdateCartObject?.({...bookingDetails,userId: cartList?.user_data?.id,id:id})
-          setIsSameOpen?.(true)
+        } else {
+          setUpdateCartObject?.({
+            ...freshBookingDetails,
+            userId: cartList?.user_data?.id,
+            id: id,
+          });
+          setIsSameOpen?.(true);
           //handleClose?.()
         }
       }
-    } else{
+    } else {
       if (isDifferentProvider) {
-        setCartItemData?.(bookingDetails);
+        setCartItemData?.(freshBookingDetails);
         handleProviderCheck?.(true);
         handleClose();
       } else {
@@ -304,7 +341,7 @@ const CarBookingModal = (props) => {
           tripType,
           durationValue,
           dateValue,
-          data,
+          data: distanceData,
           confirmMutate,
           dispatch,
           setCartList,
@@ -314,15 +351,19 @@ const CarBookingModal = (props) => {
         });
       }
     }
-
   };
 
-
-  const updateUserData = () => {
+  const updateUserData = async () => {
+    const distanceData = await ensureDistanceData();
+    if (!distanceData) return;
     const pickupZoneIds = cartList?.carts[0]?.provider?.pickup_zone_id;
-    const targetZoneIds = Array.isArray(zoneData?.zone_id) ? zoneData?.zone_id : JSON.parse(zoneData?.zone_id);
-    const inZone = targetZoneIds.some(id => pickupZoneIds?.includes(id.toString()));
-    if(inZone){
+    const targetZoneIds = Array.isArray(zoneData?.zone_id)
+      ? zoneData?.zone_id
+      : JSON.parse(zoneData?.zone_id);
+    const inZone = targetZoneIds.some((id) =>
+      pickupZoneIds?.includes(id.toString()),
+    );
+    if (inZone) {
       const updateObject = {
         userId: cartList?.user_data?.id,
         pickup_location: { ...locations?.pickup, location_name: searchKey1 },
@@ -331,12 +372,13 @@ const CarBookingModal = (props) => {
           location_name: searchKey2,
         },
         rental_type: tripType,
-        estimated_hours:  tripType==="day_wise"?durationValue*24:durationValue,
+        estimated_hours:
+          tripType === "day_wise" ? durationValue * 24 : durationValue,
         pickup_time: formattedDate(dateValue),
         destination_time: Math.floor(
-          data?.duration?.replace('s', '')  / (60 * 60)
+          distanceData?.duration?.replace("s", "") / (60 * 60),
         ),
-        distance: Number(data?.distanceMeters)/ 1000,
+        distance: Number(distanceData?.distanceMeters) / 1000,
         guest_id: getToken() ? null : getGuestId(),
       };
       userDataUpdateMutate(updateObject, {
@@ -356,32 +398,34 @@ const CarBookingModal = (props) => {
           }
         },
       });
-    }else{
+    } else {
       //toast.error(t("Your cart has been cleared as the selected zone does not support the previous pickup point."));
       mutate(null, {
         onSuccess: (res) => {
-          toast.error(t("Your cart has been cleared as the selected zone does not support the previous pickup point."));
+          toast.error(
+            t(
+              "Your cart has been cleared as the selected zone does not support the previous pickup point.",
+            ),
+          );
           dispatch(setCartList(res));
-          handleClose()
+          handleClose();
           //router.push("/home");
           //handleClose()
         },
         onError: (error) => {
           toast.error(error.response.data.message);
-        }
-      })
+        },
+      });
     }
-
   };
-
 
   // Update geoCodeResults for the current field
   useEffect(() => {
     if (geoCodeData) {
       if (focusedField === "pickup") {
-        setSearchKey1(geoCodeData.results[0]?.formatted_address);
+        setSearchKey1(geoCodeData?.results?.[0]?.formatted_address);
       } else {
-        setSearchKey2(geoCodeData.results[0]?.formatted_address);
+        setSearchKey2(geoCodeData?.results?.[0]?.formatted_address);
       }
     }
   }, [geoCodeData]);
@@ -472,7 +516,13 @@ const CarBookingModal = (props) => {
     setDateValue(newValue?.$d);
   };
 
-
+  const handleDateFieldClick = () => {
+    if (scheduleOrderEnabled === false) {
+      toast.error(t("Schedule not available for this provider"), {
+        id: "schedule-order-disabled",
+      });
+    }
+  };
 
   return (
     <>
@@ -553,11 +603,18 @@ const CarBookingModal = (props) => {
                   }
                 />
 
-                <DateTimePicker
-                  height="45px"
-                  handleDateChange={handleDateChange}
-                  value={dayjs(dateValue)}
-                />
+                <Box
+                  onClickCapture={handleDateFieldClick}
+                  sx={{ width: "100%" }}
+                >
+                  <DateTimePicker
+                    height="45px"
+                    handleDateChange={handleDateChange}
+                    value={dayjs(dateValue)}
+                    disabled={scheduleOrderEnabled === false}
+                    sx={{ width: "100%" }}
+                  />
+                </Box>
                 <TripTypeSelector
                   setDurationValue={setDurationValue}
                   durationValue={durationValue}
@@ -572,11 +629,15 @@ const CarBookingModal = (props) => {
                   update={update}
                   isDayWise={isDayWise}
                 />
-                {tripType !== 'distance_wise' && (
+                {tripType !== "distance_wise" && (
                   <CustomTextField
                     value={durationValue}
                     sx={{ marginTop: "10px" }}
-                    label={tripType === 'day_wise' ? t("Trip Duration (day)") : t("Trip Duration (hrs)")}
+                    label={
+                      tripType === "day_wise"
+                        ? t("Trip Duration (day)")
+                        : t("Trip Duration (hrs)")
+                    }
                     type="number"
                     onChange={(event) => {
                       let value = event.target.value;
@@ -595,13 +656,14 @@ const CarBookingModal = (props) => {
                     }}
                   />
                 )}
-
-
               </CustomStackFullWidth>
 
               <CustomStackFullWidth
                 sx={{
-                  marginTop: (tripType === "hourly" || tripType==='day_wise') ? "26px" : "88px",
+                  marginTop:
+                    tripType === "hourly" || tripType === "day_wise"
+                      ? "26px"
+                      : "88px",
                   display: { xs: "none", sm: "none", md: "block" },
                 }}
               >
@@ -631,7 +693,11 @@ const CarBookingModal = (props) => {
               <RentalMap
                 location={locations[focusedField]}
                 height={
-                  isSmall ? "250px" : (tripType === "hourly" || tripType==='day_wise') ? "400px" : "380px"
+                  isSmall
+                    ? "250px"
+                    : tripType === "hourly" || tripType === "day_wise"
+                    ? "400px"
+                    : "380px"
                 }
                 onMarkerDragEnd={handleMarkerDragEnd}
                 locations={locations}
@@ -639,7 +705,6 @@ const CarBookingModal = (props) => {
                 setFocusedField={setFocusedField}
                 result={result}
                 zoneList={zoneList}
-
               />
               <CustomStackFullWidth
                 sx={{
@@ -664,7 +729,6 @@ const CarBookingModal = (props) => {
           </Grid>
         </Box>
       </CustomModal>
-
     </>
   );
 };

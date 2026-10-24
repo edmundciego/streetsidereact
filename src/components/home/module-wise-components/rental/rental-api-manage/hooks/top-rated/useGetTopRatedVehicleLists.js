@@ -2,11 +2,12 @@ import MainApi from "api-manage/MainApi";
 import { useQuery } from "react-query";
 import { top_rated_vehicle_list } from "../../ApiRoutes";
 import { onSingleErrorResponse } from "api-manage/api-error-response/ErrorResponses";
+import { getApiCollection } from "api-manage/getApiContent";
 
 // Define a standalone fetcher function
 const fetchTopRatedVehicleLists = async () => {
   const { data } = await MainApi.get(`${top_rated_vehicle_list}`);
-  return data;
+  return getApiCollection(data, "vehicles");
 };
 
 // Use the fetcher function in useQuery

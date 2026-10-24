@@ -9,14 +9,12 @@ import {
 import { useGetFlashSales } from "api-manage/hooks/react-query/useGetFlashSales";
 import NewProductCard from "components/cards/newCard/NewProductCard";
 import ProductCardSimmer from "components/Shimmer/ProductCardSimmer";
-import SliderSectionHeader from "components/common/SliderSectionHeader";
 import { CustomBoxFullWidth } from "styled-components/CustomStyles.style";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { t } from "i18next";
 import { useTranslation } from "react-i18next";
 import Countdown from "react-countdown";
-import Slider from "react-slick";
-import "slick-carousel/slick/slick.css";
+import CustomSlider from "components/common/CustomSlider";
 import { useRouter } from "next/router";
 import moment from "moment";
 
@@ -166,8 +164,6 @@ const FlashIcon = () => (
 const FlashSalesSection = () => {
   const { t } = useTranslation();
   const router = useRouter();
-  const slider = useRef(null);
-  const [currentSlide, setCurrentSlide] = useState(0);
 
   const {
     data: flashSales,
@@ -184,90 +180,6 @@ const FlashSalesSection = () => {
     ? moment(flashSales.end_date).toDate()
     : null;
 
-  const sliderSettings = {
-    dots: false,
-    infinite: false,
-    speed: 500,
-    slidesToShow: 5.2,
-    slidesToScroll: 1,
-    swipeToSlide: true,
-    arrows: false,
-    responsive: [
-      {
-        breakpoint: 1450,
-        settings: {
-          slidesToShow: 5.2,
-          slidesToScroll: 1,
-          infinite: false,
-          swipeToSlide: true,
-        },
-      },
-      {
-        breakpoint: 1024,
-        settings: {
-          slidesToShow: 4,
-          slidesToScroll: 1,
-          infinite: false,
-          swipeToSlide: true,
-        },
-      },
-      {
-        breakpoint: 760,
-        settings: {
-          slidesToShow: 3,
-          slidesToScroll: 2,
-          infinite: false,
-          swipeToSlide: true,
-        },
-      },
-      {
-        breakpoint: 600,
-        settings: {
-          slidesToShow: 2,
-          slidesToScroll: 1,
-          infinite: false,
-          swipeToSlide: true,
-        },
-      },
-      {
-        breakpoint: 480,
-        settings: {
-          slidesToShow: 2.3,
-          slidesToScroll: 1,
-          infinite: false,
-          swipeToSlide: true,
-        },
-      },
-      {
-        breakpoint: 400,
-        settings: {
-          slidesToShow: 2,
-          slidesToScroll: 1,
-          infinite: false,
-          swipeToSlide: true,
-        },
-      },
-      {
-        breakpoint: 360,
-        settings: {
-          slidesToShow: 1.8,
-          slidesToScroll: 1,
-          infinite: false,
-          swipeToSlide: true,
-        },
-      },
-      {
-        breakpoint: 340,
-        settings: {
-          slidesToShow: 1.7,
-          slidesToScroll: 1,
-          infinite: false,
-          swipeToSlide: true,
-        },
-      },
-    ],
-  };
-
   if (!isLoading && !products.length) return null;
 
   const handleViewAll = () => {
@@ -281,13 +193,27 @@ const FlashSalesSection = () => {
       <BgOverlay />
       <Inner>
         <Stack gap="20px">
-          <Box px={{ xs: "16px", sm: "24px" }}>
-            <SliderSectionHeader
-              sliderRef={slider}
-              currentSlide={currentSlide}
-              totalSlides={products.length}
-              slidesToShow={5}
-              heading={
+          <SliderWrapper>
+            <CustomSlider
+              items={
+                isLoading ? Array.from({ length: 5 }) : products
+              }
+              renderItem={(flashItem) =>
+                isLoading ? (
+                  <ProductCardSimmer />
+                ) : (
+                  <NewProductCard
+                    variant="vertical"
+                    item={flashItem?.item}
+                    cardWidth={{ xs: "150px", md: "170px" }}
+                  />
+                )
+              }
+              getKey={(flashItem, i) =>
+                isLoading ? i : flashItem?.id ?? i
+              }
+              arrowVariant="section"
+              title={
                 <Stack
                   direction="row"
                   alignItems="center"
@@ -354,28 +280,12 @@ const FlashSalesSection = () => {
                   <Countdown date={endDate} renderer={timerRenderer} />
                 ) : null
               }
+              headerSx={{ px: { xs: "16px", sm: "24px" } }}
+              stretchItems={false}
+              slidesPerView="auto"
+              spaceBetween={16}
+              breakpoints={{ 901: { spaceBetween: 20 } }}
             />
-          </Box>
-
-          {/* Slider */}
-          <SliderWrapper>
-            <Slider
-              {...sliderSettings}
-              ref={slider}
-              afterChange={(idx) => setCurrentSlide(idx)}
-            >
-              {isLoading
-                ? [...Array(5)].map((_, i) => <ProductCardSimmer key={i} />)
-                : products.map((flashItem, index) => (
-                    <div key={flashItem?.id ?? index}>
-                      <NewProductCard
-                        variant="vertical"
-                        item={flashItem?.item}
-                        cardWidth={{ xs: "150px", md: "170px" }}
-                      />
-                    </div>
-                  ))}
-            </Slider>
           </SliderWrapper>
         </Stack>
       </Inner>

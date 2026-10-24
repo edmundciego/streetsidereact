@@ -1,6 +1,5 @@
 import { alpha, Typography, useTheme } from "@mui/material";
 import { Stack } from "@mui/system";
-import ProSavingsBanner from "components/pro-plan/ProSavingsBanner";
 import { getAmountWithSign } from "helper-functions/CardHelpers";
 import { useSelector } from "react-redux";
 import { CustomStackFullWidth } from "styled-components/CustomStyles.style";
@@ -33,21 +32,6 @@ const BookingCalculation = ({ data, t, trackOrderData }) => {
 
   const due_amount =
     trackOrderData?.order_amount - trackOrderData?.partially_paid_amount;
-
-  const proBenefitType = trackOrderData?.benefit_type;
-  const proSavingsAmount =
-    proBenefitType === "coupon"
-      ? proCouponSavings
-      : proBenefitType === "discount"
-      ? proOrderSavings
-      : 0;
-  const proSavingsMessage =
-    proBenefitType === "coupon"
-      ? `${t("You saved")} ${getAmountWithSign(proCouponSavings)} ${t(
-          "with a Pro coupon."
-        )}`
-      : undefined;
-  const showProSavingsBanner = !!proBenefitType && proSavingsAmount > 0;
 
   return (
     <OrderSummaryCalculationCard spacing={1.5}>
@@ -271,13 +255,6 @@ const BookingCalculation = ({ data, t, trackOrderData }) => {
           {getAmountWithSign(trackOrderData?.order_amount)}
         </Typography>
       </CustomStackFullWidth>
-
-      {showProSavingsBanner ? (
-        <ProSavingsBanner
-          amount={proSavingsAmount}
-          message={proSavingsMessage}
-        />
-      ) : null}
 
       {trackOrderData?.partially_paid_amount &&
       trackOrderData?.order_status !== "canceled" ? (

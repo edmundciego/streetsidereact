@@ -2,11 +2,13 @@ import MainApi from "api-manage/MainApi";
 import { explore_service_api, data_limit } from "../../../ApiRoutes";
 import { useInfiniteQuery } from "react-query";
 import { onSingleErrorResponse } from "api-manage/api-error-response/ErrorResponses";
+import { getApiContent } from "api-manage/getApiContent";
 
 const getData = async ({ categoryId = "all", pageParam = 1 } = {}) => {
-  const { data } = await MainApi.get(
+  const { data: __env } = await MainApi.get(
     `${explore_service_api}?limit=${data_limit}&offset=${pageParam}&category_id=${categoryId}`
   );
+  const data = getApiContent(__env);
   return data;
 };
 

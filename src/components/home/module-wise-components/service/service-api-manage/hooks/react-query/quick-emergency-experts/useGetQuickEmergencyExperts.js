@@ -2,11 +2,13 @@ import MainApi from "api-manage/MainApi";
 import { quick_emergency_experts_api, data_limit } from "../../../ApiRoutes";
 import { useQuery } from "react-query";
 import { onSingleErrorResponse } from "api-manage/api-error-response/ErrorResponses";
+import { getApiContent } from "api-manage/getApiContent";
 
 const getData = async ({ offset = 1, preview_count = 4 } = {}) => {
-  const { data } = await MainApi.get(
+  const { data: __env } = await MainApi.get(
     `${quick_emergency_experts_api}?limit=${data_limit}&offset=${offset}&preview_count=${preview_count}`
   );
+  const data = getApiContent(__env);
   return data;
 };
 

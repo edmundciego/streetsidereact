@@ -49,7 +49,6 @@ import AllCartDrawer from "./AllCartDrawer";
 import { getCurrentModuleType } from "helper-functions/getCurrentModuleType";
 import { ModuleTypes } from "helper-functions/moduleTypes";
 import { getModuleIdentifier, saveModuleParam } from "utils/moduleParamManager";
-import { useQueryClient } from "react-query";
 
 const AuthModal = dynamic(() => import("components/auth/AuthModal"));
 
@@ -241,7 +240,6 @@ const NewNavBar = ({ configData }) => {
   const theme = useTheme();
   const dispatch = useDispatch();
   const router = useRouter();
-  const queryClient = useQueryClient();
   const isSmall = useMediaQuery("(max-width:1180px)");
   const _scrollTrigger = useScrollTrigger({
     disableHysteresis: true,
@@ -258,7 +256,9 @@ const NewNavBar = ({ configData }) => {
   // On the home & search pages the navbar search must stay hidden while the
   // ModuleSearchBanner is still visible; elsewhere it follows scroll only.
   const isSearchAwarePage =
-    router.pathname === "/home" || router.pathname === "/search";
+    router.pathname === "/home" ||
+    router.pathname.startsWith("/home/") ||
+    router.pathname === "/search";
   const isProfilePage = router.pathname === "/profile";
 
   // ── Redux ──
@@ -275,10 +275,10 @@ const NewNavBar = ({ configData }) => {
   // ModuleSearchBanner has scrolled out of view. Also hidden for modules that
   // don't have item-level search (rental, ride-share, parcel, ride).
   const showNavSearch =
-    scrollTrigger &&
     !isSearchlessModule &&
     !isProfilePage &&
-    (!isSearchAwarePage || !searchBannerInView);
+    !isLandingPage &&
+    (isSearchAwarePage ? scrollTrigger && !searchBannerInView : true);
 
   // ── Local state ──
   const [moduleType, setModuleType] = useState("");
@@ -287,6 +287,7 @@ const NewNavBar = ({ configData }) => {
   const [modalFor, setModalFor] = useState("sign-in");
   const [toggled, setToggled] = useState(false);
   const anchorRef = useRef(null);
+  const moduleTabsRef = useRef(null);
 
   // ── localStorage (client-side only) ──
   const [location, setLocation] = useState(() => {
@@ -309,7 +310,7 @@ const NewNavBar = ({ configData }) => {
     const matched = modules.find(
       (m) =>
         String(m?.slug) === String(urlModuleParam) ||
-        String(m?.id) === String(urlModuleParam)
+        String(m?.id) === String(urlModuleParam),
     );
     if (!matched) return;
     const current = selectedModule?.slug || selectedModule?.id;
@@ -660,38 +661,116 @@ const NewNavBar = ({ configData }) => {
     </Stack>
   );
 
+  // Mouse-drag-to-scroll for the module bar — touch devices already get
+  // native swipe scrolling from `overflowX: auto`; this adds the same
+  // "slideable" feel with a mouse on desktop (same approach as
+  // ModuleTabbedLayout's order/coupon module tabs).
+  const moduleDragState = useRef({
+    isDown: false,
+    startX: 0,
+    startScrollLeft: 0,
+    moved: false,
+  });
+
+  const handleModuleDragStart = (e) => {
+    const el = moduleTabsRef.current;
+    if (!el) return;
+    moduleDragState.current = {
+      isDown: true,
+      startX: e.pageX - el.offsetLeft,
+      startScrollLeft: el.scrollLeft,
+      moved: false,
+    };
+  };
+
+  const handleModuleDragMove = (e) => {
+    const el = moduleTabsRef.current;
+    if (!el || !moduleDragState.current.isDown) return;
+    e.preventDefault();
+    const x = e.pageX - el.offsetLeft;
+    const walk = x - moduleDragState.current.startX;
+    if (Math.abs(walk) > 3) moduleDragState.current.moved = true;
+    el.scrollLeft = moduleDragState.current.startScrollLeft - walk;
+  };
+
+  const handleModuleDragEnd = () => {
+    moduleDragState.current.isDown = false;
+  };
+
   const handleModuleChange = (mod) => {
+    // Swallow the click that follows a drag so dragging past a tab doesn't
+    // also select it.
+    if (moduleDragState.current.moved) {
+      moduleDragState.current.moved = false;
+      return;
+    }
     const isOnHome = router.pathname === "/home";
     if (isOnHome && mod.id === selectedModule?.id) return;
     localStorage.setItem("module", JSON.stringify(mod));
     dispatch(setSelectedModule(mod));
     const moduleIdentifier = getModuleIdentifier(mod);
     saveModuleParam(mod?.id, mod?.slug);
-    // Two modules can share a module_type (e.g. two "food" modules) — queries
-    // keyed only by type would keep serving the previous module's cache.
-    // Keys now include getModuleId(), and this invalidation refreshes any
-    // remaining cache so every section refetches under the new module.
-    queryClient.invalidateQueries();
+    // Section query keys already carry getModuleId(), so each module owns a
+    // separate cache entry and switching cannot serve the previous module's
+    // data. A blanket invalidateQueries() here additionally threw away every
+    // unrelated entry too — config, modules, zone, landing page — so every
+    // switch refetched the whole app and switching back was never cached.
+    //
+    // /home's getServerSideProps only loads config and page metadata, neither
+    // of which depends on the module, so stay shallow when already on /home
+    // and skip the server round trip.
+    if (isOnHome) {
+      router.push(
+        {
+          pathname: "/home",
+          query: { ...router.query, module: moduleIdentifier },
+        },
+        undefined,
+        { shallow: true },
+      );
+      return;
+    }
     router.push({ pathname: "/home", query: { module: moduleIdentifier } });
   };
+
+  // Keep the active module tab visible (same approach as MobileNavBar)
+  useEffect(() => {
+    const el = moduleTabsRef.current?.querySelector("[data-active='true']");
+    if (el && el.scrollIntoView) {
+      el.scrollIntoView({
+        behavior: "smooth",
+        inline: "center",
+        block: "nearest",
+      });
+    }
+  }, [selectedModule?.id]);
 
   // ── Module bar ──
   const renderModuleBar = () => {
     if (!modules?.length) return null;
-    if (router.pathname === "/profile") return null;
-    if (router.pathname === "/") return null;
-    if (router.pathname === "/checkout") return null;
+    const isHomeOrNested =
+      router.pathname === "/home" ||
+      router.pathname.startsWith("/home/") ||
+      router.pathname.startsWith("/search");
+    if (!isHomeOrNested) return null;
     return (
       <ModuleBarWrapper hidden={scrollTrigger}>
         <CustomContainer>
           <Stack
+            ref={moduleTabsRef}
             direction="row"
             alignItems="flex-end"
             justifyContent="flex-start"
+            onMouseDown={handleModuleDragStart}
+            onMouseMove={handleModuleDragMove}
+            onMouseUp={handleModuleDragEnd}
+            onMouseLeave={handleModuleDragEnd}
             sx={{
               overflowX: "auto",
               "&::-webkit-scrollbar": { display: "none" },
               height: "56px",
+              cursor: "grab",
+              "&:active": { cursor: "grabbing" },
             }}
           >
             {modules.map((mod) => {
@@ -700,6 +779,7 @@ const NewNavBar = ({ configData }) => {
                 <ModuleTab
                   key={mod.id}
                   active={isActive ? 1 : 0}
+                  data-active={isActive}
                   onClick={() => handleModuleChange(mod)}
                 >
                   {mod.module_name}

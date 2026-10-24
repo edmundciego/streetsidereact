@@ -1,8 +1,6 @@
-import { Box, IconButton } from "@mui/material";
-import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
-import ChevronRightIcon from "@mui/icons-material/ChevronRight";
+import { Box } from "@mui/material";
 import React, { useEffect, useRef, useState } from "react";
-import Slider from "react-slick";
+import CustomSlider from "components/common/CustomSlider";
 import CustomImageContainerJs from "../../CustomImageContainer";
 
 const CustomImageContainer = CustomImageContainerJs as React.FC<any>;
@@ -56,37 +54,6 @@ interface FoodModalMediaPreviewProps {
   onSlideChange?: (idx: number) => void;
 }
 
-interface ArrowProps {
-  direction: "prev" | "next";
-  onClick?: () => void;
-}
-
-const SliderArrow = ({ direction, onClick }: ArrowProps) => (
-  <IconButton
-    onClick={onClick}
-    size="small"
-    aria-label={direction === "prev" ? "Previous slide" : "Next slide"}
-    sx={{
-      position: "absolute",
-      top: "50%",
-      [direction === "prev" ? "left" : "right"]: 8,
-      transform: "translateY(-50%)",
-      zIndex: 3,
-      width: 28,
-      height: 28,
-      backgroundColor: "rgba(0,0,0,0.45)",
-      color: "#fff",
-      "&:hover": { backgroundColor: "rgba(0,0,0,0.7)" },
-    }}
-  >
-    {direction === "prev" ? (
-      <ChevronLeftIcon fontSize="small" />
-    ) : (
-      <ChevronRightIcon fontSize="small" />
-    )}
-  </IconButton>
-);
-
 const FoodModalMediaPreview = ({
   imageUrl,
   product,
@@ -115,15 +82,14 @@ const FoodModalMediaPreview = ({
     : [];
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
-  const sliderRef = useRef<Slider | null>(null);
+  const swiperRef = useRef<any>(null);
   const [currentSlide, setCurrentSlide] = useState(activeIndex ?? 0);
-  const totalSlides = (hasVideo ? 1 : 0) + images.length;
 
   useEffect(() => {
     if (typeof activeIndex !== "number") return;
     if (activeIndex === currentSlide) return;
-    if (!sliderRef.current) return;
-    sliderRef.current.slickGoTo(activeIndex);
+    if (!swiperRef.current) return;
+    swiperRef.current.slideTo(activeIndex);
   }, [activeIndex, currentSlide]);
 
   useEffect(() => {
@@ -209,70 +175,75 @@ const FoodModalMediaPreview = ({
     </Box>
   );
 
-  const imageSlides = images.map((src, idx) => (
-    <Box key={`${src}-${idx}`}>
-      <CustomImageContainer
-        src={src}
-        borderRadius={borderRadius}
-        width="100%"
-        height={height}
-        alt={alt}
-        objectfit="cover"
-        aspectRatio={aspectRatio}
-      />
-    </Box>
-  ));
-
-  const sliderSettings = {
-    dots: true,
-    arrows: true,
-    infinite: false,
-    speed: 400,
-    slidesToShow: 1,
-    slidesToScroll: 1,
-    swipeToSlide: true,
-    swipe: true,
-    draggable: true,
-    initialSlide: activeIndex ?? 0,
-    beforeChange: (_current: number, next: number) => {
-      setCurrentSlide(next);
-      onSlideChange?.(next);
-    },
-    prevArrow: currentSlide > 0 ? <SliderArrow direction="prev" /> : <span />,
-    nextArrow:
-      currentSlide < totalSlides - 1 ? (
-        <SliderArrow direction="next" />
-      ) : (
-        <span />
-      ),
-  };
+  type MediaItem = { key: string; kind: "video" | "image"; src?: string };
+  const mediaItems: MediaItem[] = [
+    ...(hasVideo ? [{ key: "video", kind: "video" as const }] : []),
+    ...images.map((src, idx) => ({
+      key: `${src}-${idx}`,
+      kind: "image" as const,
+      src,
+    })),
+  ];
 
   return (
     <Box
       sx={{
         position: "relative",
-        "& .slick-list": { borderRadius },
-        "& .slick-slide > div": { lineHeight: 0 },
-        "& .slick-arrow.slick-disabled": { display: "none !important" },
-        "& .slick-dots": {
+        "& .swiper": { borderRadius },
+        "& .swiper-slide": { lineHeight: 0 },
+        "& .swiper-pagination": {
           position: "absolute",
-          bottom: 8,
+          bottom: "8px",
           margin: 0,
           zIndex: 2,
-          "& li": { margin: "0 2px" },
-          "& li button:before": {
-            color: "#fff",
-            opacity: 0.6,
-            fontSize: "8px",
-          },
-          "& li.slick-active button:before": { opacity: 1 },
+          display: "flex !important",
+          justifyContent: "center",
+          gap: "4px",
         },
+        "& .swiper-pagination-bullet": {
+          width: "8px",
+          height: "8px",
+          margin: "0 !important",
+          borderRadius: "50%",
+          backgroundColor: "#fff",
+          opacity: 0.6,
+        },
+        "& .swiper-pagination-bullet-active": { opacity: 1 },
       }}
     >
-      <Slider ref={sliderRef} {...sliderSettings}>
-        {hasVideo && <Box>{videoSlide}</Box>}
-        {imageSlides}
-      </Slider>
+      <CustomSlider
+        items={mediaItems}
+        getKey={(item: MediaItem) => item.key}
+        renderItem={(item: MediaItem) =>
+          item.kind === "video" ? (
+            videoSlide
+          ) : (
+            <CustomImageContainer
+              src={item.src}
+              borderRadius={borderRadius}
+              width="100%"
+              height={height}
+              alt={alt}
+              objectfit="cover"
+              aspectRatio={aspectRatio}
+            />
+          )
+        }
+        arrowVariant="inline"
+        showDots
+        speed={400}
+        slidesPerView={1}
+        swiperProps={{
+          onSwiper: (swiper: any) => {
+            swiperRef.current = swiper;
+          },
+          onSlideChange: (swiper: any) => {
+            setCurrentSlide(swiper.activeIndex);
+            onSlideChange?.(swiper.activeIndex);
+          },
+          initialSlide: activeIndex ?? 0,
+        }}
+      />
     </Box>
   );
 };

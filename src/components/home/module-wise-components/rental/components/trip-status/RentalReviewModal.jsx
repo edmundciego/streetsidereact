@@ -1,31 +1,10 @@
 import React, { useEffect, useRef, useState } from "react";
-import {
-  Box,
-  Button,
-  IconButton,
-  styled,
-  Typography,
-  useTheme,
-} from "@mui/material";
+import { Box, Button, IconButton, Typography, useTheme } from "@mui/material";
 import { Stack } from "@mui/system";
 import { useTranslation } from "react-i18next";
 import { Clear } from "@mui/icons-material";
-import Slider from "react-slick";
+import CustomSlider from "components/common/CustomSlider";
 import RentalReviewItem from "components/home/module-wise-components/rental/components/trip-status/RentalReviewItem";
-
-const StyledSlider = styled(Slider)(({ theme }) => ({
-  ".slick-dots": {
-    top: "auto",
-    bottom: "-24px !important",
-    "& li": {
-      margin: 0,
-      width: "14px",
-      "&.slick-active button:before": {
-        color: theme.palette.primary.main,
-      },
-    },
-  },
-}));
 
 const RentalReviewModal = ({
   handleClose,
@@ -38,33 +17,25 @@ const RentalReviewModal = ({
   const [vehicleId, setVehicleId] = useState(null);
   const [currentSlide, setCurrentSlide] = useState(0);
   const activeFormRef = useRef(null);
-  const sliderRef = useRef(null);
+  const swiperRef = useRef(null);
   const theme = useTheme();
   const { t } = useTranslation();
   useEffect(() => {
     setVehicleIdentity(vehicle_identity?.filter((item) => !item?.rating));
   }, [vehicle_identity]);
 
-  const settings = {
-    dots: true,
-    infinite: false,
-    speed: 500,
-    slidesToShow: 1,
-    slidesToScroll: 1,
-    swipeToSlide: true,
-    onInit: () => {
-      setVehicleIdentityId(vehicleIdentity[0]?.vehicle_identity_id);
-      activeFormRef.current = document.querySelectorAll("form")[0];
-    },
-    beforeChange: (current, next) => {
-      activeFormRef.current = document.querySelectorAll("form")[next];
-      setVehicleIdentityId(vehicleIdentity[next].vehicle_identity_id);
-      setVehicleId(vehicleIdentity[next].vehicle_id);
-      setCurrentSlide(next);
-    },
-    afterChange: (current) => {
-      activeFormRef.current = document.querySelectorAll("form")[current];
-    },
+  useEffect(() => {
+    if (!vehicleIdentity?.length) return;
+    setVehicleIdentityId(vehicleIdentity[0]?.vehicle_identity_id);
+    activeFormRef.current = document.querySelectorAll("form")[0];
+  }, [vehicleIdentity]);
+
+  const handleSlideChange = (swiper) => {
+    const next = swiper.activeIndex;
+    activeFormRef.current = document.querySelectorAll("form")[next];
+    setVehicleIdentityId(vehicleIdentity[next].vehicle_identity_id);
+    setVehicleId(vehicleIdentity[next].vehicle_id);
+    setCurrentSlide(next);
   };
 
   const handleSubmitClick = async () => {
@@ -82,9 +53,7 @@ const RentalReviewModal = ({
   };
 
   const handleSkipClick = () => {
-    if (sliderRef.current) {
-      sliderRef.current.slickNext();
-    }
+    swiperRef.current?.slideNext();
   };
 
   return (
@@ -123,10 +92,11 @@ const RentalReviewModal = ({
           </Typography>
         </Stack>
 
-        <StyledSlider ref={sliderRef} {...settings}>
-          {vehicleIdentity?.map((item) => (
+        <CustomSlider
+          items={vehicleIdentity ?? []}
+          getKey={(item) => item.id}
+          renderItem={(item) => (
             <RentalReviewItem
-              key={item.id}
               trip_id={trip_id}
               item={item}
               vehicleIdentityId={vehicleIdentityId}
@@ -136,8 +106,17 @@ const RentalReviewModal = ({
               vehicleId={vehicleId}
               refetchTripDetails={refetchTripDetails}
             />
-          ))}
-        </StyledSlider>
+          )}
+          arrowVariant="none"
+          showDots
+          slidesPerView={1}
+          swiperProps={{
+            onSwiper: (swiper) => {
+              swiperRef.current = swiper;
+            },
+            onSlideChange: handleSlideChange,
+          }}
+        />
       </Stack>
 
       <Stack mt={5} direction="row" spacing={2} width="100%">

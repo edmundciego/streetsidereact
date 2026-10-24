@@ -9,6 +9,8 @@ const CartSubtotalBreakdown = ({
   subtotal,
   originalSubtotal,
   showOriginalSubtotal,
+  eligibilityDiscountAmount,
+  eligibilityDiscountLabel,
 }) => {
   const theme = useTheme();
   const { t } = useTranslation();
@@ -50,6 +52,22 @@ const CartSubtotalBreakdown = ({
               }}
             >
               -{getAmountWithSign(Number(originalSubtotal) - Number(subtotal))}
+            </Typography>
+          </Stack>
+        )}
+        {eligibilityDiscountAmount > 0 && (
+          <Stack direction="row" alignItems="center" justifyContent="space-between">
+            <Typography sx={{ fontSize: "13px", color: theme.palette.text.secondary }}>
+              {eligibilityDiscountLabel}
+            </Typography>
+            <Typography
+              sx={{
+                fontSize: "13px",
+                fontWeight: 600,
+                color: theme.palette.success.main,
+              }}
+            >
+              -{getAmountWithSign(eligibilityDiscountAmount)}
             </Typography>
           </Stack>
         )}

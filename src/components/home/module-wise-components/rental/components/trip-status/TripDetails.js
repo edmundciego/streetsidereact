@@ -1,5 +1,6 @@
 import React from "react";
 import { formatNumber } from "helper-functions/CardHelpers";
+import { formatDistanceWithUnit } from "helper-functions/formatDistanceWithUnit";
 import RentalCardWrapper from "../global/RentalCardWrapper";
 import { Box, Grid, Stack, Typography } from "@mui/material";
 import H3 from "components/typographies/H3";
@@ -16,6 +17,7 @@ import moment from "moment";
 
 const TripDetails = ({ tripDetails, setModalType, setOpenModal,checkOut,setOpenTripChange,setOpenModalCheckout }) => {
   const { cartList } = useSelector((state) => state.cart);
+  const { configData } = useSelector((state) => state.configData);
   return (
     <Box sx={{ mt: 3 }}>
       <RentalCardWrapper>
@@ -268,7 +270,10 @@ const TripDetails = ({ tripDetails, setModalType, setOpenModal,checkOut,setOpenT
                         color: (theme) => theme.palette.neutral[400],
                       }}
                     >
-                      {formatNumber(tripDetails?.distance)} Km
+                      {formatDistanceWithUnit(
+                        tripDetails?.distance,
+                        configData
+                      )}
                     </Typography>
                   )}
               </Box>

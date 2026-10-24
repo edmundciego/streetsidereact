@@ -1,3 +1,4 @@
+import { getApiContent } from "api-manage/getApiContent";
 import CssBaseline from "@mui/material/CssBaseline";
 
 import SEO from "../../../../src/components/seo";
@@ -61,7 +62,7 @@ export const getServerSideProps = async (context) => {
   const { id, module, module_id: legacyModuleId } = context.query;
   const { req } = context;
   const language = req.cookies.languageSetting || "en";
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
+  const baseUrl = (process.env.NEXT_PUBLIC_BASE_URL || "").replace(/\/+$/, "");
   const origin = process.env.NEXT_CLIENT_HOST_URL;
   const moduleId = module || legacyModuleId;
 
@@ -100,7 +101,7 @@ export const getServerSideProps = async (context) => {
     );
   } else if (configSettled.value?.ok) {
     try {
-      config = await configSettled.value.json();
+      config = getApiContent(await configSettled.value.json());
     } catch (error) {
       console.error("SSR config parse failed:", error?.message);
     }
@@ -118,7 +119,7 @@ export const getServerSideProps = async (context) => {
     );
   } else if (vehicleSettled.value?.ok) {
     try {
-      vehicleDetailsData = await vehicleSettled.value.json();
+      vehicleDetailsData = getApiContent(await vehicleSettled.value.json());
     } catch (error) {
       console.error("SSR vehicle details parse failed:", error?.message);
     }

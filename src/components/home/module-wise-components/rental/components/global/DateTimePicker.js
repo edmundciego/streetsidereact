@@ -5,12 +5,19 @@ import { DateTimePicker } from "@mui/x-date-pickers/DateTimePicker";
 import dayjs from "dayjs";
 import { alpha } from "@mui/system";
 
-const BasicDateTimePicker = ({ value, handleDateChange, height, sx }) => {
+const BasicDateTimePicker = ({
+  value,
+  handleDateChange,
+  height,
+  sx,
+  disabled,
+}) => {
   return (
     <LocalizationProvider dateAdapter={AdapterDayjs}>
       <DateTimePicker
         value={dayjs(value)}
         minDateTime={dayjs().subtract(10, "minute")}
+        disabled={disabled}
         className="custom-date-picker"
         sx={{
           "& .MuiInputBase-root": {

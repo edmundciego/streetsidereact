@@ -6,17 +6,9 @@ import FooterTop from "./footer-top/FooterTop";
 import useGetLandingPage from "api-manage/hooks/react-query/useGetLandingPage";
 import { useEffect } from "react";
 
-const FooterComponent = ({
-  configData,
-  landingPageData: landingPageDataProp,
-}) => {
+const FooterComponent = ({ configData }) => {
   const router = useRouter();
-  const { data: landingPageDataFromQuery, refetch } = useGetLandingPage();
-  const landingPageData = landingPageDataProp || landingPageDataFromQuery;
-
-  useEffect(() => {
-    if (!landingPageData) refetch();
-  }, [landingPageData, refetch]);
+  const { data: landingPageData } = useGetLandingPage();
 
   const isLandingPage = router.pathname === "/";
   const isHomePage = router.pathname === "/home";

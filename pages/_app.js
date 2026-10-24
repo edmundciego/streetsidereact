@@ -5,6 +5,7 @@ import { CacheProvider } from "@emotion/react";
 import { Provider as ReduxProvider } from "react-redux";
 import createEmotionCache from "../src/utils/create-emotion-cache";
 import { store } from "redux/store";
+import { setConfigData } from "redux/slices/configData";
 import { ThemeProvider } from "@mui/material/styles";
 import { createTheme } from "theme";
 
@@ -33,6 +34,7 @@ const createQueryClient = () =>
         cacheTime: 1000 * 60 * 5, // 5 minutes
         staleTime: 1000 * 60 * 2, // 2 minutes
         refetchOnWindowFocus: false, // avoid refetch storm on tab focus
+        refetchOnReconnect: false,
         retry: 1, // fail fast on flaky mobile networks
       },
     },
@@ -51,6 +53,15 @@ function MyApp(props) {
   const [queryClient] = useState(createQueryClient);
   // Initialise redux-persist once for the app lifetime, not on every render.
   useState(() => persistStore(store));
+
+  // Every SSR entry point supplies config, including direct visits to policy
+  // pages. Hydrate shared consumers before users open login or location UI.
+  useEffect(() => {
+    if (pageProps?.configData) {
+      queryClient.setQueryData("getConfig", pageProps.configData);
+      store.dispatch(setConfigData(pageProps.configData));
+    }
+  }, [pageProps?.configData, queryClient]);
 
   // NProgress route listeners (with cleanup to avoid duplicate handlers)
   useEffect(() => {

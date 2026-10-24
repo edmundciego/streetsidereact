@@ -2,11 +2,12 @@ import MainApi from "api-manage/MainApi";
 import { useQuery } from "react-query";
 import { banner_list } from "../../../ApiRoutes";
 import { onSingleErrorResponse } from "api-manage/api-error-response/ErrorResponses";
+import { getApiContent } from "api-manage/getApiContent";
 
 // Define a standalone fetcher function
 const fetchVehicleBannerList = async () => {
 	const { data } = await MainApi.get(`${banner_list}`);
-	return data;
+	return getApiContent(data);
 };
 
 // Use the fetcher function in useQuery with caching options

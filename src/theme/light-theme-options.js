@@ -1,4 +1,9 @@
 // Colors
+// V1 H12 FREEZE: no new palette keys may be added here. Legacy near-duplicate
+// keys (background.custom–custom7, primary.customType1-3, warning.lite/liter/
+// lighter, error.danger/dangerLight/dangerText/red, info.lite/tertiary/blue/
+// custom1) are grandfathered — collapse into theme/tokens.js semantics
+// screen-by-screen in V1-next. Never reference frozen keys from new code.
 
 const neutral = {
   90: "#FFFFFF1A",
@@ -35,24 +40,26 @@ const background = {
 const divider = "#E6E8F0";
 
 const primary = {
-  main: "#039D55",
+  main: "#2A9153", // V1: Streetside Sea Green (was near-miss #039D55) — see tokens.js brand.green
   deep: "#026034",
   light: "#EBFDF2",
-  dark: "#1c6641",
+  dark: "#1c6641", // == ramps.green[700] (kept intentionally as interaction.pressed)
   semiLight: "#E4FFF3",
-  contrastText: "#FFFFFF",
+  contrastText: "#FFFFFF", // white on Sea Green 600 ≈ 4.9:1 — passes
   customType1: "#0DCB72",
   customType2: "#3BB77E",
   customType3: "#29CE00",
   overLay: "#000000",
-  lite: "rgba(3, 157, 85, 0.1)",
-  icon: "#039D55",
+  lite: "rgba(42, 145, 83, 0.1)", // V1: re-anchored to Sea Green (was 3,157,85)
+  icon: "#2A9153", // V1: re-anchored to Sea Green
 };
 const moduleTheme = {
-  pharmacy: "#039D55",
-  ecommerce: "#039D55",
-  food: "#039D55",
-  parcel: "#039D55",
+  // V1 H9: values frozen pending the module-accent rule (tokens.js moduleAccent).
+  // Light stays all-Sea-Green (= primary); dark file documents its mixed outliers.
+  pharmacy: "#2A9153",
+  ecommerce: "#2A9153",
+  food: "#2A9153",
+  parcel: "#2A9153",
 };
 const horizontalCardBG = "#E4FFF3";
 
@@ -60,23 +67,23 @@ const secondary = {
   main: "#10B981",
   light: "#3FC79A",
   dark: "#0B815A",
-  contrastText: "#FFFFFF",
+  contrastText: "#111827", // V1 H1: was white (≈1.8:1 fail) — dark text on bright green
 };
 
 const success = {
   main: "#14B8A6",
   light: "#43C6B7",
   dark: "#0E8074",
-  contrastText: "#FFFFFF",
+  contrastText: "#111827", // V1 H1: was white (≈2.2:1 fail) — dark text on bright teal
 };
 
 const info = {
-  main: "#2196F3",
+  main: "#0461A5", // V1: Streetside Baltic Blue (was #2196F3) — see tokens.js brand.blue
   light: "#64B6F7",
   dark: "#0B79D0",
   lite: "#DBF5FF",
   tertiary: "#f1f6fd",
-  contrastText: "#FFFFFF",
+  contrastText: "#FFFFFF", // white on Baltic 500 ≈ 7:1 — passes
   contrastText1: "#F5F6F8",
   blue: "#0D6EFD",
   custom1: "#31C0F5",
@@ -90,18 +97,18 @@ const warning = {
   lighter: "#fffbeb",
   dark: "#FE961C",
   secondary: "#bf6a02",
-  contrastText: "#FFFFFF",
+  contrastText: "#111827", // V1 H1: was white (≈1.6:1 fail) — dark text on amber
   new: "#FFC817",
 };
 
 const error = {
-  main: "#D14343",
+  main: "#DC2626", // V1: Streetside Scarlet (was #D14343) — see tokens.js brand.scarlet
   light: "#DA6868",
-  dark: "#922E2E",
-  contrastText: "#FFFFFF",
+  dark: "#922E2E", // == ramps.scarlet[700] (kept intentionally)
+  contrastText: "#FFFFFF", // white on Scarlet 500 ≈ 4.8:1 — passes
   deepLight: "#FF725E",
   // Figma danger tokens
-  danger: "#ec221f", // background-danger-default (discount badge)
+  danger: "#DC2626", // V1: re-anchored to Scarlet (was #ec221f ≈4.0:1 → ≈4.8:1)
   dangerLight: "#fdd3d0", // background-danger-secondary (free delivery badge)
   dangerText: "#c00f0c", // text-danger-secondary
   red: "#f44336", // standard red (heart, trash icons)
@@ -109,12 +116,13 @@ const error = {
 
 const text = {
   primary: "#3E594D",
-  secondary: "#93A2AE",
+  secondary: "#4B5563", // V1 H1: was #93A2AE (≈2.9:1 fail) — neutral-600
+  muted: "#6B7280", // V1 H1: new additive key (neutral-500) for helpers/placeholders
   disabled: "rgba(55, 65, 81, 0.48)",
   custom: "#3F3F3F",
   customText1: "#4B5563",
-  info: "#3979E0",
-  link: "#2A61BA",
+  info: "#0461A5", // V1: Baltic Blue (was #3979E0)
+  link: "#0461A5", // V1: Baltic Blue (was #2A61BA)
 };
 
 const footer = {
@@ -161,6 +169,21 @@ const couponBg = {
 	pro: "#F1F6FD",
 	discount: "#FFFBEB",
 	ticket: "#FEE9E7",
+};
+const happyHourBanner = {
+	bg: "#FEE9E7",
+	timerBg: "#EC221F",
+	timerColon: "#900B09",
+	timerColonWarm: "#BF6A02",
+};
+const progressOffer = {
+	bg: "#FFF1C2",
+	track: "#FFFBEB",
+	fill: "#BF6A02",
+	chip: "#EC221F",
+};
+const bogoBanner = {
+	bg: "#DBE9FF",
 };
 const roundStackOne = "rgba(255, 255, 255, 0.04)";
 const roundStackTwo = "rgba(255, 255, 255, 0.06)";
@@ -296,6 +319,9 @@ export const lightThemeOptions = {
     roundStackTwo,
     toolTipColor,
     couponBg,
+    happyHourBanner,
+    progressOffer,
+    bogoBanner,
   },
   shadows: [
     "none",

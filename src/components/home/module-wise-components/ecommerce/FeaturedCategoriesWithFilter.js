@@ -1,9 +1,9 @@
 import { useTheme } from "@emotion/react";
-import { Grid, Tab, Tabs, useMediaQuery } from "@mui/material";
+import { Box, Grid, Tab, Tabs, useMediaQuery } from "@mui/material";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useDispatch } from "react-redux";
-import Slider from "react-slick";
+import CustomSlider from "components/common/CustomSlider";
 import { useGetFeaturedCategories } from "../../../../api-manage/hooks/react-query/all-category/all-categorys";
 import useGetFeatureCategoriesProducts from "../../../../api-manage/hooks/react-query/useGetFeatureCategories";
 import {
@@ -17,89 +17,31 @@ import DotSpin from "../../../DotSpin";
 import EmptySearchResults from "../../../EmptySearchResults";
 import H2 from "../../../typographies/H2";
 import { HomeComponentsWrapper } from "../../HomePageComponents";
-import { Next, Prev } from "../../popular-items-nearby/SliderSettings";
 import { useQueryClient } from "react-query";
 
-export const settings = {
-  dots: false,
-  infinite: false,
-  speed: 300,
-  slidesPerRow: 1,
-  rows: 3,
-  slidesToShow: 2,
-  slidesToScroll: 1,
-  swipeToSlide: true,
-  autoplay: true,
-  cssEase: "linear",
-  responsive: [
-    {
-      breakpoint: 500,
-      settings: {
-        slidesToShow: 1.2,
-        slidesPerRow: 1,
-        rows: 3,
-        slidesToScroll: 1,
-        swipeToSlide: true,
-      },
-    },
-    {
-      breakpoint: 700,
-      settings: {
-        slidesToShow: 1.5,
-        slidesPerRow: 2,
-        rows: 3,
-        slidesToScroll: 2,
-        swipeToSlide: true,
-      },
-    },
-    {
-      breakpoint: 750,
-      settings: {
-        slidesToShow: 2,
-        slidesPerRow: 2,
-        rows: 3,
-        slidesToScroll: 2,
-        swipeToSlide: true,
-      },
-    },
-    {
-      breakpoint: 900,
-      settings: {
-        slidesToShow: 1,
-        slidesPerRow: 2,
-        rows: 3,
-        slidesToScroll: 1,
-        swipeToSlide: true,
-      },
-    },
-    {
-      breakpoint: 1150,
-      settings: {
-        slidesToShow: 2,
-        slidesPerRow: 2,
-        rows: 3,
-        slidesToScroll: 3,
-        swipeToSlide: true,
-      },
-    },
-    {
-      breakpoint: 1300,
-      settings: {
-        slidesToShow: 2,
-        slidesPerRow: 2,
-        rows: 3,
-        slidesToScroll: 1,
-        swipeToSlide: true,
-      },
-    },
-  ],
-  prevArrow: <Prev />,
-  nextArrow: <Next />,
+// react-slick's `rows`/`slidesPerRow` grid mode has no Swiper equivalent, so
+// each "slide" here is manually chunked into a CSS grid of
+// ROWS_PER_SLIDE × slidesPerRow items (matching the original grid), and
+// Swiper only handles the horizontal paging between those chunks.
+const ROWS_PER_SLIDE = 3;
+
+// react-slick breakpoint:X meant "apply for width <= X" (descending); these
+// Swiper breakpoints mean "apply for width >= X" (ascending) - shifted by +1.
+const FEATURED_FILTER_BREAKPOINTS = {
+  501: { slidesPerView: 1.5 },
+  701: { slidesPerView: 2 },
+  751: { slidesPerView: 1 },
+  901: { slidesPerView: 2 },
 };
 
 const FeaturedCategoriesWithFilter = (props) => {
   const theme = useTheme();
   const isSmall = useMediaQuery(theme.breakpoints.down("md"));
+  // Columns-per-slide (react-slick's slidesPerRow) follows the same
+  // ascending breakpoints, read via useMediaQuery since it drives JS-side
+  // chunking of items into slides, not just CSS layout.
+  const isMidRange = useMediaQuery("(min-width:501px) and (max-width:1300px)");
+  const columnsPerSlide = isMidRange ? 2 : 1;
   const queryClient = useQueryClient();
   const { title } = props;
   const [selected, setSelected] = useState(0);
@@ -245,32 +187,45 @@ const FeaturedCategoriesWithFilter = (props) => {
                 </CustomStackFullWidth>
               ) : null}
               <CustomBoxFullWidth>
-                <SliderCustom
-                  nopadding="true"
-                  // sx={{
-                  //   mt: { md: "-22px" },
-                  //   "& .slick-slide": {
-                  //     marginRight: {
-                  //       xs: "0px",
-                  //       md: "-25px",
-                  //     },
-                  //   },
-                  // }}
-                >
-                  <Slider {...settings}>
-                    {tempData?.products?.map((item, index) => {
-                      return (
-                        <ProductCard
-                          key={index}
-                          item={item}
-                          cardheight="150px"
-                          cardWidth="100%"
-                          horizontalcard="true"
-                          cardFor="popular items"
-                        />
-                      );
-                    })}
-                  </Slider>
+                <SliderCustom nopadding="true">
+                  <CustomSlider
+                    items={(() => {
+                      const products = tempData?.products ?? [];
+                      const chunkSize = ROWS_PER_SLIDE * columnsPerSlide;
+                      const chunks = [];
+                      for (let i = 0; i < products.length; i += chunkSize) {
+                        chunks.push(products.slice(i, i + chunkSize));
+                      }
+                      return chunks;
+                    })()}
+                    getKey={(chunk, i) => i}
+                    renderItem={(chunk) => (
+                      <Box
+                        sx={{
+                          display: "grid",
+                          gridTemplateColumns: `repeat(${columnsPerSlide}, 1fr)`,
+                          gap: "15px",
+                        }}
+                      >
+                        {chunk.map((item, index) => (
+                          <ProductCard
+                            key={index}
+                            item={item}
+                            cardheight="150px"
+                            cardWidth="100%"
+                            horizontalcard="true"
+                            cardFor="popular items"
+                          />
+                        ))}
+                      </Box>
+                    )}
+                    arrowVariant="inline"
+                    autoplay
+                    speed={300}
+                    slidesPerView={1.2}
+                    spaceBetween={16}
+                    breakpoints={FEATURED_FILTER_BREAKPOINTS}
+                  />
                 </SliderCustom>
                 {tempData?.products?.length === 0 && (
                   <CustomStackFullWidth

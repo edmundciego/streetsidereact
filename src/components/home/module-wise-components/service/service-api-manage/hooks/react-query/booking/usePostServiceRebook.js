@@ -39,11 +39,11 @@ export const rebookToastMessageHandler = (apiResponse, isSuccess = true) => {
   };
 
   if (isSuccess) {
-    const addedCount = apiResponse?.added_count ?? 0;
-    const unavailableItems = apiResponse?.unavailable_items ?? [];
+    const addedCount = apiResponse?.content?.added_count ?? 0;
+    const unavailableItems = apiResponse?.content?.unavailable_items ?? [];
 
     if (addedCount > 0) {
-      toast.success(apiResponse?.message ?? t("Services added to cart"));
+      toast.success(apiResponse?.content?.message ?? t("Services added to cart"));
     } else if (!unavailableItems.length) {
       toast.error(t("No service could be added to cart"));
     }
@@ -51,7 +51,7 @@ export const rebookToastMessageHandler = (apiResponse, isSuccess = true) => {
     showUnavailableToasts(unavailableItems);
   } else {
     // Error path — 403 may still carry unavailable_items
-    const errorBody = apiResponse?.response?.data;
+    const errorBody = apiResponse?.response?.data.content;
     const unavailableItems = errorBody?.unavailable_items ?? [];
 
     if (unavailableItems.length) {

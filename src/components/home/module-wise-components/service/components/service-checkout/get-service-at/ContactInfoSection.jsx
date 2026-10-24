@@ -5,7 +5,7 @@ import { Box, Stack } from "@mui/system";
 import { getToken } from "helper-functions/getToken";
 import { useTranslation } from "react-i18next";
 import { useSelector } from "react-redux";
-import { resolveContactPerson } from "./resolveContactPerson";
+import { resolveContactPerson } from "helper-functions/resolveContactPerson";
 
 const ContactInfoSection = ({
   address,

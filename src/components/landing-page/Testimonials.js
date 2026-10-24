@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import React, { useState } from "react";
 import {
   Box,
   Container,
@@ -7,15 +7,11 @@ import {
   Card,
   CardContent,
   Avatar,
-  IconButton,
   useTheme,
   Button,
   alpha,
 } from "@mui/material";
-import { ArrowBackIos, ArrowForwardIos } from "@mui/icons-material";
-import Slider from "react-slick";
-import "slick-carousel/slick/slick.css";
-import "slick-carousel/slick/slick-theme.css";
+import CustomSlider from "components/common/CustomSlider";
 import FormatQuoteOutlinedIcon from "@mui/icons-material/FormatQuoteOutlined";
 import MapModal from "components/Map/MapModal";
 import { useGeolocated } from "react-geolocated";
@@ -137,60 +133,15 @@ const TestimonialCard = ({ testimonial }) => {
   );
 };
 
+// react-slick breakpoint:1024 meant "apply for width <= 1024" (descending);
+// this Swiper breakpoint means "apply for width >= 1025" (ascending).
+const testimonialBreakpoints = {
+  1025: { slidesPerView: 2 },
+};
+
 const Testimonials = ({ testimonial_section, handleOrderNow }) => {
   const theme = useTheme();
-  const sliderRef = useRef(null);
   const data = testimonial_section?.testimonial_list || testimonialData;
-
-  const handleNext = () => {
-    sliderRef.current?.slickNext();
-  };
-
-  const handlePrev = () => {
-    sliderRef.current?.slickPrev();
-  };
-
-  const sliderSettings = {
-    dots: false,
-    infinite: true,
-    speed: 500,
-    slidesToShow: 2,
-    slidesToScroll: 1,
-    swipeToSlide: true,
-    arrows: false,
-    autoplay: true,
-    autoplaySpeed: 4000,
-    pauseOnHover: true,
-    responsive: [
-      {
-        breakpoint: 1024,
-        settings: {
-          slidesToShow: 1,
-          slidesToScroll: 1,
-          swipeToSlide: true,
-          infinite: true,
-          dots: true,
-        },
-      },
-      {
-        breakpoint: 600,
-        settings: {
-          slidesToShow: 1,
-          slidesToScroll: 1,
-          swipeToSlide: true,
-          initialSlide: 1,
-        },
-      },
-      {
-        breakpoint: 480,
-        settings: {
-          slidesToShow: 1,
-          slidesToScroll: 1,
-          swipeToSlide: true,
-        },
-      },
-    ],
-  };
 
   return (
     <Container maxWidth="lg" sx={{ py: { xs: 2, md: 4 } }}>
@@ -234,81 +185,32 @@ const Testimonials = ({ testimonial_section, handleOrderNow }) => {
 
         {/* Right side - React Slick Slider */}
         <Grid item xs={12} md={8}>
-          <Box sx={{ position: "relative" }}>
-            {/* Left Navigation Button */}
-            <IconButton
-              onClick={handlePrev}
-              sx={{
-                position: "absolute",
-                left: { xs: -11, md: -20 },
-                top: "50%",
-                transform: "translateY(-50%)",
-                zIndex: 2,
-                backgroundColor: "#f5f5f5",
-                color: "#666",
-                borderRadius: "50%",
-                "&:hover": {
-                  backgroundColor: "#e0e0e0",
-                },
-                width: "33px",
-                height: "33px",
-              }}
-            >
-              {theme.direction === "rtl" ? (
-                <ArrowForwardIos sx={{ fontSize: "18px" }} />
-              ) : (
-                <ArrowBackIos sx={{ fontSize: "18px", marginLeft: "6px" }} />
+          <Box
+            sx={{
+              background: {
+                xs: "transparent",
+                md: alpha(theme.palette.neutral[200], 0.1),
+              },
+              paddingTop: "10px",
+              pb: "5px",
+              borderRadius: "10px",
+            }}
+          >
+            <CustomSlider
+              items={data}
+              getKey={(testimonial) => testimonial.id}
+              renderItem={(testimonial) => (
+                <TestimonialCard testimonial={testimonial} />
               )}
-            </IconButton>
-
-            {/* React Slick Slider */}
-            <Box
-              sx={{
-                background: {
-                  xs: "transparent",
-                  md: alpha(theme.palette.neutral[200], 0.1),
-                },
-                paddingTop: "10px",
-                pb: "5px",
-                borderRadius: "10px",
-              }}
-            >
-              <Slider ref={sliderRef} {...sliderSettings}>
-                {data.map((testimonial) => (
-                  <Box key={testimonial.id} sx={{ px: 1 }}>
-                    <TestimonialCard testimonial={testimonial} />
-                  </Box>
-                ))}
-              </Slider>
-            </Box>
-
-            {/* Right Navigation Button */}
-            <IconButton
-              onClick={handleNext}
-              sx={{
-                position: "absolute",
-                right: { xs: -11, md: -20 },
-                top: "50%",
-                transform: "translateY(-50%)",
-                zIndex: 2,
-                backgroundColor: "#f5f5f5",
-                color: "#666",
-                borderRadius: "50%",
-                "&:hover": {
-                  backgroundColor: "#e0e0e0",
-                },
-                width: 30,
-                height: 30,
-              }}
-            >
-              {theme.direction === "rtl" ? (
-                <ArrowBackIos
-                  sx={{ fontSize: "18px", marginInlineEnd: "6px" }}
-                />
-              ) : (
-                <ArrowForwardIos sx={{ fontSize: "18px" }} />
-              )}
-            </IconButton>
+              arrowVariant="inline"
+              loop
+              autoplay
+              autoplayDelay={4000}
+              speed={500}
+              slidesPerView={1}
+              spaceBetween={16}
+              breakpoints={testimonialBreakpoints}
+            />
           </Box>
         </Grid>
       </Grid>

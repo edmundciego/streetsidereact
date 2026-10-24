@@ -2,6 +2,7 @@ import { useQuery } from "react-query";
 import MainApi from "api-manage/MainApi";
 import { onSingleErrorResponse } from "api-manage/api-error-response/ErrorResponses";
 import { service_request_list_api } from "../../../ApiRoutes";
+import { getApiCollection } from "api-manage/getApiContent";
 
 // GET /api/v1/service/requested-services/{id}
 // Normalize category_name/category_image_full_url to the field names the UI
@@ -16,7 +17,8 @@ const normalizeDetail = (item) => {
 };
 
 const getData = async (id) => {
-  const { data } = await MainApi.get(`${service_request_list_api}/${id}`);
+  const { data: __env } = await MainApi.get(`${service_request_list_api}/${id}`);
+  const data = getApiCollection(__env, "custom_services");
   return normalizeDetail(data?.data ?? null);
 };
 

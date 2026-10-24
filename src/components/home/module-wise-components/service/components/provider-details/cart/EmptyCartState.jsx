@@ -4,25 +4,25 @@ import LocalShippingOutlinedIcon from "@mui/icons-material/LocalShippingOutlined
 import { useTranslation } from "react-i18next";
 
 import { getAmountWithSign } from "helper-functions/CardHelpers";
+import { getInfoFromZoneData } from "utils/CustomFunctions";
 
 // Min-order / free-delivery hint — shared by the empty state AND the
-// with-items cart views (sidebar + mobile drawer).
-export const FreeDeliveryHint = ({ configData }) => {
+// with-items cart views (sidebar + mobile drawer). Free delivery is set up
+// per (zone, module) now, not as a single admin-wide setting — read it off
+// the current module's entry in the zone lookup response (zoneData.zone_data),
+// same source/lookup getInfoFromZoneData() already uses for delivery pivots.
+export const FreeDeliveryHint = ({ zoneData }) => {
   const theme = useTheme();
   const { t } = useTranslation();
 
-  // The service module has no delivery, so the free-delivery hint never applies.
-  return null;
-
-  // Config shape: admin_free_delivery: { status, type, free_delivery_over }.
-  // Only show for an active order-amount-based free delivery offer.
-  const adminFreeDelivery = configData?.admin_free_delivery;
-  const freeDeliveryThreshold =
-    Number(adminFreeDelivery?.free_delivery_over) || 0;
+  const freeDelivery = getInfoFromZoneData(zoneData)?.free_delivery;
+  const freeDeliveryThreshold = Number(freeDelivery?.minimum_order_amount) || 0;
+  const isAllStoreFree =
+    freeDelivery?.status === true && freeDelivery?.type === "all_store";
   const isOfferActive =
-    adminFreeDelivery?.status === true &&
-    adminFreeDelivery?.type === "free_delivery_by_order_amount" &&
-    freeDeliveryThreshold > 0;
+    freeDelivery?.status === true &&
+    (isAllStoreFree ||
+      (freeDelivery?.type === "specific_criteria" && freeDeliveryThreshold > 0));
 
   if (!isOfferActive) return null;
 
@@ -57,21 +57,27 @@ export const FreeDeliveryHint = ({ configData }) => {
           lineHeight: 1.3,
         }}
       >
-        {t("Order min")}{" "}
-        <Box
-          component="span"
-          sx={{ fontWeight: 700, color: theme.palette.warning.dark }}
-        >
-          {getAmountWithSign(freeDeliveryThreshold)}
-        </Box>{" "}
-        {t("to get free delivery")}
+        {isAllStoreFree ? (
+          t("Free delivery on this order")
+        ) : (
+          <>
+            {t("Order min")}{" "}
+            <Box
+              component="span"
+              sx={{ fontWeight: 700, color: theme.palette.warning.dark }}
+            >
+              {getAmountWithSign(freeDeliveryThreshold)}
+            </Box>{" "}
+            {t("to get free delivery")}
+          </>
+        )}
       </Typography>
     </Stack>
   );
 };
 
 // Empty-cart placeholder shared by the desktop sidebar and mobile drawer.
-const EmptyCartState = ({ configData }) => {
+const EmptyCartState = ({ zoneData }) => {
   const theme = useTheme();
   const { t } = useTranslation();
 
@@ -135,7 +141,7 @@ const EmptyCartState = ({ configData }) => {
             textAlign: "center",
           }}
         >
-          {t("Your Cart is Waiting!")}
+          {t("Your Cart is Empty!")}
         </Typography>
         <Typography
           sx={{
@@ -149,7 +155,7 @@ const EmptyCartState = ({ configData }) => {
         </Typography>
       </Stack>
 
-      <FreeDeliveryHint configData={configData} />
+      <FreeDeliveryHint zoneData={zoneData} />
     </Stack>
   );
 };

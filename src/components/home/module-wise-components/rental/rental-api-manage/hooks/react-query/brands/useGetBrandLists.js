@@ -4,13 +4,14 @@ import { onSingleErrorResponse } from "api-manage/api-error-response/ErrorRespon
 import { vehicle_brand_list } from "../../../ApiRoutes";
 import { useSelector } from "react-redux";
 import { getCurrentModuleId } from "helper-functions/getCurrentModuleType";
+import { getApiCollection } from "api-manage/getApiContent";
 
 // Define a standalone fetcher function
 const fetchBrandLists = async () => {
   const { data } = await MainApi.get(
     `${vehicle_brand_list}?offset=1&limit=100`
   );
-  return data;
+  return getApiCollection(data, "brands");
 };
 
 // Use the fetcher function in useQuery

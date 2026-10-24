@@ -10,7 +10,9 @@ export const CustomSpinner = styled(Stack)(({ theme, color }) => ({
   backgroundColor: "transparent",
   color: "transparent",
   boxShadow:
-    "0 -18px 0 0 ${color}, 12.727926px -12.727926px 0 0 ${color}, 18px 0 0 0 ${color}, 12.727926px 12.727926px 0 0 rgba(152, 128, 255, 0), 0 18px 0 0 rgba(152, 128, 255, 0), -12.727926px 12.727926px 0 0 rgba(152, 128, 255, 0), -18px 0 0 0 rgba(152, 128, 255, 0), -12.727926px -12.727926px 0 0 rgba(152, 128, 255, 0)",
+    // V1 H6: was a plain string so ${color} rendered literally; now interpolated.
+    // V1 H8: transparent placeholder re-anchored to Sea Green (was foreign 152,128,255).
+    `0 -18px 0 0 ${color}, 12.727926px -12.727926px 0 0 ${color}, 18px 0 0 0 ${color}, 12.727926px 12.727926px 0 0 rgba(42, 145, 83, 0), 0 18px 0 0 rgba(42, 145, 83, 0), -12.727926px 12.727926px 0 0 rgba(42, 145, 83, 0), -18px 0 0 0 rgba(42, 145, 83, 0), -12.727926px -12.727926px 0 0 rgba(42, 145, 83, 0)`,
   animation: "dots-pin 1.5s infinite linear",
   "@Keyframes dots-pin": {
     "0%": {

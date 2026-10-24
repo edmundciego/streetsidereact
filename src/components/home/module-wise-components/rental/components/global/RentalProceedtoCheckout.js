@@ -3,6 +3,8 @@ import { Box } from "@mui/system";
 import { t } from "i18next";
 import React from "react";
 import { getAmountWithSign, formatNumber } from "helper-functions/CardHelpers";
+import { formatDistanceWithUnit } from "helper-functions/formatDistanceWithUnit";
+import { useSelector } from "react-redux";
 import { LoadingButton } from "@mui/lab";
 import {
   calculateTotalDiscount,
@@ -26,6 +28,7 @@ const RentalProceedtoCheckout = ({
   isShowDiscount,
   children,
 }) => {
+  const { configData } = useSelector((state) => state.configData);
   const getText = {
     cart: (
       <Typography
@@ -48,9 +51,12 @@ const RentalProceedtoCheckout = ({
             <b>{formatNumber(rentalUserData?.user_data?.estimated_hours / 24)}</b> Days
           </>
         ) : (
-          <>
-            <b>{formatNumber(rentalUserData?.user_data?.distance)}</b> Km
-          </>
+          <b>
+            {formatDistanceWithUnit(
+              rentalUserData?.user_data?.distance,
+              configData
+            )}
+          </b>
         )}
       </Typography>
     ),

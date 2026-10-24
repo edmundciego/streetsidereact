@@ -1,5 +1,6 @@
 import { Box, Stack, Typography, alpha, useTheme } from "@mui/material";
 import CustomImageContainer from "components/CustomImageContainer";
+import CartBundleItem from "components/added-cart-view/CartBundleItem";
 import {
   getAmountWithSign,
   getDiscountedAmount,
@@ -12,6 +13,25 @@ const getVariationNames = (variations) => {
     .map((variation) => variation?.name ?? variation?.type)
     .filter(Boolean)
     .join(", ");
+};
+
+const mapBookingBundleDetails = (bundleDetails) => {
+  const quantity = Number(bundleDetails?.quantity) || 1;
+  const total = Number(bundleDetails?.total) || 0;
+  const discount = Number(bundleDetails?.discount_amount) || 0;
+  const finalPrice = quantity > 0 ? (total - discount) / quantity : 0;
+
+  return {
+    name: bundleDetails?.name,
+    quantity,
+    final_price: finalPrice,
+    base_price: Number(bundleDetails?.unit_price) || finalPrice,
+    items: (bundleDetails?.items ?? []).map((subItem, index) => ({
+      item_id: index,
+      name: subItem?.name,
+      image_full_url: subItem?.image ?? null,
+    })),
+  };
 };
 
 const ServiceList = ({ items, t }) => {
@@ -47,6 +67,17 @@ const ServiceList = ({ items, t }) => {
         gap="14px"
       >
         {items.map((product) => {
+          if (product?.bundle_details?.bundle_id) {
+            return (
+              <CartBundleItem
+                key={product?.id}
+                bundleDetails={mapBookingBundleDetails(product.bundle_details)}
+                quantity={product?.quantity}
+                showStepper={false}
+                disableGutters
+              />
+            );
+          }
           const details = product?.item_details;
           const originalPrice = Number(details?.price) || 0;
           const calculatedPrice = Number(details?.calculated_price ?? originalPrice) || originalPrice;

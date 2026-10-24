@@ -6,10 +6,13 @@ import { getModuleId } from "helper-functions/getModuleId";
 import { useRouter } from "next/router";
 
 const FeatureImageBox = styled(Stack)(({ theme }) => ({
-  width: "100%",
+  width: "56px",
   paddingTop: "10px",
   borderRadius: "50%",
   cursor: "pointer",
+  [theme.breakpoints.up("md")]: {
+    width: "88px",
+  },
 }));
 
 const FoodCategoryCard = (props) => {

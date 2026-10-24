@@ -1,4 +1,7 @@
 // Colors
+// V1 H12 FREEZE: no new palette keys may be added here (see light file + tokens.js).
+// Dark primaries are LIGHTENED ramp stops for dark backgrounds (same technique
+// the Flutter app already used) — never new hues.
 
 const neutral = {
   100: "#000000",
@@ -17,6 +20,9 @@ const neutral = {
   1100: "#D6D6D6",
 };
 const moduleTheme = {
+  // V1 H9: FROZEN — dark-only outliers kept byte-identical until the
+  // module-accent rule (tokens.js moduleAccent) lands per-module. Do not copy
+  // these hues into new code.
   pharmacy: "#31C0F5",
   ecommerce: "#EEF5FF",
   food: "#EF7822",
@@ -43,15 +49,15 @@ const foodCardColor = neutral[800];
 const roundStackOne = "rgba(255, 255, 255, 0.04)";
 const roundStackTwo = "rgba(255, 255, 255, 0.06)";
 const primary = {
-  main: "#039D55",
+  main: "#4FA876", // V1: Sea Green ramp-400 lightened for dark bg (was near-miss #039D55)
   light: "#909BEF",
-  dark: "#1c6641",
+  dark: "#1c6641", // == ramps.green[700] (kept intentionally)
   deep: "#026034",
   contrastText: neutral[900],
   semiLight: "#E4FFF3",
   overLay: "#000000",
   customType2: "#3BB77E",
-  lite: "rgba(3, 157, 85, 0.1)",
+  lite: "rgba(42, 145, 83, 0.1)", // V1: re-anchored to Sea Green
   customType3: "#29CE00",
   icon: "#ffffff",
 };
@@ -71,7 +77,7 @@ const success = {
 };
 
 const info = {
-  main: "#2196F3",
+  main: "#7FB5E8", // V1: Baltic ramp-300 lightened for dark bg (was #2196F3)
   light: "#64B6F7",
   dark: "#0B79D0",
   lite: "#DBF5FF",
@@ -95,12 +101,12 @@ const warning = {
 };
 
 const error = {
-  main: "#D14343",
+  main: "#F87171", // V1: Scarlet ramp-300 lightened for dark bg (was #D14343)
   light: "#DA6868",
-  dark: "#922E2E",
+  dark: "#922E2E", // == ramps.scarlet[700] (kept intentionally)
   contrastText: neutral[900],
   deepLight: "#FF725E",
-  danger: "#ff4444",
+  danger: "#ff4444", // dark-appropriate lighter red (kept)
   dangerLight: "#4a2020",
   dangerText: "#ff6b6b",
   red: "#ff5252",
@@ -108,12 +114,13 @@ const error = {
 
 const text = {
   primary: "#e8eaec",
-  secondary: "#A0AEC0",
+  secondary: "#A0AEC0", // kept (≈7:1 on #1E1E1E — passes)
+  muted: "#9CA3AF", // V1 H1: new additive key for helpers on dark
   disabled: "rgba(255, 255, 255, 0.48)",
   custom: "#ede8e8",
   customText1: "#EDF2F7",
-  info: "#3979E0",
-  link: "#2A61BA",
+  info: "#7FB5E8", // V1: Baltic ramp-300 (was #3979E0)
+  link: "#7FB5E8", // V1: Baltic ramp-300 (was #2A61BA ≈2.5:1 fail on dark)
 };
 const footer = {
   inputButton: "#BBFFDF",
@@ -160,6 +167,21 @@ const couponBg = {
   pro: "#1a2b3c",
   discount: "#2d2200",
   ticket: "#2d1515",
+};
+const happyHourBanner = {
+  bg: "rgba(236, 34, 31, 0.14)",
+  timerBg: "#EC221F",
+  timerColon: "#FF8A87",
+  timerColonWarm: "#E0A23D",
+};
+const progressOffer = {
+  bg: "rgba(229, 160, 0, 0.14)",
+  track: "rgba(255, 255, 255, 0.06)",
+  fill: "#e8972a",
+  chip: "#ff4444",
+};
+const bogoBanner = {
+  bg: "rgba(86, 66, 240, 0.14)",
 };
 export const darkThemeOptions = {
   components: {
@@ -291,6 +313,9 @@ export const darkThemeOptions = {
     roundStackTwo,
     toolTipColor,
     couponBg,
+    happyHourBanner,
+    progressOffer,
+    bogoBanner,
   },
   shadows: [
     "none",
@@ -307,7 +332,7 @@ export const darkThemeOptions = {
     "0px 5px 15px rgba(0, 0, 0, 0.24)",
     "0px 6px 15px rgba(0, 0, 0, 0.24)",
     "0px 7px 15px rgba(0, 0, 0, 0.24)",
-    "0px 8px 15px rgba(255, 255, 255, 0.07)",
+    "0px 8px 15px rgba(0, 0, 0, 0.24)", // V1 H7: was rgba(255,255,255,0.07) typo
     "0px 9px 15px rgba(0, 0, 0, 0.24)",
     "0px 10px 15px rgba(0, 0, 0, 0.24)",
     "0px 12px 22px -8px rgba(0, 0, 0, 0.24)",

@@ -1,3 +1,4 @@
+import { getApiContent } from "../../../getApiContent";
 import MainApi from "../../../MainApi";
 import { user_info_api } from "../../../ApiRoutes";
 import { useQuery } from "react-query";
@@ -11,7 +12,7 @@ const getData = async () => {
   const userToken = getToken();
   if (userToken) {
     const { data } = await MainApi.get(user_info_api);
-    return data;
+    return getApiContent(data);
   }
 };
 

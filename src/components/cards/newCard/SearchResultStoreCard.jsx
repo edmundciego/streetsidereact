@@ -1,3 +1,4 @@
+import React from "react";
 import { Box, Stack, Typography, useTheme } from "@mui/material";
 import { styled } from "@mui/material/styles";
 import VerifiedStoreBadge from "components/cards/VerifiedStoreBadge";
@@ -279,12 +280,6 @@ const SearchResultStoreCard = ({ store, items = [], showAdBadge = false }) => {
 
   const handleClick = () => handleStoreRedirect(store, router);
 
-  const formatDistance = (meters) => {
-    if (!meters && meters !== 0) return null;
-    const km = meters / 1000;
-    return `${km.toFixed(1)} km`;
-  };
-
   return (
     <CardRoot onClick={handleClick}>
       {/* Top — Restaurant info */}
@@ -343,7 +338,7 @@ const SearchResultStoreCard = ({ store, items = [], showAdBadge = false }) => {
               fontSize="14px"
             />
           </Stack>
-          {(store?.delivery_time || store?.distance != null) && (
+          {(store?.delivery_time || store?.distance_label) && (
             <Stack
               direction="row"
               alignItems="center"
@@ -375,7 +370,7 @@ const SearchResultStoreCard = ({ store, items = [], showAdBadge = false }) => {
                   {store.delivery_time}
                 </Typography>
               )}
-              {formatDistance(store?.distance) && (
+              {store?.distance_label && (
                 <Typography
                   dir="ltr"
                   sx={{
@@ -388,7 +383,7 @@ const SearchResultStoreCard = ({ store, items = [], showAdBadge = false }) => {
                     unicodeBidi: "isolate",
                   }}
                 >
-                  ({formatDistance(store.distance)})
+                  ({store.distance_label})
                 </Typography>
               )}
             </Stack>
@@ -437,4 +432,4 @@ const SearchResultStoreCard = ({ store, items = [], showAdBadge = false }) => {
   );
 };
 
-export default SearchResultStoreCard;
+export default React.memo(SearchResultStoreCard);

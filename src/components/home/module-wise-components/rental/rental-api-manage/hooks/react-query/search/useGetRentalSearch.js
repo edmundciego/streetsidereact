@@ -2,6 +2,11 @@ import { useInfiniteQuery } from "react-query";
 import MainApi from "api-manage/MainApi";
 import { onSingleErrorResponse } from "api-manage/api-error-response/ErrorResponses";
 import { getModuleId } from "helper-functions/getModuleId";
+import { getApiCollection } from "api-manage/getApiContent";
+
+// Interpolating an absent value straight into the query string sends the literal
+// text "undefined" (e.g. `duration=undefined`). Blank it instead.
+const q = (v) => (v === undefined || v === null ? "" : v);
 
 const getSearch = async (pageParams) => {
   const {
@@ -32,13 +37,15 @@ const getSearch = async (pageParams) => {
       date || ""
     }&provider_id=${provider_id || ""}&trip_type=${
       tripType ?tripType: "distance_wise"
-    }&duration=${duration}&sortby_price=${sort_by}&min_price=${min_price}&max_price=${max_price}&category_ids=[${category_ids}]&brand_ids=[${brand_ids}]&seating_capacity=${encodeURIComponent(
+    }&duration=${q(duration)}&sortby_price=${q(sort_by)}&min_price=${q(min_price)}&max_price=${q(max_price)}&category_ids=[${q(category_ids)}]&brand_ids=[${q(brand_ids)}]&seating_capacity=${encodeURIComponent(
       JSON.stringify(seating_capacity)
-    )}&air_condition=${air_condition}&no_air_condition=${no_air_condition}&offset=${
+    )}&air_condition=${q(air_condition)}&no_air_condition=${q(no_air_condition)}&offset=${
       pageParam ? pageParam : offset
     }&limit=${limit}`
   );
-  return data;
+  // content carries the rows plus min_price/max_price siblings, which the
+  // filter reads as `pages[0].max_price`. getApiCollection keeps both.
+  return getApiCollection(data, "vehicles");
 };
 
 export default function useGetRentalSearch(pageParams,handleAPiCallOnSuccess) {

@@ -63,3 +63,17 @@ base/
 skills-lock.json
 
 .DS_Store
+
+# Additional vendor tooling
+/.idea
+/.idea/
+/.vscode
+.ai-rules.md
+.ai/
+CLAUDE.md
+.CLAUDE.md
+.claude/
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/

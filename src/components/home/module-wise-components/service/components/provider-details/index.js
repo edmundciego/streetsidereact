@@ -41,6 +41,7 @@ import CustomContainer from "components/container";
 import { CustomStackFullWidth } from "styled-components/CustomStyles.style";
 import ServiceLastBookingSection from "../home/ServiceLastBookingSection";
 import { getToken } from "helper-functions/getToken";
+import CartDiscountEligibilityBanner from "components/added-cart-view/CartDiscountEligibilityBanner";
 
 const MapModal = dynamic(() => import("components/Map/MapModal"));
 
@@ -123,6 +124,23 @@ const ProviderDetails = ({ providerDetails, configData }) => {
     const tempCartLists = res.map((item) => {
       const product = item?.item ?? item?.service ?? {};
       const quantity = item?.quantity ?? 1;
+
+      // A bundle row's real content lives under bundle_details, not
+      // item/service (both null) — see helper-functions/bundleCartRow.js.
+      // product is `{}` here, so the branches below would price it at 0;
+      // short-circuit to the row's own top-level price instead.
+      if (item?.bundle_details?.bundle_id) {
+        return {
+          cartItemId: item?.id,
+          store_id: item?.provider_id ?? thisStoreId,
+          module_id: item?.module_id ?? undefined,
+          module_type: moduleType,
+          price: item?.price,
+          totalPrice: (item?.price ?? 0) * quantity,
+          quantity,
+          bundle_details: item?.bundle_details,
+        };
+      }
 
       if (isService) {
         // For variation items: use variation's own price/discount.
@@ -307,7 +325,7 @@ const ProviderDetails = ({ providerDetails, configData }) => {
     <CustomStackFullWidth spacing={{ xs: 0.5, md: 1 }}>
       {topSection}
       {getToken() && providerDetails?.id ? (
-        <Box sx={{ pt: 2, pb: 2 }}>
+        <Box sx={{ pt: 2, pb: 2, "&:empty": { display: "none" } }}>
           <ServiceLastBookingSection store_id={providerDetails?.id} />
         </Box>
       ) : null}
@@ -353,9 +371,9 @@ const ProviderDetails = ({ providerDetails, configData }) => {
       <CustomContainer>
         <Box
           sx={{
-            mt: "45px",
+            mt: "32px",
             display: "flex",
-            gap: 3,
+            gap: "32px",
             flexDirection: { xs: "column", md: "row" },
             alignItems: "stretch",
           }}
@@ -384,7 +402,7 @@ const ProviderDetails = ({ providerDetails, configData }) => {
     <>
       <CustomStackFullWidth
         key={rerender}
-        sx={{ minHeight: "100vh", mt: { xs: 0, md: 0, lg: "20px" } }}
+        sx={{ minHeight: "100vh" }}
         spacing={3}
       >
         {layoutHandler()}
@@ -485,98 +503,115 @@ const ProviderDetails = ({ providerDetails, configData }) => {
         />
       )}
 
-      {/* Bottom cart bar — Mobile Only */}
-      {cartCount > 0 && (
+      {/* Bottom cart bar — Mobile Only. The happy-hour/discount banner is
+      independent of cart contents (matches Stackfood), so it can render
+      with an empty cart; only the "View Cart List" pill needs items. */}
+      {providerDetails?.id != null && (
         <Box
           sx={{
-            display: { xs: "block", md: "none" },
+            display: { xs: "flex", md: "none" },
+            flexDirection: "column",
+            "& > *": { margin: 0 },
             position: "fixed",
             bottom: 0,
             left: 0,
             right: 0,
             zIndex: 1000,
-            backgroundColor: (theme) => theme.palette.background.paper,
-            borderTop: (theme) => `1px solid ${theme.palette.divider}`,
-            boxShadow: (theme) =>
-              `0px -2px 12px ${alpha(theme.palette.text.primary, 0.06)}`,
-            px: 2,
-            py: 1.25,
           }}
         >
-          <Stack
-            direction="row"
-            alignItems="center"
-            justifyContent="space-between"
-            spacing={2}
+          {!cartDrawerOpen && (
+            <CartDiscountEligibilityBanner
+              storeId={providerDetails?.id}
+              hasCartItems={cartCount > 0}
+            />
+          )}
+          {cartCount > 0 && (
+          <Box
+            sx={{
+              backgroundColor: (theme) => theme.palette.background.paper,
+              borderTop: (theme) => `1px solid ${theme.palette.divider}`,
+              boxShadow: (theme) =>
+                `0px -2px 12px ${alpha(theme.palette.text.primary, 0.06)}`,
+              px: 2,
+              py: 1.25,
+            }}
           >
-            <Stack spacing={0.25} sx={{ minWidth: 0 }}>
-              <Stack
-                direction="row"
-                alignItems="center"
-                spacing={0.5}
-                onClick={() => setCartDrawerOpen(true)}
-                sx={{ cursor: "pointer" }}
-              >
-                <Typography
-                  sx={{
-                    fontSize: "13px",
-                    color: (theme) => theme.palette.text.secondary,
-                  }}
+            <Stack
+              direction="row"
+              alignItems="center"
+              justifyContent="space-between"
+              spacing={2}
+            >
+              <Stack spacing={0.25} sx={{ minWidth: 0 }}>
+                <Stack
+                  direction="row"
+                  alignItems="center"
+                  spacing={0.5}
+                  onClick={() => setCartDrawerOpen(true)}
+                  sx={{ cursor: "pointer" }}
                 >
-                  {t("Subtotal")}
-                </Typography>
-                <KeyboardArrowUpIcon
-                  sx={{
-                    fontSize: 16,
-                    color: (theme) => theme.palette.text.secondary,
-                  }}
-                />
-              </Stack>
-              <Stack direction="row" alignItems="baseline" spacing={0.75}>
-                <Typography
-                  sx={{
-                    fontSize: "18px",
-                    fontWeight: 700,
-                    color: (theme) => theme.palette.text.primary,
-                  }}
-                >
-                  {getAmountWithSign(cartSubtotal)}
-                </Typography>
-                {showCartOriginalSubtotal && (
                   <Typography
                     sx={{
                       fontSize: "13px",
-                      color: (theme) => theme.palette.text.disabled,
-                      textDecoration: "line-through",
+                      color: (theme) => theme.palette.text.secondary,
                     }}
                   >
-                    {getAmountWithSign(cartOriginalSubtotal)}
+                    {t("Subtotal")}
                   </Typography>
-                )}
+                  <KeyboardArrowUpIcon
+                    sx={{
+                      fontSize: 16,
+                      color: (theme) => theme.palette.text.secondary,
+                    }}
+                  />
+                </Stack>
+                <Stack direction="row" alignItems="baseline" spacing={0.75}>
+                  <Typography
+                    sx={{
+                      fontSize: "18px",
+                      fontWeight: 700,
+                      color: (theme) => theme.palette.text.primary,
+                    }}
+                  >
+                    {getAmountWithSign(cartSubtotal)}
+                  </Typography>
+                  {showCartOriginalSubtotal && (
+                    <Typography
+                      sx={{
+                        fontSize: "13px",
+                        color: (theme) => theme.palette.text.disabled,
+                        textDecoration: "line-through",
+                      }}
+                    >
+                      {getAmountWithSign(cartOriginalSubtotal)}
+                    </Typography>
+                  )}
+                </Stack>
               </Stack>
-            </Stack>
-            <Button
-              onClick={() => setCartDrawerOpen(true)}
-              variant="contained"
-              sx={{
-                backgroundColor: (theme) => theme.palette.primary.main,
-                color: (theme) => theme.palette.whiteContainer.main,
-                textTransform: "none",
-                fontWeight: 700,
-                fontSize: "14px",
-                borderRadius: "8px",
-                px: 2.5,
-                py: 1.25,
-                boxShadow: "none",
-                "&:hover": {
-                  backgroundColor: (theme) => theme.palette.primary.dark,
+              <Button
+                onClick={() => setCartDrawerOpen(true)}
+                variant="contained"
+                sx={{
+                  backgroundColor: (theme) => theme.palette.primary.main,
+                  color: (theme) => theme.palette.whiteContainer.main,
+                  textTransform: "none",
+                  fontWeight: 700,
+                  fontSize: "14px",
+                  borderRadius: "8px",
+                  px: 2.5,
+                  py: 1.25,
                   boxShadow: "none",
-                },
-              }}
-            >
-              {t("View Cart List")} ({cartCount})
-            </Button>
-          </Stack>
+                  "&:hover": {
+                    backgroundColor: (theme) => theme.palette.primary.dark,
+                    boxShadow: "none",
+                  },
+                }}
+              >
+                {t("View Cart List")} ({cartCount})
+              </Button>
+            </Stack>
+          </Box>
+          )}
         </Box>
       )}
 

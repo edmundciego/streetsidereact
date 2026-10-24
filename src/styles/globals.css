@@ -173,8 +173,8 @@ a {
     top: -2.5rem;
     border: none;
     border-radius: 50%;
-    width: 2rem;
-    height: 2rem;
+    width: 2.75rem; /* V1 H4: was 2rem (32px <44px target) */
+    height: 2.75rem; /* V1 H4: was 2rem (32px <44px target) */
     background: rgba(255, 255, 255, 0.5);
 }
 
@@ -352,4 +352,24 @@ button.gm-ui-hover-effect {
     width: 13px !important;
     height: 9px !important;
     left: 7px !important;
+}
+
+/* ---------------------------------------------------------------------------
+ * Streetside Design System V1 — global a11y + type utilities (H3, H11)
+ * Additive only. See src/theme/tokens.js.
+ * ------------------------------------------------------------------------- */
+
+/* V1 H3: visible keyboard focus everywhere (2px Sea Green ring + 2px offset).
+ * Never add `outline: none` without providing an equivalent replacement. */
+*:focus-visible {
+    outline: 2px solid #2A9153;
+    outline-offset: 2px;
+}
+
+/* V1 H11: tabular figures for money/numeric cells (prices, totals, OTP,
+ * fares, counts). Apply alongside existing classes — zero layout change.
+ * Usage: className="tnum" */
+.tnum {
+    font-feature-settings: "tnum";
+    font-variant-numeric: tabular-nums;
 }

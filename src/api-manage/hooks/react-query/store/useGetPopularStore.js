@@ -1,3 +1,4 @@
+import { getApiCollection } from "../../../getApiContent";
 import { useInfiniteQuery, useQuery } from "react-query";
 import MainApi from "../../../MainApi";
 import {
@@ -11,14 +12,14 @@ const getPopularStore = async (type, limit = 12, offset = 1) => {
   const { data } = await MainApi.get(
     `${popular_store_api}?type=${type}&limit=${limit}&offset=${offset}`
   );
-  return data;
+  return getApiCollection(data, "stores");
 };
 const getPopularStoreInfiniteScroll = async (pageParams) => {
   const { type, limit, offset, pageParam } = pageParams;
   const { data } = await MainApi.get(
     `${getCurrentModuleType() === "rental"?popular_provider:popular_store_api}?type=${type}&offset=${pageParam}&limit=${limit}`
   );
-  return data;
+  return getApiCollection(data, "stores");
 };
 
 export default function useGetPopularStore(pageParams) {

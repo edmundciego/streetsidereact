@@ -15,7 +15,7 @@ const CampaignsPage = () => {
   }, []);
 
   return (
-    <CustomStackFullWidth mt={{ xs: 0, md: "60px" }}>
+    <CustomStackFullWidth mt={{ xs: 0, md: "16px" }}>
       <SimpleMobileHeader title="Campaigns" />
       <CustomContainer sx={{ paddingTop: "20px", paddingBottom: "40px" }}>
         <Stack spacing={{ xs: 2, md: 3 }}>

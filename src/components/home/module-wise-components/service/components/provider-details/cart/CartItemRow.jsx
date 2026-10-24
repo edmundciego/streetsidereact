@@ -22,7 +22,7 @@ import {
 import { getCurrentModuleType } from "helper-functions/getCurrentModuleType";
 import {
   getTotalVariationsPrice,
-  handleTotalAmountWithAddons,
+  newHandleTotalAmountWithAddons,
 } from "utils/CustomFunctions";
 import { cart_item_remove, out_of_limits } from "utils/toasterMessages";
 import {
@@ -210,7 +210,7 @@ const CartItemRow = ({ cartItem, spacingTop = 0 }) => {
     });
   };
 
-  const itemTotal = handleTotalAmountWithAddons(
+  const itemTotal = newHandleTotalAmountWithAddons(
     getDiscountedAmount(
       cartItem?.totalPrice,
       cartItem?.discount,
@@ -221,12 +221,13 @@ const CartItemRow = ({ cartItem, spacingTop = 0 }) => {
     cartItem?.selectedAddons
   );
 
-  const originalPrice =
-    cartItem?.price && cartItem?.quantity
-      ? cartItem.price * cartItem.quantity
-      : null;
+  const quantity = Number(cartItem?.quantity) || 1;
+  const discountedUnitPrice = Number(itemTotal) / quantity;
+
+  const originalPrice = cartItem?.price ?? null;
   const showStrike =
-    originalPrice != null && Number(originalPrice) > Number(itemTotal);
+    originalPrice != null &&
+    Number(originalPrice) > Number(discountedUnitPrice);
 
   return (
     <>
@@ -288,7 +289,7 @@ const CartItemRow = ({ cartItem, spacingTop = 0 }) => {
                   color: theme.palette.text.primary,
                 }}
               >
-                {getAmountWithSign(itemTotal)}
+                {getAmountWithSign(discountedUnitPrice)}
               </Typography>
               {showStrike && (
                 <Typography

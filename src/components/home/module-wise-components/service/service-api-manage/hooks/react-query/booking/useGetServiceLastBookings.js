@@ -2,6 +2,7 @@ import { useQuery } from "react-query";
 import MainApi from "api-manage/MainApi";
 import { onSingleErrorResponse } from "api-manage/api-error-response/ErrorResponses";
 import { last_booking_api } from "components/home/module-wise-components/service/service-api-manage/ApiRoutes";
+import { getApiContent } from "api-manage/getApiContent";
 
 const fetchServiceLastBookings = async (provider_id, limit, offset) => {
   const params = new URLSearchParams();
@@ -9,7 +10,8 @@ const fetchServiceLastBookings = async (provider_id, limit, offset) => {
   params.append("limit", limit);
   params.append("offset", offset);
   const url = `${last_booking_api}?${params.toString()}`;
-  const { data } = await MainApi.get(url);
+  const { data: __env } = await MainApi.get(url);
+  const data = getApiContent(__env);
   return data;
 };
 

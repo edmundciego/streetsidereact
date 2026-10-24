@@ -3,11 +3,13 @@ import MainApi from "api-manage/MainApi";
 import { onSingleErrorResponse } from "api-manage/api-error-response/ErrorResponses";
 import { getModule } from "helper-functions/getLanguage";
 import { service_campaigns_api } from "../../../ApiRoutes";
+import { getApiContent } from "api-manage/getApiContent";
 
 const getData = async () => {
-  const { data } = await MainApi.get(
+  const { data: __env } = await MainApi.get(
     `${service_campaigns_api}?limit=${100}&offset=${1}`,
   );
+  const data = getApiContent(__env);
   return data?.campaigns ?? [];
 };
 

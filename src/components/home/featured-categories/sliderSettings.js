@@ -13,11 +13,9 @@ import { getLanguage } from "../../../helper-functions/getLanguage";
 import PrevIcon from "../../icons/PrevIcon";
 import NextIcon from "../../icons/NextIcon";
 import { getCurrentModuleType } from "../../../helper-functions/getCurrentModuleType";
-import Slider from "react-slick";
 import FeaturedItemCard from "./card";
 import PharmacyCategoryCard from "../../cards/PharmacyCategoryCard";
 import { WhiteNext, WhitePrev } from "../visit-again/SliderSettings";
-import { ModuleTypes } from "../../../helper-functions/moduleTypes";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 

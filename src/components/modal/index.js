@@ -11,6 +11,7 @@ const CustomModal = (props) => {
     children,
     maxWidth,
     drawerHeight,
+    disableContentOverflowClip,
   } = props;
   const handleCloseModal = (event, reason) => {
     event?.stopPropagation?.();
@@ -54,8 +55,9 @@ const CustomModal = (props) => {
         PaperProps={{
           sx: {
             borderRadius: "16px 16px 0 0",
-            maxHeight: "90vh",
-            overflowY: "auto",
+            ...(disableContentOverflowClip
+              ? { overflowY: "visible" }
+              : { maxHeight: "90vh", overflowY: "auto" }),
             ...(drawerHeight && { height: drawerHeight }),
           },
         }}
@@ -75,7 +77,9 @@ const CustomModal = (props) => {
         zIndex: 1500,
         ".MuiDialog-paper": {
           margin: "16px",
-          overflowX: "hidden",
+          ...(disableContentOverflowClip
+            ? { overflowX: "visible", overflowY: "visible" }
+            : { overflowX: "hidden" }),
           ...(maxWidth && {
             width: `min(${maxWidth}, calc(100vw - 32px))`,
             maxWidth: "100%",
@@ -97,6 +101,7 @@ CustomModal.propTypes = {
   children: PropTypes.node,
   maxWidth: PropTypes.string,
   drawerHeight: PropTypes.string,
+  disableContentOverflowClip: PropTypes.bool,
 };
 
 export default CustomModal;

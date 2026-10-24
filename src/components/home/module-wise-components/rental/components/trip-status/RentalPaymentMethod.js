@@ -188,7 +188,7 @@ const RentalPaymentMethod = ({
         </CustomStackFullWidth>
       )}
 
-      <PrimaryButton loading={isLoading} onClick={handlePayment}>
+      <PrimaryButton loading={isLoading} onClick={() => handlePayment()}>
         {t("Proceed")}
       </PrimaryButton>
     </Box>

@@ -5,13 +5,21 @@ import { getCurrentModuleType } from "helper-functions/getCurrentModuleType";
 import ServiceIcon from "../svg/ServiceIcon";
 import { useTranslation } from "react-i18next";
 
-const TopOfferNotifyBanner = ({ title, subtitle, onClick, bannerSx, ...props }) =>  {
+const TopOfferNotifyBanner = ({
+  title,
+  subtitle,
+  onClick,
+  bannerSx,
+  ...props
+}) => {
   const theme = useTheme();
   const router = useRouter();
   const { t } = useTranslation();
 
   const defaultTitle = t("Post for Customised Service");
-  const defaultSubtitle = t("Create a request with your own description and additional instructions.");
+  const defaultSubtitle = t(
+    "Create a request with your own description and additional instructions.",
+  );
 
   const handleClick = () => {
     if (onClick) {
@@ -30,8 +38,11 @@ const TopOfferNotifyBanner = ({ title, subtitle, onClick, bannerSx, ...props }) 
       onClick={handleClick}
       sx={{
         width: "100%",
-        backgroundColor: theme.palette.mode === "dark" ? "rgba(13, 110, 253, 0.15)" : "#DBE9FF",
-        border: theme.palette.mode === "dark" ? "1px solid rgba(13, 110, 253, 0.3)" : "1px solid #B4D3FF",
+        backgroundColor:
+          theme.palette.mode === "dark"
+            ? "rgba(13, 110, 253, 0.15)"
+            : "#DBE9FF",
+        // border: theme.palette.mode === "dark" ? "1px solid rgba(13, 110, 253, 0.3)" : "1px solid #B4D3FF",
         borderRadius: { xs: "12px", sm: "16px" },
         padding: { xs: "12px", sm: "16px" },
         display: "flex",
@@ -78,7 +89,7 @@ const TopOfferNotifyBanner = ({ title, subtitle, onClick, bannerSx, ...props }) 
             display: { sm: "block" },
           }}
         >
-          {subtitle || defaultSubtitle }
+          {subtitle || defaultSubtitle}
         </Typography>
       </Stack>
 

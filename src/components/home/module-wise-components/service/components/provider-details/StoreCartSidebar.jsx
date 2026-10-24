@@ -18,6 +18,7 @@ import CartItemsList from "./cart/CartItemsList";
 import SuggestedItemsCarousel from "./cart/SuggestedItemsCarousel";
 import CartSubtotalBreakdown from "./cart/CartSubtotalBreakdown";
 import CartAuxModals from "./cart/CartAuxModals";
+import CartDiscountEligibilityBanner from "components/added-cart-view/CartDiscountEligibilityBanner";
 
 const SidebarSurface = styled(Box)(({ theme }) => ({
   position: "sticky",
@@ -148,11 +149,15 @@ const StoreCartSidebar = ({ providerDetails, isLoading }) => {
   }
   const {
     configData,
+    zoneData,
     moduleCartList,
     isEmpty,
     subtotal,
+    itemsSubtotal,
     originalSubtotal,
     showOriginalSubtotal,
+    eligibilityDiscountAmount,
+    eligibilityDiscountLabel,
     suggestedItems,
     subtotalCollapsed,
     setSubtotalCollapsed,
@@ -169,6 +174,13 @@ const StoreCartSidebar = ({ providerDetails, isLoading }) => {
 
   return (
     <SidebarSurface>
+      {isEmpty && (
+        <CartDiscountEligibilityBanner
+          storeId={providerDetails?.id}
+          hasCartItems={false}
+          rounded
+        />
+      )}
       {!isEmpty && (
         <Stack
           direction="row"
@@ -208,19 +220,20 @@ const StoreCartSidebar = ({ providerDetails, isLoading }) => {
       <SimpleBar style={{ maxHeight: "calc(100vh - 300px)", width: "100%" }}>
         <Stack sx={{ px: 2.5, pb: 1, mt: "1rem" }}>
           {isEmpty ? (
-            <EmptyCartState configData={configData} />
+            <EmptyCartState zoneData={zoneData} />
           ) : (
             <>
               <CartItemsList
                 moduleCartList={moduleCartList}
                 rowSpacingTop="1rem"
               />
-              <FreeDeliveryHint configData={configData} />
+              <FreeDeliveryHint zoneData={zoneData} />
             </>
           )}
 
-          {/* Pro Plan banners */}
-          {proFeatureEnabled &&
+          {/* Pro Plan banners — cart-dependent, same as the discount banner below */}
+          {!isEmpty &&
+            proFeatureEnabled &&
             hasToken &&
             proOfferResolved &&
             !isProMember && (
@@ -230,21 +243,32 @@ const StoreCartSidebar = ({ providerDetails, isLoading }) => {
                 />
               </Box>
             )}
-          {proFeatureEnabled && hasToken && proOfferResolved && isProActive && (
-            <Box sx={{ mt: 2, width: "100%", mb: 1 }}>
-              <ProSavingsBanner
-                amount={
-                  activeOffer?.total_saved ??
-                  activeOffer?.plan_details?.total_saved
-                }
-                message={proSavingsMessage}
-              />
-            </Box>
-          )}
+          {!isEmpty &&
+            proFeatureEnabled &&
+            hasToken &&
+            proOfferResolved &&
+            isProActive && (
+              <Box sx={{ mt: 2, width: "100%", mb: 1 }}>
+                <ProSavingsBanner
+                  amount={
+                    activeOffer?.total_saved ??
+                    activeOffer?.plan_details?.total_saved
+                  }
+                  message={proSavingsMessage}
+                />
+              </Box>
+            )}
 
           <SuggestedItemsCarousel suggestedItems={suggestedItems} />
         </Stack>
       </SimpleBar>
+
+      {!isEmpty && (
+        <CartDiscountEligibilityBanner
+          storeId={providerDetails?.id}
+          hasCartItems={moduleCartList?.length > 0}
+        />
+      )}
 
       {!isEmpty && (
         <CustomStackFullWidth
@@ -257,9 +281,11 @@ const StoreCartSidebar = ({ providerDetails, isLoading }) => {
         >
           <CartSubtotalBreakdown
             collapsed={subtotalCollapsed}
-            subtotal={subtotal}
+            subtotal={itemsSubtotal}
             originalSubtotal={originalSubtotal}
             showOriginalSubtotal={showOriginalSubtotal}
+            eligibilityDiscountAmount={eligibilityDiscountAmount}
+            eligibilityDiscountLabel={eligibilityDiscountLabel}
           />
 
           <Stack

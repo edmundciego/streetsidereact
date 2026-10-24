@@ -2,12 +2,14 @@ import MainApi from "api-manage/MainApi";
 import { filtered_stores_api } from "../../../ApiRoutes";
 import { useInfiniteQuery } from "react-query";
 import { onErrorResponse } from "api-manage/api-error-response/ErrorResponses";
+import { getApiCollection } from "api-manage/getApiContent";
 
 const getData = async (pageParams) => {
   const { limit, pageParam, filteredData } = pageParams;
-  const { data } = await MainApi.get(
+  const { data: __env } = await MainApi.get(
     `${filtered_stores_api}?offset=${pageParam}&limit=${limit}&store_type=${filteredData}`
   );
+  const data = getApiCollection(__env, "stores");
   return data;
 };
 

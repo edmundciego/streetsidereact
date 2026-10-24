@@ -3,6 +3,8 @@ import { Stack, Typography, useTheme } from "@mui/material";
 import { useTranslation } from "react-i18next";
 
 import CartItemRow from "./CartItemRow";
+import CartBundleItemConnected from "components/added-cart-view/CartBundleItemConnected";
+import { isBundleCartRow } from "helper-functions/bundleCartRow";
 
 const CartItemsList = ({ moduleCartList, rowSpacingTop = 0 }) => {
   const theme = useTheme();
@@ -29,13 +31,20 @@ const CartItemsList = ({ moduleCartList, rowSpacingTop = 0 }) => {
         {t("Items")}
       </Typography>
       <Stack>
-        {moduleCartList.map((item) => (
-          <CartItemRow
-            key={item?.cartItemId || item?.id}
-            cartItem={item}
-            spacingTop={rowSpacingTop}
-          />
-        ))}
+        {moduleCartList.map((item) =>
+          isBundleCartRow(item) ? (
+            <CartBundleItemConnected
+              key={item?.bundle_details?.bundle_group_id}
+              row={item}
+            />
+          ) : (
+            <CartItemRow
+              key={item?.cartItemId || item?.id}
+              cartItem={item}
+              spacingTop={rowSpacingTop}
+            />
+          ),
+        )}
       </Stack>
     </Stack>
   );

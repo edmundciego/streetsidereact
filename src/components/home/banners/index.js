@@ -5,9 +5,7 @@ import { Grid, Skeleton, styled, useMediaQuery, useTheme } from "@mui/material";
 import { Box } from "@mui/system";
 import { useRouter } from "next/router";
 import { useDispatch, useSelector } from "react-redux";
-import Slider from "components/common/LazySlider";
-import "slick-carousel/slick/slick-theme.css";
-import "slick-carousel/slick/slick.css";
+import CustomSlider from "components/common/CustomSlider";
 import useGetBanners from "../../../api-manage/hooks/react-query/useGetBanners";
 import { getCurrentModuleType } from "helper-functions/getCurrentModuleType";
 import { getModuleId } from "helper-functions/getModuleId";
@@ -19,6 +17,7 @@ import {
 } from "styled-components/CustomStyles.style";
 import CustomImageContainer from "../../CustomImageContainer";
 import FoodDetailModal from "../../food-details/foodDetail-modal/FoodDetailModal";
+import ModuleModal from "../../cards/ModuleModal";
 import NextImage from "components/NextImage";
 import {
   handleProductRedirect,
@@ -92,7 +91,7 @@ const Banners = ({ feature }) => {
       refetchBannerData();
     }
   }, [banners]);
-  console.log("banner data :", { data, bannersData, banners });
+
   useEffect(() => {
     if (data) {
       dispatch(setBanners(data));
@@ -214,96 +213,62 @@ const Banners = ({ feature }) => {
     }
   };
 
-  const settings = {
-    dots: true,
-    infinite: false,
-    slidesToShow: getModuleWiseBanners(),
-    slidesToScroll: 1,
-    swipeToSlide: true,
-    autoplay: true,
-    speed: 800,
-    autoplaySpeed: 4000,
-    cssEase: "linear",
-    responsive: [
-      {
-        breakpoint: 600,
-        settings: {
-          slidesToShow: 1.15,
-          slidesToScroll: 1,
-          swipeToSlide: true,
-          infinite: false,
-          autoplay: false,
-        },
-      },
-    ],
+  // react-slick breakpoint:600 meant "apply for width <= 600" (descending);
+  // this Swiper breakpoint means "apply for width >= 601" (ascending).
+  const bannerBreakpoints = {
+    601: { slidesPerView: getModuleWiseBanners() },
   };
   return (
     <>
       <CustomStackFullWidth
         sx={{
-          mt: { xs: 0, sm:  bannersData?.length > 0 ? "10px" : 0   },
-          "& .slick-track": { marginLeft: 0 },
-          "& .slick-list": {
-            marginRight: "-16px",
-          },
-          "& .slick-slide": {
-            paddingRight: "16px !important",
-          },
-          "& .slick-dots": {
+          mt: { xs: 0, sm: bannersData?.length > 0 ? "10px" : 0 },
+          "& .swiper-pagination": {
             position: "static",
-            marginTop: { xs: 0, sm: "10px" },
+            marginTop: { xs: "8px", sm: "10px" },
             display: "flex !important",
             justifyContent: "center",
             alignItems: "center",
             gap: "6px",
-            "& li": {
-              width: 8,
-              height: 8,
-              margin: 0,
-              display: "flex",
-            },
-            "& li button": {
-              width: 8,
-              height: 8,
-              padding: 0,
-            },
-            "& li button:before": {
-              content: '""',
-              width: 8,
-              height: 8,
-              top: 0,
-              left: 0,
-              borderRadius: "50%",
-              backgroundColor: (theme) =>
-                theme.palette.action?.disabled || "#C7C7CC",
-              opacity: 1,
-              fontSize: 0,
-              lineHeight: 0,
-            },
-            "& li.slick-active button:before": {
-              backgroundColor: "primary.main",
-              opacity: 1,
-              transform: "scale(1.1)",
-            },
+          },
+          "& .swiper-pagination-bullet": {
+            width: 8,
+            height: 8,
+            margin: "0 !important",
+            borderRadius: "50%",
+            backgroundColor: (theme) =>
+              theme.palette.action?.disabled || "#C7C7CC",
+            opacity: 1,
+          },
+          "& .swiper-pagination-bullet-active": {
+            backgroundColor: "primary.main",
+            opacity: 1,
+            transform: "scale(1.1)",
           },
           marginInlineStart: { xs: 0, sm: "-8px" },
         }}
       >
         {!isFetched ? (
-          <Slider {...settings}>
-            {[...Array(2)].map((_, index) => (
-              <BannersWrapper key={index}>
+          <CustomSlider
+            items={[0, 1]}
+            renderItem={() => (
+              <BannersWrapper>
                 <Skeleton variant="rectangular" height="100%" width="100%" />
               </BannersWrapper>
-            ))}
-          </Slider>
+            )}
+            arrowVariant="none"
+            allowOverflowY={false}
+            slidesPerView={1.15}
+            spaceBetween={16}
+            breakpoints={bannerBreakpoints}
+          />
         ) : (
           bannersData?.length > 0 && (
             <SliderCustom padding="0px">
-              <Slider {...settings}>
-                {bannersData.map((item, index) => (
+              <CustomSlider
+                items={bannersData}
+                renderItem={(item) => (
                   <BannersWrapper
-                    key={index}
                     onClick={
                       item?.type === "default" && item?.link === null
                         ? undefined
@@ -323,25 +288,43 @@ const Banners = ({ feature }) => {
                       sizes="(max-width: 600px) 100vw, 300px"
                       objectFit="fill"
                       borderRadius="16px"
-                   
                     />
                   </BannersWrapper>
-                ))}
-              </Slider>
+                )}
+                arrowVariant="none"
+                allowOverflowY={false}
+                showDots
+                loop={bannersData.length > 1}
+                autoplay={bannersData.length > 1}
+                autoplayDelay={4000}
+                speed={800}
+                slidesPerView={1.15}
+                spaceBetween={16}
+                breakpoints={bannerBreakpoints}
+              />
             </SliderCustom>
           )
         )}
       </CustomStackFullWidth>
 
-      {openModal && foodBanner && (
-        <FoodDetailModal
-          product={foodBanner}
-          image={`${configData?.base_urls?.item_image_url}/${foodBanner?.image}`}
-          open={openModal}
-          handleModalClose={handleModalClose}
-          setOpen={setOpenModal}
-        />
-      )}
+      {openModal &&
+        foodBanner &&
+        (getCurrentModuleType() === ModuleTypes.FOOD ? (
+          <FoodDetailModal
+            product={foodBanner}
+            image={`${configData?.base_urls?.item_image_url}/${foodBanner?.image}`}
+            open={openModal}
+            handleModalClose={handleModalClose}
+            setOpen={setOpenModal}
+          />
+        ) : (
+          <ModuleModal
+            open={openModal}
+            handleModalClose={handleModalClose}
+            configData={configData}
+            productDetailsData={foodBanner}
+          />
+        ))}
     </>
   );
 };

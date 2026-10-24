@@ -1,3 +1,4 @@
+import { getApiContent } from "../src/api-manage/getApiContent";
 import { LandingLayout } from "components/layout/LandingLayout";
 import LandingPage from "../src/components/landing-page";
 import CssBaseline from "@mui/material/CssBaseline";
@@ -75,11 +76,11 @@ export const getServerSideProps = async (context) => {
   // (In the rare maintenance-mode case the landing request is wasted, but
   // the redirect is still served immediately once config resolves.)
   const [configSettled, landingSettled] = await Promise.allSettled([
-    fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/v1/config`, {
+    fetch(`${(process.env.NEXT_PUBLIC_BASE_URL || "").replace(/\/+$/, "")}/api/v1/config`, {
       method: "GET",
       headers: configHeaders,
     }),
-    fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/v1/react-landing-page`, {
+    fetch(`${(process.env.NEXT_PUBLIC_BASE_URL || "").replace(/\/+$/, "")}/api/v1/react-landing-page`, {
       method: "GET",
       headers: landingHeaders,
     }),
@@ -88,7 +89,7 @@ export const getServerSideProps = async (context) => {
   if (configSettled.status === "rejected") {
     throw configSettled.reason;
   }
-  const config = await configSettled.value.json();
+  const config = getApiContent(await configSettled.value.json());
 
   if (checkMaintenanceMode(config)) {
     return {
@@ -102,7 +103,7 @@ export const getServerSideProps = async (context) => {
   if (landingSettled.status === "rejected") {
     throw landingSettled.reason;
   }
-  const landingPageData = await landingSettled.value.json();
+  const landingPageData = getApiContent(await landingSettled.value.json()) ?? null;
   // Set cache control headers for 1 hour (3600 seconds)
   res.setHeader(
     "Cache-Control",

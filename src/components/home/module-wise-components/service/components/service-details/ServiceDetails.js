@@ -101,7 +101,7 @@ const ServiceProductDetails = ({ serviceDetailsData, configData }) => {
 
   return (
     <CustomStackFullWidth
-      paddingTop={{ xs: 0, md: "2.5rem" }}
+      paddingTop={{ xs: 0, md: "24px" }}
       //paddingBottom="2.5rem"
       //sx={{ minHeight: "100vh" }}
     >

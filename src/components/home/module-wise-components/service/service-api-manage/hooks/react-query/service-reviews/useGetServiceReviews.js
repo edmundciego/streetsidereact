@@ -2,6 +2,7 @@ import MainApi from "api-manage/MainApi";
 import { service_reviews_api, data_limit } from "../../../ApiRoutes";
 import { useQuery } from "react-query";
 import { onSingleErrorResponse } from "api-manage/api-error-response/ErrorResponses";
+import { getApiCollection } from "api-manage/getApiContent";
 
 // GET /api/v1/service/reviews/{service_id}?limit=&offset=
 const getData = async ({ serviceId, limit = data_limit, offset }) => {
@@ -9,9 +10,10 @@ const getData = async ({ serviceId, limit = data_limit, offset }) => {
   if (limit) params.set("limit", limit);
   if (offset) params.set("offset", offset);
   const query = params.toString();
-  const { data } = await MainApi.get(
+  const { data: __env } = await MainApi.get(
     `${service_reviews_api}/${serviceId}${query ? `?${query}` : ""}`
   );
+  const data = getApiCollection(__env, "reviews");
   return data;
 };
 

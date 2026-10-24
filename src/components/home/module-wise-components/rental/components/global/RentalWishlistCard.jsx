@@ -39,6 +39,7 @@ import CustomDialogConfirm from "components/custom-dialog/confirm/CustomDialogCo
 import CartClearModal from "components/product-details/product-details-section/CartClearModal";
 import useAddCartItem from "api-manage/hooks/react-query/add-cart/useAddCartItem";
 import { Router, useRouter } from "next/router";
+import { useGetProviderDetails } from "components/home/module-wise-components/rental/rental-api-manage/hooks/react-query/provider/useGetProviderDetails";
 const CarBookingModal = dynamic(() =>
   import(
     "components/home/module-wise-components/rental/components/global/CarBookingModal"
@@ -64,6 +65,8 @@ const RentalWishListCard = ({ item }) => {
   const { mutate } = useWishListDelete();
   const { rentalSearch } = useSelector((state) => state?.rentalSearch);
   const { mutate: addToMutate, isLoading } = useAddCartItem();
+  const { data: providerDetails } = useGetProviderDetails(item?.provider?.id);
+  const scheduleOrderEnabled = providerDetails?.schedule_order !== false;
   const handleCloseCart = () => {
     dispatch({ type: ACTION.setOpenModal, payload: false });
   };
@@ -317,6 +320,7 @@ const RentalWishListCard = ({ item }) => {
           }
           card
           callUpdateUserData={false}
+          scheduleOrderEnabled={scheduleOrderEnabled}
         />
       )}
       {openItemModal && (

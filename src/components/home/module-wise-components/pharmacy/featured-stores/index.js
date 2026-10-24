@@ -1,10 +1,6 @@
 import { Skeleton, Typography, useTheme } from "@mui/material";
-import {
-  WhiteNext,
-  WhitePrev,
-} from "components/home/visit-again/SliderSettings";
 import { useTranslation } from "react-i18next";
-import Slider from "react-slick";
+import CustomSlider from "components/common/CustomSlider";
 import {
   CustomStackFullWidth,
   SliderCustom,
@@ -49,77 +45,16 @@ const FeaturedStores = (props) => {
     );
   }
 
-  const settings = {
-    dots: false,
-    infinite: false,
-    speed: 500,
-    slidesToShow: slide ?? 4,
-    slidesToScroll: 1,
-    swipeToSlide: true,
-    nextArrow: <WhiteNext />,
-    prevArrow: <WhitePrev />,
-    responsive: [
-      {
-        breakpoint: 1450,
-        settings: {
-          slidesToShow: 4,
-          slidesToScroll: 3,
-          swipeToSlide: true,
-          infinite: false,
-        },
-      },
-      {
-        breakpoint: 1250,
-        settings: {
-          slidesToShow: 3.5,
-          slidesToScroll: 2,
-          swipeToSlide: true,
-          infinite: false,
-        },
-      },
-      {
-        breakpoint: 1024,
-        settings: {
-          slidesToShow: 3,
-          slidesToScroll: 2,
-          swipeToSlide: true,
-          infinite: false,
-        },
-      },
-      {
-        breakpoint: 700,
-        settings: {
-          slidesToShow: 2.5,
-          slidesToScroll: 2,
-          swipeToSlide: true,
-          initialSlide: 2,
-        },
-      },
-      {
-        breakpoint: 480,
-        settings: {
-          slidesToShow: 2,
-          slidesToScroll: 1,
-          swipeToSlide: true,
-        },
-      },
-      {
-        breakpoint: 479,
-        settings: {
-          slidesToShow: 1.7,
-          slidesToScroll: 1,
-          swipeToSlide: true,
-        },
-      },
-      {
-        breakpoint: 420,
-        settings: {
-          slidesToShow: 1.3,
-          slidesToScroll: 1,
-          swipeToSlide: true,
-        },
-      },
-    ],
+  // react-slick breakpoint:X meant "apply for width <= X" (descending); these
+  // Swiper breakpoints mean "apply for width >= X" (ascending) - shifted by +1.
+  const featuredStoresBreakpoints = {
+    421: { slidesPerView: 1.7 },
+    480: { slidesPerView: 2 },
+    481: { slidesPerView: 2.5 },
+    701: { slidesPerView: 3 },
+    901: { slidesPerView: 3, spaceBetween: 20 },
+    1025: { slidesPerView: 3.5, spaceBetween: 20 },
+    1251: { slidesPerView: slide ?? 4, spaceBetween: 20 },
   };
 
   return (
@@ -127,11 +62,14 @@ const FeaturedStores = (props) => {
       {isLoading ? (
         <CustomStackFullWidth spacing={1}>
           <Skeleton width="200px" />
-          <Slider {...settings}>
-            {[...Array(6)].map((item, index) => {
-              return <NewStoreCardSkeleton key={index} />;
-            })}
-          </Slider>
+          <CustomSlider
+            items={Array.from({ length: 6 })}
+            renderItem={() => <NewStoreCardSkeleton />}
+            arrowVariant="none"
+            slidesPerView={1.3}
+            spaceBetween={16}
+            breakpoints={featuredStoresBreakpoints}
+          />
         </CustomStackFullWidth>
       ) : (
         <>
@@ -162,16 +100,21 @@ const FeaturedStores = (props) => {
                   "& .slick-slide > div > *": { width: "100% !important" },
                 }}
               >
-                <Slider {...settings}>
-                  {featuredStores?.map((item, index) => (
+                <CustomSlider
+                  items={featuredStores}
+                  getKey={(item, index) => item?.id ?? index}
+                  renderItem={(item) => (
                     <NewStoreCard
-                      key={item?.id ?? index}
                       variant="normal"
                       item={item}
                       imageUrl={item?.cover_photo_full_url}
                     />
-                  ))}
-                </Slider>
+                  )}
+                  arrowVariant="inline"
+                  slidesPerView={1.3}
+                  spaceBetween={16}
+                  breakpoints={featuredStoresBreakpoints}
+                />
               </SliderCustom>
             </CustomStackFullWidth>
           )}

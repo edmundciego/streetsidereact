@@ -74,12 +74,18 @@ const RentalCarFilterSection = ({ isSticky, api_endpoint }) => {
   const closeHandler = () => {
     setSideDrawerOpen(false);
   };
-  const { selectedDate, tripType, duration } = rentalSearch || {};
+  const { selectedDate, tripType, duration, destination_location } =
+    rentalSearch || {};
 
   const pickup_location =
-    typeof window !== "undefined"
-      ? window.localStorage.getItem("currentLatLng")
-      : false;
+    destination_location?.lat != null && destination_location?.lng != null
+      ? JSON.stringify({
+          lat: destination_location.lat,
+          lng: destination_location.lng,
+        })
+      : typeof window !== "undefined"
+        ? window.localStorage.getItem("currentLatLng")
+        : false;
 
   const handleAPiCallOnSuccess = (res) => {
     console.log({ res });
@@ -167,7 +173,7 @@ const RentalCarFilterSection = ({ isSticky, api_endpoint }) => {
     id,
     pickup_location,
   ]);
-  const isSearchPage = router.pathname === "/vehicle-search";
+  const isSearchPage = router.pathname === "/rental/vehicle-search";
 
   console.log({ rentalPriceFilterRange, minMax });
 
@@ -175,7 +181,7 @@ const RentalCarFilterSection = ({ isSticky, api_endpoint }) => {
     <Box>
       <CustomBoxFullWidth
         sx={{
-          mt: { xs: "", md: isSearchPage ? 0 : "60px" },
+          mt: { xs: "", md: isSearchPage ? "12px" : "60px" },
         }}
       >
         {/* Sticky Rental Filter Menu */}

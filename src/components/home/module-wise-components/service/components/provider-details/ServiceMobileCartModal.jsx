@@ -24,11 +24,15 @@ const ServiceMobileCartModal = ({ open, onClose, providerDetails }) => {
   const cart = useStoreCartData({ providerDetails, onAfterNavigate: onClose });
   const {
     configData,
+    zoneData,
     moduleCartList,
     isEmpty,
     subtotal,
+    itemsSubtotal,
     originalSubtotal,
     showOriginalSubtotal,
+    eligibilityDiscountAmount,
+    eligibilityDiscountLabel,
     suggestedItems,
     subtotalCollapsed,
     setSubtotalCollapsed,
@@ -51,6 +55,7 @@ const ServiceMobileCartModal = ({ open, onClose, providerDetails }) => {
         onClose={onClose}
         sx={{
           display: { xs: "block", md: "none" },
+          zIndex: (theme) => theme.zIndex.appBar + 100,
           "& .MuiDrawer-paper": {
             borderRadius: "16px 16px 0 0",
             maxHeight: "90vh",
@@ -119,31 +124,39 @@ const ServiceMobileCartModal = ({ open, onClose, providerDetails }) => {
         <SimpleBar style={{ flex: 1, overflowY: "auto", minHeight: 0 }}>
           <Stack sx={{ px: 2.5, pb: 2, pt: 1.5 }}>
             {isEmpty ? (
-              <EmptyCartState configData={configData} />
+              <EmptyCartState zoneData={zoneData} />
             ) : (
               <>
                 <CartItemsList moduleCartList={moduleCartList} />
-                <FreeDeliveryHint configData={configData} />
+                <FreeDeliveryHint zoneData={zoneData} />
               </>
             )}
 
-            {/* Pro Plan banners */}
-            {proFeatureEnabled && hasToken && proOfferResolved && !isProMember && (
-              <Box sx={{ mt: 2, width: "100%" }}>
-                <ProPlanBanner onSubscribe={() => setProModalOpen(true)} />
-              </Box>
-            )}
-            {proFeatureEnabled && hasToken && proOfferResolved && isProActive && (
-              <Box sx={{ mt: 2, width: "100%", mb: 1 }}>
-                <ProSavingsBanner
-                  amount={
-                    activeOffer?.total_saved ??
-                    activeOffer?.plan_details?.total_saved
-                  }
-                  message={proSavingsMessage}
-                />
-              </Box>
-            )}
+            {/* Pro Plan banners — cart-dependent */}
+            {!isEmpty &&
+              proFeatureEnabled &&
+              hasToken &&
+              proOfferResolved &&
+              !isProMember && (
+                <Box sx={{ mt: 2, width: "100%" }}>
+                  <ProPlanBanner onSubscribe={() => setProModalOpen(true)} />
+                </Box>
+              )}
+            {!isEmpty &&
+              proFeatureEnabled &&
+              hasToken &&
+              proOfferResolved &&
+              isProActive && (
+                <Box sx={{ mt: 2, width: "100%", mb: 1 }}>
+                  <ProSavingsBanner
+                    amount={
+                      activeOffer?.total_saved ??
+                      activeOffer?.plan_details?.total_saved
+                    }
+                    message={proSavingsMessage}
+                  />
+                </Box>
+              )}
 
             <SuggestedItemsCarousel suggestedItems={suggestedItems} />
           </Stack>
@@ -161,9 +174,11 @@ const ServiceMobileCartModal = ({ open, onClose, providerDetails }) => {
         >
           <CartSubtotalBreakdown
             collapsed={subtotalCollapsed}
-            subtotal={subtotal}
+            subtotal={itemsSubtotal}
             originalSubtotal={originalSubtotal}
             showOriginalSubtotal={showOriginalSubtotal}
+            eligibilityDiscountAmount={eligibilityDiscountAmount}
+            eligibilityDiscountLabel={eligibilityDiscountLabel}
           />
 
           <Stack

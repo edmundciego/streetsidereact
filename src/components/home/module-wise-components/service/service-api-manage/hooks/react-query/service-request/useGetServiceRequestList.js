@@ -2,6 +2,7 @@ import { useQuery } from "react-query";
 import { onSingleErrorResponse } from "api-manage/api-error-response/ErrorResponses";
 import { data_limit, service_request_list_api } from "../../../ApiRoutes";
 import MainApi from "api-manage/MainApi";
+import { getApiCollection } from "api-manage/getApiContent";
 
 // GET /api/v1/service/requested-services?limit&offset&status
 // The UI reads `category`, `image`, `service_name`, `status`, `description` —
@@ -20,9 +21,10 @@ const getData = async ({ offset, type }) => {
   // API expects `status`; the UI's "all" tab means "no filter" — omit the param.
   if (type && type !== "all") params.set("status", type);
 
-  const { data } = await MainApi.get(
+  const { data: __env } = await MainApi.get(
     `${service_request_list_api}?${params.toString()}`
   );
+  const data = getApiCollection(__env, "custom_services");
   return {
     custom_services: (data?.data ?? []).map(normalizeItem),
     total_size: data?.total_size ?? 0,

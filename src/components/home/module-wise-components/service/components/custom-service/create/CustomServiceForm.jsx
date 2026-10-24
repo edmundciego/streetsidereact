@@ -1,4 +1,5 @@
 import { useFormik } from "formik";
+import { getApiList } from "api-manage/getApiContent";
 import * as Yup from "yup";
 import { Box, Button, CircularProgress, alpha, useTheme } from "@mui/material";
 import { useTranslation } from "react-i18next";
@@ -165,7 +166,8 @@ export default function CustomServiceForm({ editData = null }) {
       const { data } = await MainApi.get(
         `${subCategories_api}/${formik.values.category_id}`
       );
-      return data;
+      // consumer does `subCategoriesResponse ?? []` — hand back the rows array
+      return getApiList(data) ?? [];
     },
     {
       enabled: !!formik.values.category_id,

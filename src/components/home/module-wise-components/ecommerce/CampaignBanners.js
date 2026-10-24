@@ -5,7 +5,7 @@ import React, { useEffect, useState } from "react";
 import { handleStoreRedirect } from "../../../../helper-functions/handleStoreRedirect";
 
 import { useDispatch, useSelector } from "react-redux";
-import Slider from "react-slick";
+import CustomSlider from "components/common/CustomSlider";
 import useGetBanners from "../../../../api-manage/hooks/react-query/useGetBanners";
 import { getCurrentModuleType } from "../../../../helper-functions/getCurrentModuleType";
 import { getModuleId } from "../../../../helper-functions/getModuleId";
@@ -117,69 +117,37 @@ const CampaignBanners = () => {
   };
 
   const hasMultiple = bannersData.length > 1;
-  const settings = {
-    dots: false,
-    infinite: hasMultiple,
-    slidesToShow: hasMultiple ? 2 : 1,
-    slidesToScroll: 1,
-    swipeToSlide: true,
-    autoplay: hasMultiple,
-    speed: 800,
-    autoplaySpeed: 4000,
-    cssEase: "linear",
-    responsive: [
-      {
-        breakpoint: 600,
-        settings: {
-          slidesToShow: 1,
-          slidesToScroll: 1,
-          swipeToSlide: true,
-        },
-      },
-    ],
+  // react-slick breakpoint:600 meant "apply for width <= 600" (descending);
+  // this Swiper breakpoint means "apply for width >= 601" (ascending).
+  const campaignBreakpoints = {
+    601: { slidesPerView: hasMultiple ? 2 : 1, spaceBetween: 20 },
   };
 
   return (
     <>
       {!isFetched ? (
-        <CustomStackFullWidth
-          sx={{
-            mt: "30px",
-            "& .slick-list": {
-              marginRight: { xs: "-10px", sm: "-20px" },
-            },
-            "& .slick-slide": {
-              paddingRight: { xs: "10px", sm: "20px" },
-            },
-          }}
-        >
-          <Slider {...settings}>
-            {[...Array(2)].map((_, index) => (
-              <BannersWrapper key={index}>
+        <CustomStackFullWidth sx={{ mt: "30px" }}>
+          <CustomSlider
+            items={[0, 1]}
+            renderItem={() => (
+              <BannersWrapper>
                 <Skeleton variant="rectangular" height="100%" width="100%" />
               </BannersWrapper>
-            ))}
-          </Slider>
+            )}
+            arrowVariant="none"
+            allowOverflowY={false}
+            slidesPerView={1}
+            spaceBetween={10}
+            breakpoints={campaignBreakpoints}
+          />
         </CustomStackFullWidth>
       ) : (
         bannersData?.length > 0 && (
-          <CustomStackFullWidth
-            sx={{
-              mt: "30px",
-              "& .slick-list": {
-                marginRight: { xs: "-10px", sm: "-20px" },
-              },
-              "& .slick-slide": {
-                paddingRight: { xs: "10px", sm: "20px" },
-              },
-            }}
-          >
-            <Slider {...settings}>
-              {bannersData.map((item, index) => (
-                <BannersWrapper
-                  key={index}
-                  onClick={() => handleBannerClick(item)}
-                >
+          <CustomStackFullWidth sx={{ mt: "30px" }}>
+            <CustomSlider
+              items={bannersData}
+              renderItem={(item) => (
+                <BannersWrapper onClick={() => handleBannerClick(item)}>
                   <CustomImageContainer
                     src={item?.image_full_url}
                     alt={item?.title}
@@ -189,8 +157,17 @@ const CampaignBanners = () => {
                     borderRadius="10px"
                   />
                 </BannersWrapper>
-              ))}
-            </Slider>
+              )}
+              arrowVariant="none"
+              allowOverflowY={false}
+              loop={hasMultiple}
+              autoplay={hasMultiple}
+              autoplayDelay={4000}
+              speed={800}
+              slidesPerView={1}
+              spaceBetween={10}
+              breakpoints={campaignBreakpoints}
+            />
           </CustomStackFullWidth>
         )
       )}

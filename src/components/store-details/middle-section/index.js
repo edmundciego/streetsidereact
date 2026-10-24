@@ -13,19 +13,18 @@ import {
   useMediaQuery,
   useTheme,
 } from "@mui/material";
-import CategoryTabs from "./CategoryTabs";
+import CategoryTabs, { BUNDLE_TAB_ID } from "./CategoryTabs";
 import {
   CustomBoxFullWidth,
   CustomStackFullWidth,
 } from "styled-components/CustomStyles.style";
 import MenuOpenIcon from "@mui/icons-material/MenuOpen";
 import useGetStoreCategoriesItems from "../../../api-manage/hooks/react-query/stores-categories/useGetStoreCategoriesItems";
+import useGetStorePopularItems from "../../../api-manage/hooks/react-query/stores-categories/useGetStorePopularItems";
 import ProductCard, { CardWrapper } from "../../cards/ProductCard";
 import NewProductCard from "../../cards/newCard/NewProductCard";
 import ProductCardSimmer from "components/Shimmer/ProductCardSimmer";
-import Slider from "react-slick";
-import "slick-carousel/slick/slick.css";
-import "slick-carousel/slick/slick-theme.css";
+import CustomSlider from "components/common/CustomSlider";
 import { useRouter } from "next/router";
 import useGetSearchedStoreItems from "../../../api-manage/hooks/react-query/store/useGetSearchedStoreItems";
 import { ACTION, initialState, reducer } from "./states";
@@ -46,7 +45,22 @@ import DotSpin from "../../DotSpin";
 import SearchIcon from "@mui/icons-material/Search";
 import StoreFilter from "components/store-details/middle-section/StoreFilter";
 import { filterTypeItems } from "components/search/filterTypes";
-import SliderSectionHeader from "components/common/SliderSectionHeader";
+import BundleProductCard from "components/cards/newCard/BundleProductCard";
+import useGetStoreBundles from "api-manage/hooks/react-query/bundle/useGetStoreBundles";
+
+// react-slick breakpoint:X meant "apply for width <= X" (descending); these
+// Swiper breakpoints mean "apply for width >= X" (ascending) - shifted by +1.
+// Note: the 601-900 dip back down to 2.5 (below the 451-600 value of 2.8) is
+// preserved exactly as the original react-slick config specified.
+const POPULAR_SLIDER_BREAKPOINTS = {
+  341: { slidesPerView: 2 },
+  371: { slidesPerView: 2.1 },
+  401: { slidesPerView: 2.3 },
+  451: { slidesPerView: 2.8 },
+  601: { slidesPerView: 2.5 },
+  901: { slidesPerView: 3.2, spaceBetween: 20 },
+  1201: { slidesPerView: 4.5, spaceBetween: 20 },
+};
 
 export const handleShimmerProducts = () => {
   return (
@@ -154,12 +168,13 @@ export const normalizeItemsResponse = (res) => {
           ...new Set([...(existing.category_ids || []), String(catId)]),
         ];
       } else {
+        const ownIds = item?.category_ids?.length
+          ? item.category_ids.map((c) => String(c?.id ?? c))
+          : [];
         byId.set(item?.id, {
           ...item,
           category_id: item?.category_id ?? catId,
-          category_ids: item?.category_ids?.length
-            ? item.category_ids.map((c) => String(c?.id ?? c))
-            : [String(catId)],
+          category_ids: [...new Set([...ownIds, String(catId)])],
         });
       }
     });
@@ -194,14 +209,19 @@ const MiddleSection = (props) => {
   const { id } = router.query;
   const storeId = storeDetails?.id;
 
+  const { data: storeBundlesData } = useGetStoreBundles({
+    store_id: storeId,
+    limit: 10,
+    offset: 1,
+  });
+  const storeBundles = storeBundlesData?.bundles ?? [];
+
   // Categories now come from the combined /store-categories/items endpoint.
   // Tabs use first-page `categories`; respect `ownCategories` whitelist if
   // provided by the parent store config.
 
   // Section refs — tab click scrolls to the matching category section instead
   // of filtering. The "Most Popular" tab scrolls to the top section.
-  const popularSliderRef = useRef(null);
-  const [popularCurrentSlide, setPopularCurrentSlide] = useState(0);
   const sectionRefs = useRef({});
   const [selectedCategoryTabId, setSelectedCategoryTabId] = useState(null);
 
@@ -500,6 +520,25 @@ const MiddleSection = (props) => {
     isLoading: isLoadingStoresCategories,
     isFetchingNextPage,
   } = useGetStoreCategoriesItems(pageParams);
+
+  // "Most Popular" is its own backend-ranked list (order_count DESC by
+  // default) from /stores/popular-items/{id} — not a slice of the main
+  // category-wise query. It's sent the exact same filter/sort payload as
+  // /store-categories/items (type, price range, rating, sort_by) so both
+  // requests stay in sync whenever the filter bar is applied, but the
+  // response itself is rendered as-is — no client-side re-sort/reformat.
+  const { data: popularData } = useGetStorePopularItems({
+    storeId: storeId,
+    offset: 1,
+    limit: 20,
+    type: state.type,
+    minMax: state.minMax,
+    filterData: filterData,
+    ratingCount: ratingCount,
+    sortBy: state.sortBy,
+    ...storeShare,
+  });
+  const popularItems = popularData?.pages?.[0]?.data ?? [];
 
   // categoriesLoading kept for the CategoryTabs skeleton; mirrors the items
   // loading state since both come from the same request now.
@@ -938,6 +977,7 @@ const MiddleSection = (props) => {
                     selectedId={selectedCategoryTabId}
                     onSelect={handleSelectCategoryTab}
                     isLoading={categoriesLoading && categoryList.length === 0}
+                    showBundleTab={storeBundles.length > 0}
                   />
                 </Box>
                 <Stack
@@ -1089,28 +1129,17 @@ const MiddleSection = (props) => {
                     });
                   });
 
-                  // Sort the popular section client-side using the same
-                  // discounted-price helpers used elsewhere. The backend
-                  // sort_by is honored for the API call (and for the
-                  // category sections, which keep backend order), but the
-                  // popular slider is sorted again here to guarantee the
-                  // visual order matches the user's selection regardless
-                  // of whether the endpoint actually honored sort_by.
-                  // Copy the array before sorting — getHighToLow/Low
-                  // mutate in place.
-                  const popularSource = allProducts.slice(0, 10);
-                  let popularItems = popularSource;
-                  if (state.sortBy === "high") {
-                    popularItems = getHighToLow([...popularSource]);
-                  } else if (state.sortBy === "low") {
-                    popularItems = getLowToHigh([...popularSource]);
-                  }
-
                   const sections = [
                     {
                       key: "popular",
                       title: t("Most Popular"),
                       items: popularItems,
+                    },
+                    {
+                      key: BUNDLE_TAB_ID,
+                      title: t("Bundle Items"),
+                      items: storeBundles,
+                      isBundle: true,
                     },
                     ...categoryList.map((cat) => ({
                       key: String(cat?.id),
@@ -1119,86 +1148,11 @@ const MiddleSection = (props) => {
                     })),
                   ].filter((s) => s.items?.length > 0);
 
-                  const popularSliderSettings = {
-                    dots: false,
-                    arrows: false,
-                    infinite: false,
-                    speed: 400,
-                    slidesToShow: 4.5,
-                    slidesToScroll: 4,
-                    swipeToSlide: true,
-                    responsive: [
-                      {
-                        breakpoint: 1200,
-                        settings: {
-                          slidesToShow: 3.2,
-                          slidesToScroll: 3,
-                          swipeToSlide: true,
-                        },
-                      },
-                      {
-                        breakpoint: 900,
-                        settings: {
-                          slidesToShow: 2.5,
-                          slidesToScroll: 2,
-                          swipeToSlide: true,
-                        },
-                      },
-                      {
-                        breakpoint: 600,
-                        settings: {
-                          slidesToShow: 2.8,
-                          slidesToScroll: 2,
-                          swipeToSlide: true,
-                        },
-                      },
-                      {
-                        breakpoint: 500,
-                        settings: {
-                          slidesToShow: 2.8,
-                          slidesToScroll: 2,
-                          swipeToSlide: true,
-                        },
-                      },
-                      {
-                        breakpoint: 450,
-                        settings: {
-                          slidesToShow: 2.3,
-                          slidesToScroll: 2,
-                          swipeToSlide: true,
-                        },
-                      },
-                      {
-                        breakpoint: 400,
-                        settings: {
-                          slidesToShow: 2.1,
-                          slidesToScroll: 1,
-                          swipeToSlide: true,
-                        },
-                      },
-                      {
-                        breakpoint: 370,
-                        settings: {
-                          slidesToShow: 2,
-                          slidesToScroll: 1,
-                          swipeToSlide: true,
-                        },
-                      },
-                      {
-                        breakpoint: 340,
-                        settings: {
-                          slidesToShow: 1.8,
-                          slidesToScroll: 1,
-                          swipeToSlide: true,
-                        },
-                      },
-                    ],
-                  };
-
                   return (
                     <Stack spacing={{ xs: 2, md: 4 }}>
                       {sections.map((section) => {
                         const isPopular = section.key === "popular";
+                        const isBundle = !!section.isBundle;
                         return (
                           <Stack
                             key={section.key}
@@ -1207,16 +1161,24 @@ const MiddleSection = (props) => {
                             }}
                           >
                             {isPopular ? (
-                              <>
-                                <SliderSectionHeader
-                                  sliderRef={popularSliderRef}
-                                  currentSlide={popularCurrentSlide}
-                                  totalSlides={section.items.length}
-                                  slidesToShow={
-                                    popularSliderSettings.slidesToShow
-                                  }
-                                  sx={{ mb: 2, mt: { xs: "0rem", md: "1rem" } }}
-                                  heading={
+                              <Box sx={{ position: "relative" }}>
+                                <CustomSlider
+                                  // Swiper doesn't reorder in place when a
+                                  // sort changes either — keying on the
+                                  // active sort forces a remount so the
+                                  // popular section visibly reorders.
+                                  key={`popular-${state.sortBy}`}
+                                  items={section.items}
+                                  getKey={(item) => item?.id}
+                                  renderItem={(item) => (
+                                    <NewProductCard
+                                      item={item}
+                                      variant="vertical"
+                                      isStore
+                                    />
+                                  )}
+                                  arrowVariant="section"
+                                  title={
                                     <Typography
                                       sx={{
                                         fontSize: { xs: "16px", md: "18px" },
@@ -1228,52 +1190,59 @@ const MiddleSection = (props) => {
                                       {section.title}
                                     </Typography>
                                   }
-                                />
-                                <Box
-                                  sx={{
-                                    position: "relative",
-                                    "& .slick-list": {
+                                  headerSx={{ mt: { xs: "0rem", md: "1rem" } }}
+                                  speed={400}
+                                  slidesPerView={1.8}
+                                  spaceBetween={16}
+                                  breakpoints={POPULAR_SLIDER_BREAKPOINTS}
+                                  wrapperSx={{
+                                    "& .swiper": {
                                       py: 0.5,
-                                      overflow: "hidden",
                                       maskImage:
                                         "linear-gradient(to right, black 0, black 88%, transparent 100%)",
                                       WebkitMaskImage:
                                         "linear-gradient(to right, black 0, black 88%, transparent 100%)",
                                     },
-                                    "& .slick-slide": { px: 0 },
-                                    "& .slick-slide > div": { px: 1 },
-                                    "& .slick-track": {
-                                      display: "flex",
-                                      alignItems: "stretch",
-                                      ml: 0,
+                                  }}
+                                />
+                              </Box>
+                            ) : isBundle ? (
+                              <>
+                                <Typography
+                                  sx={{
+                                    fontSize: { xs: "16px", md: "18px" },
+                                    fontWeight: 700,
+                                    lineHeight: 1.2,
+                                    color: theme.palette.text.primary,
+                                    mb: 2,
+                                  }}
+                                >
+                                  {section.title}
+                                </Typography>
+                                <Box
+                                  sx={{
+                                    display: "grid",
+                                    gap: 2,
+                                    gridTemplateColumns: {
+                                      xs: "1fr",
+                                      sm: "repeat(2, 1fr)",
                                     },
                                   }}
                                 >
-                                  <Slider
-                                    // react-slick caches its rendered tree
-                                    // and won't reorder when the children
-                                    // change to a different order (only
-                                    // when count changes). Keying the
-                                    // Slider on the active sort forces a
-                                    // remount so the popular section
-                                    // visibly reorders for high/low.
-                                    key={`popular-${state.sortBy}`}
-                                    ref={popularSliderRef}
-                                    afterChange={(i) =>
-                                      setPopularCurrentSlide(i)
-                                    }
-                                    {...popularSliderSettings}
-                                  >
-                                    {section.items.map((item) => (
-                                      <Box key={`${section.key}-${item?.id}`}>
-                                        <NewProductCard
-                                          item={item}
-                                          variant="vertical"
-                                          isStore
-                                        />
-                                      </Box>
-                                    ))}
-                                  </Slider>
+                                  {section.items.map((item) => (
+                                    <BundleProductCard
+                                      key={`${section.key}-${item?.id}`}
+                                      item={item}
+                                      images={
+                                        item?.items?.map(
+                                          (i) => i?.image_full_url,
+                                        ) ?? []
+                                      }
+                                      variant="horizontal"
+                                      isStore
+                                      max_width="100%"
+                                    />
+                                  ))}
                                 </Box>
                               </>
                             ) : (

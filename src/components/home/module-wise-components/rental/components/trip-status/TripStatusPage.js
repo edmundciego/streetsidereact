@@ -1,6 +1,10 @@
 import StarIcon from "@mui/icons-material/Star";
-import { Button, Grid, NoSsr, Stack, styled, Typography } from "@mui/material";
+import PersonOutlineIcon from "@mui/icons-material/PersonOutline";
+import InfoIcon from "@mui/icons-material/Info";
+import LoadingButton from "@mui/lab/LoadingButton";
+import { Button, Grid, NoSsr, Stack, styled, Typography, useTheme } from "@mui/material";
 import { alpha, Box } from "@mui/system";
+import { getAmountWithSign } from "helper-functions/CardHelpers";
 import { ProfileApi } from "api-manage/another-formated-api/profileApi";
 import { onSingleErrorResponse } from "api-manage/api-error-response/ErrorResponses";
 import CustomContainer from "components/container";
@@ -12,11 +16,16 @@ import RentalSuccessModal from "components/home/module-wise-components/rental/co
 import useMakePayment from "components/home/module-wise-components/rental/rental-api-manage/hooks/react-query/details/useMakePayment";
 import CustomModal from "components/modal";
 import { getGuestId, getToken } from "helper-functions/getToken";
+import {
+  followPaymentRedirect,
+  getRedirectLink,
+} from "helper-functions/paymentRedirect";
 import { t } from "i18next";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
+import { toast } from "react-hot-toast";
 import { useQuery } from "react-query";
-import Slider from "react-slick";
+import CustomSlider from "components/common/CustomSlider";
 import { CustomStackFullWidth } from "styled-components/CustomStyles.style";
 import { useGetTripDetails } from "../../rental-api-manage/hooks/react-query/details/useGetTripDetails";
 import { CustomRentalCard } from "../global/CustomRentalCard";
@@ -27,24 +36,19 @@ import RentalProceedtoCheckout from "../global/RentalProceedtoCheckout";
 import TripStatusDetailsSkeleton from "../global/SkeletonLoaders/TripStatusDetailsSkeleton";
 import RentalBillDetails from "../rental-checkout/RentalBillDetails";
 import RentalCancelBooking from "./RentalCancelBooking";
-import ProSavingsBanner from "components/pro-plan/ProSavingsBanner";
 import VerifiedStoreBadge from "components/cards/VerifiedStoreBadge";
 import TripDetails from "./TripDetails";
 import TripStatusActivity from "./TripStatusActivity";
 
-const StyledSlider = styled(Slider)({
-  ".slick-dots": {
-    top: "60px",
-  },
-});
-
 const TripStatusPage = () => {
   const router = useRouter();
+  const theme = useTheme();
   const { id, from } = router.query;
   const [openModal, setOpenModal] = useState(false);
   const [openReviewModal, setOpenReviewModal] = useState(false);
   const [openCancelModal, setOpenCancelModal] = useState(false);
   const [openPaymentModal, setOpenPaymentModal] = useState(false);
+  const [openFailedModal, setOpenFailedModal] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState(null);
   const [usePartialPayment, setUsePartialPayment] = useState(false);
   const [switchToWallet, setSwitchToWallet] = useState(false);
@@ -57,6 +61,37 @@ const TripStatusPage = () => {
     }
   }, [from]);
 
+  useEffect(() => {
+    if (!router.isReady) return;
+    if (!router.pathname.startsWith("/rental/trip-status")) return;
+    const topLevelFlag =
+      typeof router.query.flag === "string" ? router.query.flag : undefined;
+    const rawModule =
+      typeof router.query.module === "string" ? router.query.module : undefined;
+    const [modulePart, embeddedFlag] = rawModule?.split("?flag=") ?? [undefined, undefined];
+    const cleanModule = rawModule ? modulePart : undefined;
+    const flag = topLevelFlag ?? embeddedFlag;
+
+    if (flag === "fail" || flag === "cancel") {
+      setOpenFailedModal(true);
+    }
+
+    const { id: routeId, module, flag: _flag, token, ...rest } = router.query;
+    delete rest.from;
+    const needsCleanup =
+      Object.keys(rest).length > 0 || token !== undefined || cleanModule !== rawModule;
+    if (!needsCleanup) return;
+    router.replace(
+      {
+        pathname: router.pathname,
+        query: cleanModule ? { id: routeId, module: cleanModule } : { id: routeId },
+      },
+      undefined,
+      { shallow: true },
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [router.isReady]);
+
   const userOnSuccessHandler = (res) => {};
 
   const { data: customerData } = useQuery(
@@ -65,7 +100,7 @@ const TripStatusPage = () => {
     {
       onSuccess: userOnSuccessHandler,
       onError: onSingleErrorResponse,
-    }
+    },
   );
 
   const { mutate, isLoading } = useMakePayment();
@@ -82,14 +117,23 @@ const TripStatusPage = () => {
   }, [id]);
 
   const isReviewBtnShow = tripDetails?.vehicle_identity?.some(
-    (item) => !item?.rating
+    (item) => !item?.rating,
   );
 
   const trip_id = tripDetails?.id;
   const vehicle_identity = tripDetails?.vehicle_identity;
+  // A vehicle identity exists as soon as a vehicle is assigned, but its driver
+  // is attached later. Switching on the raw length rendered a card holding an
+  // empty slider for that in-between state, so key the section off the
+  // identities that actually carry driver data.
+  const driverIdentities =
+    vehicle_identity?.filter((item) => item?.driver_data) ?? [];
 
-  const handlePayment = () => {
-    const callBackUrl = `${window.location.origin}/rental/trip-status/${tripDetails?.id}`;
+  const handlePayment = (overrideMethod) => {
+    const activeMethod = overrideMethod ?? paymentMethod;
+    const callBackUrl = router.query.module
+      ? `${window.location.origin}/rental/trip-status/${tripDetails?.id}?module=${router.query.module}`
+      : `${window.location.origin}/rental/trip-status/${tripDetails?.id}`;
 
     const createPaymentObject = ({
       paymentMethod,
@@ -106,49 +150,61 @@ const TripStatusPage = () => {
 
     const handleMutate = (paymentObject) =>
       mutate(paymentObject, {
-        onSuccess: (response) => {
-          if (response) {
+        onSuccess: async (response) => {
+          const settlesInPlace =
             paymentObject.payment_method === "cash_payment" ||
             paymentObject.payment_method === "wallet" ||
             (paymentObject?.payment_method === "partial_payment" &&
-              paymentObject?.payment_gateway === "cash_payment")
-              ? refetchData()
-              : router.push(response);
-            setOpenPaymentModal(false);
+              paymentObject?.payment_gateway === "cash_payment");
+
+          if (settlesInPlace) {
+            await refetchData();
+          } else {
+            // A gateway answers with the redirect link inside `content`, so the
+            // payload itself is an object — pushing it handed Next a Url with
+            // no pathname and the gateway hop went nowhere.
+            const redirect = getRedirectLink(response);
+            if (!redirect) {
+              toast.error(t("Payment gateway did not return a redirect link."));
+              return;
+            }
+            followPaymentRedirect(redirect, router);
           }
+          setOpenPaymentModal(false);
+          setOpenFailedModal(false);
         },
         onError: onSingleErrorResponse,
       });
 
     // Case 1: Cash or Wallet payment without partial payment
     if (
-      (paymentMethod === "cash_payment" || paymentMethod === "wallet") &&
+      (activeMethod === "cash_payment" || activeMethod === "wallet") &&
       !usePartialPayment
     ) {
-      const paymentObject = createPaymentObject({ paymentMethod });
+      const paymentObject = createPaymentObject({ paymentMethod: activeMethod });
       return handleMutate(paymentObject);
     }
 
     // Case 2: Digital payment without partial payment
     if (
-      paymentMethod !== "partial_payment" &&
-      paymentMethod !== "wallet" &&
-      paymentMethod !== "cash_payment" &&
+      activeMethod !== "partial_payment" &&
+      activeMethod !== "wallet" &&
+      activeMethod !== "cash_payment" &&
       !usePartialPayment
     ) {
       const paymentObject = createPaymentObject({
         paymentMethod: "digital_payment",
-        gateway: paymentMethod,
+        gateway: activeMethod,
       });
       return handleMutate(paymentObject);
     }
 
     // Case 3: Partial payment
     if (usePartialPayment) {
-      const isCash = paymentMethod === "cash_payment";
+      const isCash = activeMethod === "cash_payment";
       const paymentObject = createPaymentObject({
         paymentMethod: isCash ? "cash_payment" : "digital_payment",
-        gateway: isCash ? null : paymentMethod,
+        gateway: isCash ? null : activeMethod,
         isPartial: true,
       });
       return handleMutate(paymentObject);
@@ -210,7 +266,7 @@ const TripStatusPage = () => {
         query: remainingQueries, // Pass only the remaining query parameters
       },
       undefined,
-      { shallow: true }
+      { shallow: true },
     );
     setOpenSuccessModal(false);
   };
@@ -282,29 +338,6 @@ const TripStatusPage = () => {
     }
   };
 
-  const settings = {
-    dots: true,
-    infinite: true,
-    speed: 500,
-    slidesToShow: 1,
-    slidesToScroll: 1,
-    swipeToSlide: true,
-    responsive: [
-      {
-        breakpoint: 1024,
-        settings: {
-          slidesToShow: 1,
-        },
-      },
-      {
-        breakpoint: 600,
-        settings: {
-          slidesToShow: 1,
-        },
-      },
-    ],
-  };
-
   const activityStatus =
     tripDetails?.trip_status === "failed" ||
     tripDetails?.trip_status === "payment_failed" ||
@@ -323,12 +356,12 @@ const TripStatusPage = () => {
             sx={{
               mt: {
                 xs: "20px",
-                md: "40px",
+                md: "15px",
               },
             }}
           >
             {tripDetails && (
-              <Grid container spacing={2}>
+              <Grid container spacing={3.5}>
                 <Grid item xs={12} md={8}>
                   <TripStatusActivity
                     status={activityStatus}
@@ -366,7 +399,7 @@ const TripStatusPage = () => {
                             border: (theme) =>
                               `1px solid ${alpha(
                                 theme.palette.neutral[400],
-                                0.4
+                                0.4,
                               )} !important`,
                             borderRadius: "5px",
                           }}
@@ -544,89 +577,137 @@ const TripStatusPage = () => {
                       </Box>
                     </RentalCardWrapper>
 
-                    {tripDetails?.vehicle_identity?.length > 0 ? (
+                    {driverIdentities.length > 0 ? (
                       <RentalCardWrapper>
                         <Stack maxWidth="366px">
-                          <StyledSlider {...settings}>
-                            {tripDetails?.vehicle_identity?.map(
-                              (item) =>
-                                item?.driver_data && (
-                                  <Box
-                                    key={item?.id}
-                                    sx={{
-                                      display: "flex",
-                                      justifyContent: "space-between",
-                                      alignItems: "center",
-                                      flexWrap: "wrap",
-                                      gap: "20px",
-                                      position: "relative",
-                                    }}
-                                  >
-                                    <Box
+                          <CustomSlider
+                            items={driverIdentities}
+                            getKey={(item) => item?.id}
+                            renderItem={(item) => (
+                              <Box
+                                sx={{
+                                  display: "flex",
+                                  justifyContent: "space-between",
+                                  alignItems: "center",
+                                  flexWrap: "wrap",
+                                  gap: "20px",
+                                  position: "relative",
+                                }}
+                              >
+                                <Box
+                                  sx={{
+                                    display: "flex",
+                                    justifyContent: "start",
+                                    alignItems: "center",
+                                    gap: "20px",
+                                    flexWrap: "wrap",
+                                  }}
+                                >
+                                  <CustomImageContainer
+                                    src={item?.driver_data?.image_full_url}
+                                    width="80px"
+                                    height="80px"
+                                    borderRadius="50%"
+                                  />
+                                  <Box>
+                                    <Typography
                                       sx={{
-                                        display: "flex",
-                                        justifyContent: "start",
-                                        alignItems: "center",
-                                        gap: "20px",
-                                        flexWrap: "wrap",
+                                        fontSize: "16px",
+                                        fontWeight: "400",
                                       }}
                                     >
-                                      <CustomImageContainer
-                                        src={item?.driver_data?.image_full_url}
-                                        width="80px"
-                                        height="80px"
-                                        borderRadius="50%"
-                                      />
-                                      <Box>
-                                        <Typography
-                                          sx={{
-                                            fontSize: "16px",
-                                            fontWeight: "400",
-                                          }}
-                                        >
-                                          {t("Driver")}
-                                        </Typography>
+                                      {t("Driver")}
+                                    </Typography>
 
-                                        <Typography
-                                          sx={{
-                                            fontSize: "16px",
-                                            fontWeight: "700",
-                                          }}
-                                        >
-                                          {`${item?.driver_data?.first_name} ${item?.driver_data?.last_name}`}
-                                        </Typography>
-                                      </Box>
-                                    </Box>
-
-                                    <Box
+                                    <Typography
                                       sx={{
-                                        position: "absolute",
-                                        right: { xs: "5px", sm: "5px" },
-                                        top: "20px",
+                                        fontSize: "16px",
+                                        fontWeight: "700",
                                       }}
                                     >
-                                      <ClickToCall phone={item?.phone}>
-                                        <Box sx={{ cursor: "pointer" }}>
-                                          <CustomImageContainer
-                                            src="/static/rental/callIcon.png"
-                                            width={"26px"}
-                                            height={"26px"}
-                                          />
-                                        </Box>
-                                      </ClickToCall>
-                                    </Box>
+                                      {`${item?.driver_data?.first_name} ${item?.driver_data?.last_name}`}
+                                    </Typography>
                                   </Box>
-                                )
+                                </Box>
+
+                                <Box
+                                  sx={{
+                                    position: "absolute",
+                                    right: { xs: "5px", sm: "5px" },
+                                    top: "20px",
+                                  }}
+                                >
+                                  <ClickToCall phone={item?.phone}>
+                                    <Box sx={{ cursor: "pointer" }}>
+                                      <CustomImageContainer
+                                        src="/static/rental/callIcon.png"
+                                        width={"26px"}
+                                        height={"26px"}
+                                      />
+                                    </Box>
+                                  </ClickToCall>
+                                </Box>
+                              </Box>
                             )}
-                          </StyledSlider>
+                            arrowVariant="none"
+                            showDots
+                            loop={driverIdentities.length > 1}
+                            slidesPerView={1}
+                          />
                         </Stack>
                       </RentalCardWrapper>
                     ) : (
-                      <Typography sx={{ fontSize: "16px", fontWeight: "400" }}>
-                        {t(
-                          "Driver information is not available for this trip."
-                        )}
-                      </Typography>
+                      // Sits beside the provider card in the same row, so it
+                      // needs the same card treatment — a bare <Typography>
+                      // here left the message floating in dead space.
+                      <RentalCardWrapper
+                        sx={{
+                          justifyContent: "center",
+                          alignItems: "center",
+                          textAlign: "center",
+                          gap: "12px",
+                          py: "28px",
+                        }}
+                      >
+                        <Box
+                          sx={{
+                            width: "56px",
+                            height: "56px",
+                            borderRadius: "50%",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            backgroundColor: (theme) =>
+                              alpha(theme.palette.neutral[400], 0.15),
+                            color: (theme) => theme.palette.neutral[500],
+                          }}
+                        >
+                          <PersonOutlineIcon sx={{ fontSize: "28px" }} />
+                        </Box>
+                        <Stack gap="4px" alignItems="center">
+                          <Typography
+                            sx={{
+                              fontSize: "16px",
+                              fontWeight: "600",
+                              color: (theme) => theme.palette.neutral[1000],
+                            }}
+                          >
+                            {t("Driver")}
+                          </Typography>
+                          <Typography
+                            sx={{
+                              fontSize: "13px",
+                              fontWeight: "400",
+                              maxWidth: "260px",
+                              color: (theme) => theme.palette.neutral[500],
+                            }}
+                          >
+                            {t(
+                              "Driver information is not available for this trip.",
+                            )}
+                          </Typography>
+                        </Stack>
+                      </RentalCardWrapper>
                     )}
                   </Stack>
                   <TripDetails
@@ -670,34 +751,11 @@ const TripStatusPage = () => {
                           Number(tripDetails?.pro_discount) > 0
                         }
                         proOrderDiscountAmount={Number(
-                          tripDetails?.pro_discount || 0
+                          tripDetails?.pro_discount || 0,
                         )}
                         proOrderDiscountPct={0}
                         proOrderDiscountMax={0}
-                        proSavingsBanner={(() => {
-                          // Coupon benefit: savings live in `coupon_discount_amount`.
-                          if (
-                            tripDetails?.benefit_type === "coupon" &&
-                            Number(tripDetails?.coupon_discount_amount) > 0
-                          ) {
-                            return (
-                              <ProSavingsBanner
-                                amount={Number(
-                                  tripDetails?.coupon_discount_amount
-                                )}
-                              />
-                            );
-                          }
-                          // Discount / delivery_fee benefit: savings live in `pro_discount`.
-                          if (Number(tripDetails?.pro_discount) > 0) {
-                            return (
-                              <ProSavingsBanner
-                                amount={Number(tripDetails?.pro_discount)}
-                              />
-                            );
-                          }
-                          return null;
-                        })()}
+                        proSavingsBanner={null}
                       />
                       {buttonContent(activityStatus)}
                     </RentalCardWrapper>
@@ -759,6 +817,86 @@ const TripStatusPage = () => {
           isLoading={isLoading}
           tripCost={tripCost}
         />
+      </CustomModal>
+
+      <CustomModal
+        openModal={openFailedModal}
+        handleClose={() => setOpenFailedModal(false)}
+      >
+        <Stack
+          width="100%"
+          alignItems="center"
+          justifyContent="center"
+          spacing={1}
+          p={{ xs: "2rem 1.5rem", md: "2rem 6rem" }}
+          borderRadius="20px"
+        >
+          <InfoIcon
+            sx={{ fontSize: "50px", color: (theme) => theme.palette.error.main }}
+          />
+          <Stack spacing={2} alignItems="center" textAlign="center">
+            <Typography
+              fontWeight="500"
+              fontSize="1rem"
+              color={theme.palette.primary.main}
+            >
+              {`${t("Trip")} #${tripDetails?.id ?? id}`}
+            </Typography>
+            <Typography
+              component="span"
+              backgroundColor={alpha(theme.palette.error.light, 0.3)}
+              fontSize="18px"
+              fontWeight="600"
+              color={theme.palette.error.main}
+              padding="5px 10px"
+              borderRadius="5px"
+            >
+              {t("Payment failed !!")}
+            </Typography>
+            <Box
+              sx={{
+                padding: "1rem",
+                borderRadius: "5px",
+                backgroundColor: alpha(theme.palette.neutral[600], 0.1),
+                minWidth: "235px",
+              }}
+            >
+              <Typography fontSize="0.9rem" color={theme.palette.neutral[700]}>
+                {t("Due Amount")}
+              </Typography>
+              <Typography
+                fontSize="20px"
+                fontWeight="700"
+                color={theme.palette.neutral[1000]}
+              >
+                {getAmountWithSign(tripDetails?.trip_amount)}
+              </Typography>
+            </Box>
+            <Typography sx={{ maxWidth: "235px" }}>
+              {t("Please choose an option from below to continue with this trip")}
+            </Typography>
+            <Button
+              variant="contained"
+              disabled={isLoading}
+              onClick={() => {
+                setOpenFailedModal(false);
+                setOpenPaymentModal(true);
+              }}
+              sx={{ maxWidth: "250px" }}
+            >
+              {t("Pay Now")}
+            </Button>
+            <LoadingButton
+              loading={isLoading}
+              variant="contained"
+              fullWidth
+              onClick={() => handlePayment("cash_payment")}
+              sx={{ maxWidth: "250px" }}
+            >
+              {t("Switch to Cash Payment")}
+            </LoadingButton>
+          </Stack>
+        </Stack>
       </CustomModal>
 
       <CustomModal

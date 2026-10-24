@@ -22,10 +22,10 @@ import ProPlanBanner from "components/pro-plan/ProPlanBanner";
 import ProSavingsBanner from "components/pro-plan/ProSavingsBanner";
 
 const ProPlanSubscriptionModal = dynamic(() =>
-  import("components/pro-plan/ProPlanSubscriptionModal")
+  import("components/pro-plan/ProPlanSubscriptionModal"),
 );
 const ProPlanPaymentModal = dynamic(() =>
-  import("components/pro-plan/ProPlanPaymentModal")
+  import("components/pro-plan/ProPlanPaymentModal"),
 );
 
 const RentalProviderBanner = ({ configData }) => {
@@ -65,7 +65,7 @@ const RentalProviderBanner = ({ configData }) => {
         if (hasCap && hasMin) {
           return t(
             "{{percent}}% off as a Pro member (up to {{cap}}) on orders above {{amount}}",
-            { percent: pct, cap: capAmount, amount: minAmount }
+            { percent: pct, cap: capAmount, amount: minAmount },
           );
         }
         if (hasCap) {
@@ -77,7 +77,7 @@ const RentalProviderBanner = ({ configData }) => {
         if (hasMin) {
           return t(
             "{{percent}}% off as a Pro member on orders above {{amount}}",
-            { percent: pct, amount: minAmount }
+            { percent: pct, amount: minAmount },
           );
         }
         return t("{{percent}}% off as a Pro member", { percent: pct });
@@ -130,10 +130,10 @@ const RentalProviderBanner = ({ configData }) => {
           },
           onError: (err) => {
             toast.error(
-              err?.response?.data?.message || t("Subscription failed")
+              err?.response?.data?.message || t("Subscription failed"),
             );
           },
-        }
+        },
       );
       return;
     }
@@ -166,6 +166,8 @@ const RentalProviderBanner = ({ configData }) => {
       sx={{
         mb: { xs: "20px", md: "-20px" },
         px: { xs: "8px", md: "20px" },
+        pt: { xs: "20px", md: "8px" },
+        mt: { xs: "20px", md: "12px" },
       }}
     >
       <Box sx={{ mb: { xs: 2.5, md: 3 } }}>

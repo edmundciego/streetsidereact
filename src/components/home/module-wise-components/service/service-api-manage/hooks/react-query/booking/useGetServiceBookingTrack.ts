@@ -2,6 +2,7 @@ import { useQuery, UseQueryResult } from "react-query";
 import MainApi from "api-manage/MainApi";
 import { onSingleErrorResponse } from "api-manage/api-error-response/ErrorResponses";
 import { service_booking_track_api } from "components/home/module-wise-components/service/service-api-manage/ApiRoutes";
+import { getApiContent } from "api-manage/getApiContent";
 
 export interface ServiceBookingTrackAmount {
   booking_amount: number;
@@ -122,7 +123,8 @@ const getData = async ({
   };
   if (contactNumber) params.contact_number = contactNumber;
 
-  const { data } = await MainApi.get(service_booking_track_api, { params });
+  const { data: __env } = await MainApi.get(service_booking_track_api, { params });
+  const data = getApiContent(__env);
   return data;
 };
 

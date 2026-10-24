@@ -143,6 +143,7 @@ const RentalCarVehicleRating = ({ data, configData }) => {
                 <ClosedNowScheduleWise
                   active={data?.active}
                   schedules={data?.schedules}
+                  open={data?.open}
                   borderRadius="49%"
                 />
               )}

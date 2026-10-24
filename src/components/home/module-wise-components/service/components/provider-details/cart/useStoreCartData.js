@@ -15,6 +15,8 @@ import { onErrorResponse } from "api-manage/api-error-response/ErrorResponses";
 import useGetSuggestedItems from "api-manage/hooks/react-query/product-details/useGetSuggestedItems";
 import useGetProActiveOffer from "api-manage/hooks/react-query/pro-plans/useGetProActiveOffer";
 import useSubscribeProPlan from "api-manage/hooks/react-query/pro-plans/useSubscribeProPlan";
+import useGetCartDiscountEligibility from "api-manage/hooks/react-query/add-cart/useGetCartDiscountEligibility";
+import useGetZoneId from "api-manage/hooks/react-query/google-api/useGetZone";
 
 const resolveSuggestedItems = (suggestedItemsRaw) => {
   if (Array.isArray(suggestedItemsRaw?.items)) return suggestedItemsRaw.items;
@@ -36,6 +38,24 @@ const useStoreCartData = ({ providerDetails, onAfterNavigate } = {}) => {
   const { storeCartList, cartList } = useSelector((state) => state.cart);
   const { configData } = useSelector((state) => state.configData);
 
+  // Free delivery is set up per (zone, module) now — same lookup the header
+  // already fires (same react-query key, so this piggybacks its cache
+  // instead of a second network call) — see header/index.js.
+  const currentLatLng =
+    typeof window !== "undefined"
+      ? (() => {
+          try {
+            return JSON.parse(localStorage.getItem("currentLatLng") || "null");
+          } catch {
+            return null;
+          }
+        })()
+      : null;
+  const { data: zoneData } = useGetZoneId(
+    currentLatLng,
+    !!currentLatLng?.lat && !!currentLatLng?.lng,
+  );
+
   const currentStoreId =
     router?.query?.id ?? router?.query?.storeId ?? router?.query?.store_id;
   // `cartList` isn't always an array — the rental flow stores the raw API
@@ -47,7 +67,7 @@ const useStoreCartData = ({ providerDetails, onAfterNavigate } = {}) => {
       ? storeCartList
       : currentStoreId != null
       ? safeCartList.filter(
-          (i) => String(i?.store_id) === String(currentStoreId)
+          (i) => String(i?.store_id) === String(currentStoreId),
         )
       : safeCartList;
 
@@ -64,7 +84,7 @@ const useStoreCartData = ({ providerDetails, onAfterNavigate } = {}) => {
         addCutlery: false,
         unavailableChoice: "remove",
         monthlySubscribe: false,
-      })
+      }),
     );
   }, [dispatch]);
 
@@ -117,7 +137,7 @@ const useStoreCartData = ({ providerDetails, onAfterNavigate } = {}) => {
     if (!qualifiesForOffer) {
       const amountToReachText = getAmountWithSign(amountToReachMin);
       return `${t("Add")} ${amountToReachText} ${t(
-        "more to save with Pro Plan"
+        "more to save with Pro Plan",
       )}`;
     }
     if (benefitType === "discount") {
@@ -175,10 +195,10 @@ const useStoreCartData = ({ providerDetails, onAfterNavigate } = {}) => {
           },
           onError: (err) => {
             toast.error(
-              err?.response?.data?.message || t("Subscription failed")
+              err?.response?.data?.message || t("Subscription failed"),
             );
           },
-        }
+        },
       );
       return;
     }
@@ -191,14 +211,29 @@ const useStoreCartData = ({ providerDetails, onAfterNavigate } = {}) => {
 
   const isEmpty = moduleCartList.length === 0;
 
-  const subtotal = cartItemsTotalAmount(moduleCartList);
+  const { data: cartDiscountEligibility } = useGetCartDiscountEligibility(
+    providerDetails?.id,
+    !!providerDetails?.id && moduleCartList.length > 0,
+  );
+  const eligibilityDiscountAmount = cartDiscountEligibility?.is_qualified
+    ? Number(cartDiscountEligibility?.discount_amount) || 0
+    : 0;
+  const eligibilityDiscountLabel =
+    cartDiscountEligibility?.source === "happy_hour"
+      ? t("Happy Hour Discount")
+      : t("Store Discount");
+
+  const itemsSubtotal = cartItemsTotalAmount(moduleCartList);
   const originalSubtotal = moduleCartList?.reduce((sum, item) => {
     const itemQty = item?.quantity || 1;
     const itemPrice = item?.price || 0;
     return sum + itemPrice * itemQty;
   }, 0);
   const showOriginalSubtotal =
-    originalSubtotal && Number(originalSubtotal) > Number(subtotal);
+    originalSubtotal && Number(originalSubtotal) > Number(itemsSubtotal);
+
+  // Final payable figure — bold "Subtotal" total and checkout amount.
+  const subtotal = Math.max(0, itemsSubtotal - eligibilityDiscountAmount);
 
   const handleClearCart = () => {
     const targetStoreId =
@@ -248,7 +283,7 @@ const useStoreCartData = ({ providerDetails, onAfterNavigate } = {}) => {
         .push(
           { pathname: "/service/checkout", query: checkoutQuery },
           undefined,
-          { shallow: true }
+          { shallow: true },
         )
         .then(() => window.scrollTo({ top: 0, behavior: "smooth" }));
       onAfterNavigate?.();
@@ -270,7 +305,7 @@ const useStoreCartData = ({ providerDetails, onAfterNavigate } = {}) => {
       .push(
         { pathname: "/service/checkout", query: checkoutQuery },
         undefined,
-        { shallow: true }
+        { shallow: true },
       )
       .then(() => window.scrollTo({ top: 0, behavior: "smooth" }));
     onAfterNavigate?.();
@@ -278,13 +313,17 @@ const useStoreCartData = ({ providerDetails, onAfterNavigate } = {}) => {
 
   return {
     configData,
+    zoneData,
     currentStoreId,
     storeScopedCart,
     moduleCartList,
     isEmpty,
     subtotal,
+    itemsSubtotal,
     originalSubtotal,
     showOriginalSubtotal,
+    eligibilityDiscountAmount,
+    eligibilityDiscountLabel,
     suggestedItems,
 
     clearOpen,

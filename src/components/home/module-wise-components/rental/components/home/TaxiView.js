@@ -27,6 +27,7 @@ import {
   getTotalAmount,
 } from "components/home/module-wise-components/rental/components/rental-checkout/checkoutHeplerFunction";
 import { useSelector } from "react-redux";
+import { formatDistanceWithUnit } from "helper-functions/formatDistanceWithUnit";
 import { toast } from "react-hot-toast";
 import { getToken } from "helper-functions/getToken";
 import { getAmountWithSign } from "helper-functions/CardHelpers";
@@ -34,6 +35,7 @@ import useGetProActiveOffer from "api-manage/hooks/react-query/pro-plans/useGetP
 import useSubscribeProPlan from "api-manage/hooks/react-query/pro-plans/useSubscribeProPlan";
 import ProPlanBanner from "components/pro-plan/ProPlanBanner";
 import ProSavingsBanner from "components/pro-plan/ProSavingsBanner";
+import { useGetProviderDetails } from "components/home/module-wise-components/rental/rental-api-manage/hooks/react-query/provider/useGetProviderDetails";
 
 const CarBookingModal = dynamic(() =>
   import(
@@ -62,6 +64,10 @@ const TaxiView = (props) => {
     configData: configDataProp,
   } = props;
   const router = useRouter();
+
+  const cartProviderId = cartList?.carts?.[0]?.provider?.id;
+  const { data: providerDetails } = useGetProviderDetails(cartProviderId);
+  const scheduleOrderEnabled = providerDetails?.schedule_order !== false;
 
   const closeHandler = () => {
     setSideDrawerOpen(false);
@@ -449,8 +455,12 @@ const TaxiView = (props) => {
                           </>
                         ) : (
                           <>
-                            (<b>{cartList?.user_data?.distance?.toFixed(3)}</b>{" "}
-                            Km)
+                            (
+                            {formatDistanceWithUnit(
+                              cartList?.user_data?.distance,
+                              configData
+                            )}
+                            )
                           </>
                         )}
                       </Typography>
@@ -569,6 +579,7 @@ const TaxiView = (props) => {
             setIds={setIds}
             setUpdateCartObject={setUpdateCartObject}
             callUpdateUserData={false}
+            scheduleOrderEnabled={scheduleOrderEnabled}
           // isHourly={data?.trip_hourly}
           // isDistence={data?.trip_distance}
           />

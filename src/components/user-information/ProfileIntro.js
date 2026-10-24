@@ -6,10 +6,7 @@ import {
   useMediaQuery,
   useTheme,
 } from "@mui/material";
-import { styled } from "@mui/material/styles";
-import { CustomBoxFullWidth } from "styled-components/CustomStyles.style";
-import Slider from "react-slick";
-import "slick-carousel/slick/slick.css";
+import CustomSlider from "components/common/CustomSlider";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useRouter } from "next/router";
@@ -22,14 +19,6 @@ import wallet from "./asset/newWallet.png";
 import loyaltyImage from "./asset/loyalty.png";
 import orderImage from "./asset/order.png";
 import Profile from "components/profile";
-
-// ─── Slider wrapper ───────────────────────────────────────────────────────────
-
-const SliderWrapper = styled(CustomBoxFullWidth)(() => ({
-  "& .slick-track": { marginLeft: 0, marginRight: "auto" },
-  "& .slick-slide": { paddingRight: "12px" },
-  "& .slick-list": { overflow: "visible" },
-}));
 
 // ─── Stat card ────────────────────────────────────────────────────────────────
 
@@ -317,28 +306,18 @@ const ProfileIntro = ({
           </Stack>
 
           {/* Stat cards — slider showing 1.4 */}
-          <Box sx={{ width: "100%", overflow: "hidden" }}>
-            <SliderWrapper>
-              <Slider
-                dots={false}
-                arrows={false}
-                infinite={false}
-                speed={300}
-                slidesToShow={1.4}
-                slidesToScroll={1}
-              >
-                {stats.map((s) => (
-                  <div key={s.key}>
-                    <StatCard
-                      value={s.value}
-                      label={s.label}
-                      icon={s.icon}
-                      mobile
-                    />
-                  </div>
-                ))}
-              </Slider>
-            </SliderWrapper>
+          <Box sx={{ width: "100%" }}>
+            <CustomSlider
+              items={stats}
+              getKey={(s) => s.key}
+              renderItem={(s) => (
+                <StatCard value={s.value} label={s.label} icon={s.icon} mobile />
+              )}
+              arrowVariant="none"
+              speed={300}
+              slidesPerView={1.4}
+              spaceBetween={16}
+            />
           </Box>
         </Box>
       ) : (

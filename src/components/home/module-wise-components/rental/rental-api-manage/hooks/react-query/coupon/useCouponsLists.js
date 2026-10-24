@@ -3,6 +3,7 @@ import { useQuery } from "react-query";
 
 import { onSingleErrorResponse } from "api-manage/api-error-response/ErrorResponses";
 import { rental_coupon_list_api } from "api-manage/ApiRoutes";
+import { getApiList } from "api-manage/getApiContent";
 
 const fetchCouponLists = async ({ providerId, customerId }) => {
   const params = new URLSearchParams();
@@ -13,7 +14,7 @@ const fetchCouponLists = async ({ providerId, customerId }) => {
   const base = rental_coupon_list_api.trim();
   const qs = params.toString();
   const { data } = await MainApi.get(qs ? `${base}?${qs}` : base);
-  return data;
+  return getApiList(data);
 };
 
 export const useGetCouponLists = (providerId, customerId) => {

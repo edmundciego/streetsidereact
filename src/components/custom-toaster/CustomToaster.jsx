@@ -14,7 +14,7 @@ const CustomToast = ({ title, description, icon }) => (
       </Typography>
       <Typography fontSize="12px" sx={{ width: "100%", maxWidth: "283px" }}>{description}</Typography>
     </Stack>
-    <IconButton sx={{ position: 'absolute', top: 10, right: 15 }} onClick={() => toast.dismiss()}>
+    <IconButton sx={{ position: 'absolute', top: 10, right: 15, width: 44, height: 44 }} onClick={() => toast.dismiss()} aria-label="Dismiss notification">
       <CloseIcon sx={{ fontSize: "16px" }} />
     </IconButton>
   </CustomPaperRefer>

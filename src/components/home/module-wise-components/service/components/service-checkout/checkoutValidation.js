@@ -4,7 +4,7 @@ import {
   getScheduleErrorMessage,
   validateRepeatDates,
 } from "components/home/module-wise-components/service/utils/providerScheduleValidation";
-import { resolveContactPerson } from "./get-service-at/resolveContactPerson";
+import { resolveContactPerson } from "helper-functions/resolveContactPerson";
 
 const fail = (message, toastId) => ({
   valid: false,

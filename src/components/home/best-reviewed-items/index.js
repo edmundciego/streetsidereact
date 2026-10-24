@@ -7,11 +7,9 @@ import {
 } from "@mui/material";
 import { Box, Stack } from "@mui/system";
 import NewProductCard from "components/cards/newCard/NewProductCard";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import Slider from "react-slick";
-import "slick-carousel/slick/slick-theme.css";
-import "slick-carousel/slick/slick.css";
+import CustomSlider from "components/common/CustomSlider";
 import useGetMostReviewed from "../../../api-manage/hooks/react-query/useGetMostReviewed";
 import { getCurrentModuleType } from "helper-functions/getCurrentModuleType";
 import { ModuleTypes } from "helper-functions/moduleTypes";
@@ -26,9 +24,26 @@ import CustomImageContainer from "../../CustomImageContainer";
 import ProductCardSimmer from "../../Shimmer/ProductCardSimmer";
 import H2 from "../../typographies/H2";
 import { HomeComponentsWrapper } from "../HomePageComponents";
-import { loveItemSettings } from "../love-item/loveItemSettings";
 import Menus from "./Menus";
-import { createEnhancedArrows } from "../../common/EnhancedSliderArrows";
+
+// react-slick breakpoint:X meant "apply for width <= X" (descending); these
+// Swiper breakpoints mean "apply for width >= X" (ascending) - shifted by +1.
+const FOOD_PAIRS_BREAKPOINTS = {
+  601: { slidesPerView: 1.5 },
+  901: { slidesPerView: 2 },
+};
+
+// NewProductCard variant="horizontal" with no max_width falls back to its
+// own default (~398px) — not a fixed px we control here, so the shimmer
+// loader below mirrors that with "auto" sizing.
+const SHIMMER_BREAKPOINTS = {
+  301: { slidesPerView: 1.6 },
+  501: { slidesPerView: 2 },
+  701: { slidesPerView: 3 },
+  751: { slidesPerView: 3.2 },
+  901: { slidesPerView: 4 },
+  1151: { slidesPerView: 5 },
+};
 
 const BestReviewedItems = (props) => {
   const { title, info, bannerIsLoading, isPharmacy } = props;
@@ -37,10 +52,17 @@ const BestReviewedItems = (props) => {
   const [selectedMenuIndex, setSelectedMenuIndex] = useState(0);
   const [filteredData, setFilteredData] = useState([]);
   const [reRender, setReRender] = useState(false);
-  const [isSliderHovered, setIsSliderHovered] = useState(false);
   const theme = useTheme();
   const isSmall = useMediaQuery(theme.breakpoints.down("md"));
-  const SliderRef = useRef(null);
+  const hasBanner = Boolean(info?.best_reviewed_section_banner);
+  const bestReviewedBreakpoints = {
+    351: { slidesPerView: 1.5 },
+    451: { slidesPerView: 1.7 },
+    551: { slidesPerView: 2 },
+    751: { slidesPerView: hasBanner ? 2.6 : 2.1 },
+    1151: { slidesPerView: 3.5 },
+    1201: { slidesPerView: hasBanner ? 4 : 5 },
+  };
   const {
     data,
     refetch,
@@ -105,185 +127,6 @@ const BestReviewedItems = (props) => {
   }, [selectedMenuIndex]);
 
   console.log("vvvv", getCategoryIds());
-
-  const slides = () =>
-    filteredData?.map((product) =>
-      isPharmacy ? (
-        <div key={product?.id}>
-          <NewProductCard
-            variant="vertical"
-            item={product}
-            isPharmacy
-            cardWidth={{ xs: "150px", md: "170px" }}
-          />
-        </div>
-      ) : (
-        <ProductCard
-          key={product?.id}
-          item={product}
-          cardheight="340px"
-          cardFor="vertical"
-          cardType="vertical-type"
-        />
-      ),
-    );
-
-  const bestReviewedSliderSettings = {
-    //centerMode: true,
-    initialSlide: 0,
-    dots: false,
-    infinite: false,
-    speed: 500,
-    slidesToShow: info?.best_reviewed_section_banner ? 4 : 5,
-    slidesToScroll: 2,
-    cssEase: "linear",
-    ...createEnhancedArrows(isSliderHovered, {
-      displayNoneOnMobile: true,
-      variant: "primary",
-      noBackground: true,
-    }),
-    responsive: [
-      {
-        breakpoint: 350,
-        settings: {
-          slidesToShow: 1.2,
-          slidesToScroll: 1,
-          infinite: false,
-          swipeToSlide: true,
-        },
-      },
-      {
-        breakpoint: 450,
-        settings: {
-          slidesToShow: 1.5,
-          slidesToScroll: 1,
-          swipeToSlide: true,
-          infinite: false,
-        },
-      },
-      {
-        breakpoint: 550,
-        settings: {
-          slidesToShow: 1.7,
-          slidesToScroll: 1,
-          swipeToSlide: true,
-        },
-      },
-      {
-        breakpoint: 750,
-        settings: {
-          slidesToShow: 2,
-          slidesToScroll: 1,
-          swipeToSlide: true,
-        },
-      },
-      {
-        breakpoint: 1150,
-        settings: {
-          slidesToShow: info?.best_reviewed_section_banner ? 2.6 : 2.1,
-          slidesToScroll: 1,
-          swipeToSlide: true,
-        },
-      },
-      {
-        breakpoint: 1200,
-        settings: {
-          slidesToShow: 3.5,
-          slidesToScroll: 1,
-          swipeToSlide: true,
-        },
-      },
-    ],
-  };
-
-  const foodBestReviewedSliderSettings = {
-    dots: false,
-    infinite: false,
-    speed: 500,
-    slidesPerRow: 1,
-    rows: 2,
-    slidesToShow: info?.best_reviewed_section_banner ? 2.1 : 2.7,
-    slidesToScroll: 1,
-    swipeToSlide: true,
-    cssEase: "linear",
-    ...createEnhancedArrows(isSliderHovered, {
-      displayNoneOnMobile: true,
-      variant: "primary",
-      noBackground: true,
-    }),
-    responsive: [
-      {
-        breakpoint: 300,
-        settings: {
-          slidesToShow: 1.1,
-          slidesPerRow: 1,
-          rows: 2,
-          slidesToScroll: 1,
-          swipeToSlide: true,
-        },
-      },
-      {
-        breakpoint: 500,
-        settings: {
-          slidesToShow: 1.1,
-          slidesPerRow: 1,
-          rows: 2,
-          slidesToScroll: 1,
-          swipeToSlide: true,
-        },
-      },
-      {
-        breakpoint: 700,
-        settings: {
-          slidesToShow: 1.34,
-          slidesPerRow: 1,
-          rows: 2,
-          slidesToScroll: 2,
-          swipeToSlide: true,
-        },
-      },
-      {
-        breakpoint: 750,
-        settings: {
-          slidesToShow: 1.45,
-          slidesPerRow: 1,
-          rows: 2,
-          slidesToScroll: 2,
-          swipeToSlide: true,
-        },
-      },
-      {
-        breakpoint: 900,
-        settings: {
-          slidesToShow: 1.9,
-          slidesPerRow: 1,
-          rows: 2,
-          slidesToScroll: 1,
-          swipeToSlide: true,
-        },
-      },
-      {
-        breakpoint: 1150,
-        settings: {
-          slidesToShow: 2.1,
-          slidesPerRow: 1,
-          rows: 2,
-          slidesToScroll: 3,
-          swipeToSlide: true,
-        },
-      },
-      {
-        breakpoint: 1300,
-        settings: {
-          slidesToShow: 2.3,
-          slidesPerRow: 1,
-          rows: 2,
-          slidesToScroll: 1,
-          swipeToSlide: true,
-        },
-      },
-    ],
-  };
 
   return (
     <>
@@ -352,63 +195,33 @@ const BestReviewedItems = (props) => {
 
                     {/* Slider — 8 col desktop, 12 col mobile */}
                     <Grid item xs={12} md={url ? 8 : 12}>
-                      <Box
-                        onMouseEnter={() => setIsSliderHovered(true)}
-                        onMouseLeave={() => setIsSliderHovered(false)}
-                        sx={{
-                          "& .slick-track": { marginLeft: 0 },
-                          "& .slick-slide": {
-                            paddingRight: "12px",
-                            paddingLeft: "12px",
-                          },
-                          "& .slick-list": { margin: "0 -12px" },
-                        }}
-                      >
-                        <Slider
-                          dots={false}
-                          infinite={false}
-                          speed={500}
-                          slidesToShow={2}
-                          slidesToScroll={1}
-                          {...createEnhancedArrows(isSliderHovered, {
-                            displayNoneOnMobile: true,
-                            variant: "primary",
-                            noBackground: true,
-                          })}
-                          responsive={[
-                            {
-                              breakpoint: 900,
-                              settings: { slidesToShow: 1.5 },
-                            },
-                            {
-                              breakpoint: 600,
-                              settings: { slidesToShow: 1.1 },
-                            },
-                          ]}
-                        >
-                          {/* Group items into pairs — each slide = col of 2 */}
-                          {(() => {
-                            const items = bestReviewedItems?.products ?? [];
-                            const pairs = [];
-                            for (let i = 0; i < items.length; i += 2) {
-                              pairs.push(items.slice(i, i + 2));
-                            }
-                            return pairs.map((pair, pi) => (
-                              <Box key={pi}>
-                                <Stack spacing="20px">
-                                  {pair.map((item, ii) => (
-                                    <NewProductCard
-                                      key={ii}
-                                      item={item}
-                                      variant="horizontal"
-                                    />
-                                  ))}
-                                </Stack>
-                              </Box>
-                            ));
-                          })()}
-                        </Slider>
-                      </Box>
+                      <CustomSlider
+                        items={(() => {
+                          const items = bestReviewedItems?.products ?? [];
+                          const pairs = [];
+                          for (let i = 0; i < items.length; i += 2) {
+                            pairs.push(items.slice(i, i + 2));
+                          }
+                          return pairs;
+                        })()}
+                        getKey={(pair, pi) => pi}
+                        renderItem={(pair) => (
+                          <Stack spacing="20px">
+                            {pair.map((item, ii) => (
+                              <NewProductCard
+                                key={ii}
+                                item={item}
+                                variant="horizontal"
+                              />
+                            ))}
+                          </Stack>
+                        )}
+                        arrowVariant="inline"
+                        speed={500}
+                        slidesPerView={1.1}
+                        spaceBetween={16}
+                        breakpoints={FOOD_PAIRS_BREAKPOINTS}
+                      />
                     </Grid>
                   </Grid>
                 </CustomBoxFullWidth>
@@ -423,13 +236,17 @@ const BestReviewedItems = (props) => {
               <Skeleton width="200px" />
 
               <SliderCustom nopadding="true">
-                <Slider {...loveItemSettings}>
-                  {[...Array(5)].map((_, index) => {
-                    return (
-                      <ProductCardSimmer key={index} variant="horizontal" />
-                    );
-                  })}
-                </Slider>
+                <CustomSlider
+                  items={Array.from({ length: 5 })}
+                  renderItem={() => (
+                    <ProductCardSimmer variant="horizontal" />
+                  )}
+                  arrowVariant="none"
+                  speed={500}
+                  slidesPerView={1.5}
+                  spaceBetween={16}
+                  breakpoints={SHIMMER_BREAKPOINTS}
+                />
               </SliderCustom>
             </CustomStackFullWidth>
           ) : (
@@ -524,16 +341,38 @@ const BestReviewedItems = (props) => {
                             justifyContent="right"
                             key={reRender}
                           >
-                            <SliderCustom
-                              onMouseEnter={() => setIsSliderHovered(true)}
-                              onMouseLeave={() => setIsSliderHovered(false)}
-                            >
-                              <Slider
-                                ref={SliderRef}
-                                {...bestReviewedSliderSettings}
-                              >
-                                {slides()}
-                              </Slider>
+                            <SliderCustom>
+                              <CustomSlider
+                                items={filteredData}
+                                getKey={(product) => product?.id}
+                                renderItem={(product) =>
+                                  isPharmacy ? (
+                                    <NewProductCard
+                                      variant="vertical"
+                                      item={product}
+                                      isPharmacy
+                                      cardWidth={{ xs: "150px", md: "170px" }}
+                                    />
+                                  ) : (
+                                    <ProductCard
+                                      item={product}
+                                      cardheight="340px"
+                                      cardFor="vertical"
+                                      cardType="vertical-type"
+                                    />
+                                  )
+                                }
+                                arrowVariant="inline"
+                                stretchItems={!isPharmacy}
+                                speed={500}
+                                slidesPerView={isPharmacy ? "auto" : 1.2}
+                                spaceBetween={16}
+                                breakpoints={
+                                  isPharmacy
+                                    ? undefined
+                                    : bestReviewedBreakpoints
+                                }
+                              />
                             </SliderCustom>
                           </CustomStackFullWidth>
                         </Grid>

@@ -1,3 +1,4 @@
+import { getApiContent } from "api-manage/getApiContent";
 import { fetchPageMetadata } from "utils/fetchPageMetaData";
 
 // Maintenance mode is only enforced when the admin has explicitly opted
@@ -13,7 +14,7 @@ export const checkMaintenanceMode = (configData) => {
 };
 
 const fetchConfig = (language) =>
-  fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/v1/config`, {
+  fetch(`${(process.env.NEXT_PUBLIC_BASE_URL || "").replace(/\/+$/, "")}/api/v1/config`, {
     method: "GET",
     headers: {
       "X-software-id": 33571750,
@@ -37,7 +38,7 @@ export const getCommonServerSideProps = async (
     fetchConfig(language),
     fetchPageMetadata(pageName, pageId, language),
   ]);
-  const config = await configRes.json();
+  const config = getApiContent(await configRes.json());
 
   if (
     checkMaintenanceMode(config) &&

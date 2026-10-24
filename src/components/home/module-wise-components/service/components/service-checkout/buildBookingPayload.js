@@ -1,6 +1,6 @@
 import dayjs from "dayjs";
 import { getDiscountedAmount } from "helper-functions/CardHelpers";
-import { resolveContactPerson } from "./get-service-at/resolveContactPerson";
+import { resolveContactPerson } from "helper-functions/resolveContactPerson";
 
 export const normalizePaymentMethod = (paymentMethod, isRepeat) => {
   // Repeat bookings only accept cash_after_service — force it regardless of selection.

@@ -23,7 +23,7 @@ const CampaignsDetails = ({ campaignsDetails, isRefetching, isLoading }) => {
     }
   }, [router.isReady]);
   return (
-    <CustomStackFullWidth mt={{ xs: 0, md: "60px" }}>
+    <CustomStackFullWidth mt={{ xs: 0, md: "16px" }}>
       <SimpleMobileHeader title={campaignsDetails?.title ?? "Campaigns"} />
       <CustomContainer sx={{ paddingTop: "20px" }}>
         <Stack spacing={4} justifyContent="center" alignItems="center">

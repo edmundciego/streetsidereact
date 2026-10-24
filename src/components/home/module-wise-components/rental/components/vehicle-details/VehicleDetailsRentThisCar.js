@@ -24,6 +24,7 @@ import {
   getAmountWithSign,
   getDiscountedAmount,
 } from "helper-functions/CardHelpers";
+import { formatDistanceWithUnit } from "helper-functions/formatDistanceWithUnit";
 import { bookingConfirm } from "components/home/module-wise-components/rental/components/global/search/searchHepler";
 import { setCartList } from "redux/slices/cart";
 import CloseIcon from "@mui/icons-material/Close";
@@ -37,6 +38,7 @@ import {
   updateCart,
 } from "components/home/module-wise-components/rental/components/rental-cart/helper";
 import useDeleteItemFromBooking from "components/home/module-wise-components/rental/rental-api-manage/hooks/react-query/confirm-booking/useDeleteItemFromBooking";
+import { useGetProviderDetails } from "components/home/module-wise-components/rental/rental-api-manage/hooks/react-query/provider/useGetProviderDetails";
 import dynamic from "next/dynamic";
 import ProviderCheck from "../global/ProviderCheck";
 import CustomModal from "components/modal";
@@ -114,6 +116,7 @@ const VehicleDetailsRentThisCar = ({
     (state) => state?.rentalSearch?.rentalSearch
   );
   const { cartList } = useSelector((state) => state.cart);
+  const { configData } = useSelector((state) => state.configData);
   const distance = rentalSearch?.distanceData?.distanceMeters / 1000;
   const isDifferentProvider = cartList?.carts?.some(
     (cart) => cart.provider?.id !== vehicleDetails?.provider?.id
@@ -154,6 +157,10 @@ const VehicleDetailsRentThisCar = ({
     (item) => item.vehicle?.id === vehicleDetails?.id
   );
   const { mutate } = useDeleteItemFromBooking();
+  const { data: providerDetails } = useGetProviderDetails(
+    vehicleDetails?.provider?.id
+  );
+  const scheduleOrderEnabled = providerDetails?.schedule_order !== false;
 
   const handleIncrement = (cartItem) => {
     if (handleIncrementFromCard) {
@@ -521,7 +528,10 @@ const VehicleDetailsRentThisCar = ({
                 ? `${formatNumber(
                     (userData?.estimated_hours ?? rentalSearch?.duration) / 24
                   )} days`
-                : `${formatNumber(userData?.distance ?? distance)} km`}
+                : formatDistanceWithUnit(
+                    userData?.distance ?? distance,
+                    configData
+                  )}
               )
             </Typography>
           ) : (
@@ -620,6 +630,7 @@ const VehicleDetailsRentThisCar = ({
           setIds={setIds}
           setUpdateCartObject={setUpdateCartObject}
           isDayWise={vehicleDetails?.trip_day_wise}
+          scheduleOrderEnabled={scheduleOrderEnabled}
         />
       )}
 

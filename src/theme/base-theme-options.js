@@ -38,7 +38,7 @@ export const baseThemeOptions = {
           textTransform: "none",
         },
         sizeSmall: {
-          padding: "6px 16px",
+          padding: "10px 16px", // V1 H4: was 6px 16px (<44px target)
         },
         sizeMedium: {
           padding: "8px 20px",
@@ -47,7 +47,7 @@ export const baseThemeOptions = {
           padding: "11px 24px",
         },
         textSizeSmall: {
-          padding: "7px 12px",
+          padding: "10px 16px", // V1 H4: was 7px 12px (<44px target)
         },
         textSizeMedium: {
           padding: "9px 16px",
@@ -144,7 +144,7 @@ export const baseThemeOptions = {
           pointerEvents: "none",
         },
         "#nprogress .bar": {
-          backgroundColor: "#5048E5",
+          backgroundColor: "#2A9153", // V1 H8: was foreign indigo #5048E5 (Streetside Sea Green)
           height: 3,
           left: 0,
           position: "fixed",
@@ -159,10 +159,10 @@ export const baseThemeOptions = {
       styleOverrides: {
         root: {
           borderRadius: 8,
-          padding: 8,
+          padding: 10, // V1 H4: was 8 (40px hit-target with 24px icon → 44px)
         },
         sizeSmall: {
-          padding: 4,
+          padding: 8, // V1 H4: was 4; dense contexts documented in V1 (remaining)
         },
       },
     },
@@ -293,12 +293,12 @@ export const baseThemeOptions = {
     body2: {
       fontSize: "0.75rem",
       fontWeight: 400,
-      lineHeight: "11.85px",
+      lineHeight: 1.5, // V1 H2: was 11.85px (tighter than font size — clipped)
     },
     body3: {
       fontSize: "0.625rem",
       fontWeight: 400,
-      lineHeight: "11.85px",
+      lineHeight: 1.5, // V1 H2: was 11.85px (tighter than font size — clipped)
     },
     body4: {
       fontSize: "0.5rem",

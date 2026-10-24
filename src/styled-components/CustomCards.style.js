@@ -12,7 +12,7 @@ export const CustomPaperCard = styled(Paper)(
     boxSizing: "border-box",
     boxShadow:
       "0px 0px 2px rgba(145, 158, 171, 0.2), 0px 12px 24px -4px rgba(145, 158, 171, 0.1)",
-    border: "1px solid rgba(65, 83, 179, 0.3)",
+    border: "1px solid #E6E8F0", // V1 H8: was foreign indigo-tinted rgba(65,83,179,0.3)
     [theme.breakpoints.up("sm")]: {
       // eslint-disable-next-line no-mixed-operators
       minHeight: (minHeight && "14vh") || (minHeightForCustomCard && "20vh"),

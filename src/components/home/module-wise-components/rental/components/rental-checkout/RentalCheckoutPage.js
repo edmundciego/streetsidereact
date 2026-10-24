@@ -30,7 +30,7 @@ import ConfirmationNumberIcon from "@mui/icons-material/ConfirmationNumber";
 import RentalAdditionalNote from "../global/RentalAdditionalNote";
 import Link from "next/link";
 import { useDispatch, useSelector } from "react-redux";
-import React, { useEffect, useReducer, useState } from "react";
+import React, { useEffect, useReducer, useRef, useState } from "react";
 import {
   ACTIONS,
   checkoutInitialState,
@@ -59,6 +59,7 @@ import { coupon_minimum } from "utils/toasterMessages";
 import { getAmountWithSign } from "helper-functions/CardHelpers";
 import Router from "next/router";
 import { getGuestId, getToken } from "helper-functions/getToken";
+import { resolveContactPerson } from "helper-functions/resolveContactPerson";
 import useScrollToTop from "api-manage/hooks/custom-hooks/useScrollToTop";
 import GuestUserInforForm from "components/address/GuestUserInforForm";
 import { fTime } from "components/home/module-wise-components/rental/components/rentalfilter/RentalCarFilterSection";
@@ -69,6 +70,7 @@ import RoomIcon from "@mui/icons-material/Room";
 import NearMeIcon from "@mui/icons-material/NearMe";
 import TripDetails from "../trip-status/TripDetails";
 import CarBookingModal from "../global/CarBookingModal";
+import { useGetProviderDetails } from "components/home/module-wise-components/rental/rental-api-manage/hooks/react-query/provider/useGetProviderDetails";
 import CustomModal from "components/modal";
 import TripModalContent from "../rental-cart/TripModalContent";
 import TripVehicleList from "../rental-cart/TripVehicleList";
@@ -95,10 +97,16 @@ const RentalCheckoutPage = () => {
   // cart can land at index 0, so always resolve the rental cart by
   // module_type instead of trusting carts[0].
   const rentalCart = cartList?.carts?.[0];
-  
+  const { data: providerDetails } = useGetProviderDetails(
+    rentalCart?.provider?.id
+  );
+  const scheduleOrderEnabled = providerDetails?.schedule_order !== false;
+
   const isRehydrated = useSelector((state) => state?._persist?.rehydrated);
   const { configData } = useSelector((state) => state.configData);
-  const { couponInfo } = useSelector((state) => state.profileInfo);
+  const { couponInfo, profileInfo } = useSelector(
+    (state) => state.profileInfo
+  );
   const { guestUserInfo } = useSelector((state) => state.guestUserInfo);
   const [scheduleAt, setScheduleAt] = React.useState(0);
   const [cashbackAmount, setCashbackAmount] = useState(null);
@@ -317,6 +325,11 @@ const RentalCheckoutPage = () => {
     setProModalOpen(false);
     setProPaymentOpen(true);
   };
+  const tripContactPerson = resolveContactPerson({
+    guestUserInfo,
+    profileInfo,
+    token: getToken(),
+  });
   const tripObject = {
     provider_id:
       Array.isArray(cartList?.carts) && cartList.carts.length > 0
@@ -329,13 +342,13 @@ const RentalCheckoutPage = () => {
     coupon_discount_amount: state?.couponDiscount?.discount,
     coupon_discount_title: state?.couponDiscount?.title,
     guest_id: getToken() ? null : getGuestId(),
-    contact_person_number: getToken()
-      ? null
-      : guestUserInfo?.contact_person_number,
-    contact_person_name: getToken() ? null : guestUserInfo?.contact_person_name,
-    contact_person_email: getToken()
-      ? null
-      : guestUserInfo?.contact_person_email,
+    // `trip-booking` validates all three as `required`, so the previous `null`
+    // for signed-in users answered 422 — and MainApi turns any 422 into a
+    // redirect home, losing the booking. Resolve from the profile when signed
+    // in, from the guest form otherwise.
+    contact_person_name: tripContactPerson.name,
+    contact_person_number: tripContactPerson.number,
+    contact_person_email: tripContactPerson.email,
     schedule_at:
       scheduleAt === 1
         ? fTime(cartList?.user_data?.pickup_time)
@@ -353,8 +366,17 @@ const RentalCheckoutPage = () => {
   const handleTripPlace = () => {
     mutate(tripObject, {
       onSuccess: (data) => {
-        if (data) {
-          Router.push(`/rental/trip-status/${data}?from="place_order"`);
+        // `trip-booking` answers with the v4.2 envelope, so the mutation hands
+        // back the unwrapped `content` — an object carrying the new trip's id,
+        // where this used to receive the bare id. Interpolating the object
+        // built `/rental/trip-status/[object Object]`, and the details endpoint
+        // answers that with "Trip data not found". Accept either shape.
+        const tripId =
+          data?.trip_id ??
+          data?.id ??
+          (data && typeof data === "object" ? null : data);
+        if (tripId) {
+          Router.push(`/rental/trip-status/${tripId}?from="place_order"`);
         }
       },
       onError: onErrorResponse,
@@ -439,7 +461,13 @@ const RentalCheckoutPage = () => {
     }
   }, [cartList?.carts?.length, zoneId, isRehydrated]);
 
+  // Ignores stale onSuccess resolutions from a superseded amount.
+  const latestTotalPriceRef = useRef(totalPrice);
+  useEffect(() => {
+    latestTotalPriceRef.current = totalPrice;
+  }, [totalPrice]);
   const handleCashbackAmount = (data) => {
+    if (totalPrice !== latestTotalPriceRef.current) return;
     setCashbackAmount(data);
   };
   const { refetch: refetchCashbackAmount } = useGetCashBackAmount({
@@ -710,6 +738,7 @@ const RentalCheckoutPage = () => {
           setIds={setIds}
           setUpdateCartObject={setUpdateCartObject}
           callUpdateUserData={false}
+          scheduleOrderEnabled={scheduleOrderEnabled}
         />
       )}
       <CustomModal

@@ -2,7 +2,7 @@ import { alpha, Stack, Typography } from "@mui/material";
 import CustomImageContainer from "components/CustomImageContainer";
 import { getAmountWithSign } from "helper-functions/CardHelpers";
 import React from "react";
-import Slider from "react-slick";
+import CustomSlider from "components/common/CustomSlider";
 import { CustomBoxFullWidth } from "styled-components/CustomStyles.style";
 
 const RentalCarDetailsBannerImg = ({
@@ -11,7 +11,7 @@ const RentalCarDetailsBannerImg = ({
   bannerLoading,
   data,
 }) => {
-  const tempBanner = bannerData
+  const tempBanner = Array.isArray(bannerData)
     ? [
         ...bannerData,
         {
@@ -23,28 +23,6 @@ const RentalCarDetailsBannerImg = ({
           image_full_url: cover_photo_url,
         },
       ];
-
-  const settings = {
-    dots: false,
-    infinite: true,
-    slidesToShow: 1,
-    slidesToScroll: 1,
-    swipeToSlide: true,
-    autoplay: true,
-    speed: 800,
-    autoplaySpeed: 3000,
-    cssEase: "linear",
-    responsive: [
-      {
-        breakpoint: 600,
-        settings: {
-          slidesToShow: 1,
-          slidesToScroll: 1,
-          swipeToSlide: true,
-        },
-      },
-    ],
-  };
 
   const handleBannerClick = (link) => {
     if (link) {
@@ -61,32 +39,35 @@ const RentalCarDetailsBannerImg = ({
         }}
       >
         {tempBanner?.length ? (
-          <Slider {...settings}>
-            {tempBanner?.map((banner) => {
-              return (
-                <Stack
-                  key={banner?.id}
-                  onClick={
-                    banner?.link
-                      ? () => handleBannerClick(banner?.link)
-                      : undefined
-                  }
-                  sx={{
-                    cursor: banner?.link ? "pointer" : "default",
-                    borderRadius: "10px",
-                    height: { xs: "200px", sm: "265px" },
-                  }}
-                >
-                  <CustomImageContainer
-                    src={banner?.image_full_url}
-                    width="100%"
-                    height="100%"
-                    borderRadius="10px"
-                  />
-                </Stack>
-              );
-            })}
-          </Slider>
+          <CustomSlider
+            items={tempBanner}
+            getKey={(banner, index) => banner?.id ?? index}
+            renderItem={(banner) => (
+              <Stack
+                onClick={
+                  banner?.link ? () => handleBannerClick(banner?.link) : undefined
+                }
+                sx={{
+                  cursor: banner?.link ? "pointer" : "default",
+                  borderRadius: "10px",
+                  height: { xs: "200px", sm: "265px" },
+                }}
+              >
+                <CustomImageContainer
+                  src={banner?.image_full_url}
+                  width="100%"
+                  height="100%"
+                  borderRadius="10px"
+                />
+              </Stack>
+            )}
+            arrowVariant="none"
+            loop={tempBanner.length > 1}
+            autoplay={tempBanner.length > 1}
+            autoplayDelay={3000}
+            speed={800}
+            slidesPerView={1}
+          />
         ) : (
           <CustomImageContainer
             width="100%"

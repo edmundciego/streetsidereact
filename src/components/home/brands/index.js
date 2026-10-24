@@ -16,14 +16,13 @@ import { CustomStackFullWidth } from "styled-components/CustomStyles.style";
 import { useTheme } from "@emotion/react";
 import styled from "@emotion/styled";
 import useGetBrandsList from "api-manage/hooks/react-query/brands/useGetBrandsList";
-import SliderSectionHeader from "components/common/SliderSectionHeader";
 import CustomContainer from "components/container";
 import NextImage from "components/NextImage";
 import { getModuleId } from "helper-functions/getModuleId";
 import { useRouter } from "next/router";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import Slider from "react-slick";
+import CustomSlider from "components/common/CustomSlider";
 import { setBrands } from "redux/slices/brands";
 import AtoZ from "sort/AtoZ";
 import BrandCard from "./BrandCard";
@@ -43,7 +42,6 @@ const NewBrandCard = ({ item }) => {
           flexDirection: "column",
           alignItems: "center",
           gap: "8px",
-          px: "4px",
           cursor: "pointer",
         }}
       >
@@ -118,7 +116,6 @@ const BrandShimmerCard = () => (
       flexDirection: "column",
       alignItems: "center",
       gap: "8px",
-      px: "4px",
     }}
   >
     <Skeleton
@@ -146,9 +143,7 @@ export const CustomSkeleton = styled(Skeleton)(({ theme }) => ({
 }));
 const Brands = ({ viewAll }) => {
   const [sortBy, setSortBy] = useState("Default");
-  const [currentSlide, setCurrentSlide] = useState(0);
   const theme = useTheme();
-  const sliderRef = useRef();
   const tabScreen = useMediaQuery("(max-width: 991px)");
   const { brands: data } = useSelector((state) => state?.brands);
   const { configData } = useSelector((state) => state?.configData);
@@ -256,87 +251,56 @@ const Brands = ({ viewAll }) => {
       </>
     );
   // Section View
-  const sliderSettings = {
-    dots: false,
-    infinite: false,
-    speed: 500,
-    slidesToShow: 9,
-    slidesToScroll: 2,
-    swipeToSlide: true,
-    arrows: false,
-    responsive: [
-      {
-        breakpoint: 1450,
-        settings: { slidesToShow: 8, slidesToScroll: 2, swipeToSlide: true },
-      },
-      {
-        breakpoint: 1200,
-        settings: { slidesToShow: 7, slidesToScroll: 2, swipeToSlide: true },
-      },
-      {
-        breakpoint: 1024,
-        settings: { slidesToShow: 6, slidesToScroll: 2, swipeToSlide: true },
-      },
-      {
-        breakpoint: 840,
-        settings: { slidesToShow: 5, slidesToScroll: 2, swipeToSlide: true },
-      },
-      {
-        breakpoint: 600,
-        settings: { slidesToShow: 4.5, slidesToScroll: 2, swipeToSlide: true },
-      },
-      {
-        breakpoint: 480,
-        settings: { slidesToShow: 3.8, slidesToScroll: 2, swipeToSlide: true },
-      },
-      {
-        breakpoint: 380,
-        settings: { slidesToShow: 3.2, slidesToScroll: 1, swipeToSlide: true },
-      },
-    ],
+  // react-slick breakpoint:X meant "apply for width <= X" (descending); these
+  // Swiper breakpoints mean "apply for width >= X" (ascending) - shifted by +1.
+  const brandsBreakpoints = {
+    381: { slidesPerView: 3.8 },
+    481: { slidesPerView: 4.5 },
+    601: { slidesPerView: 5 },
+    841: { slidesPerView: 6 },
+    901: { slidesPerView: 6, spaceBetween: 20 },
+    1025: { slidesPerView: 7, spaceBetween: 20 },
+    1201: { slidesPerView: 8, spaceBetween: 20 },
+    1451: { slidesPerView: 9, spaceBetween: 20 },
   };
 
   if (!isLoading && !isFetching && (!data || data.length === 0)) return null;
 
+  const title = isLoading ? (
+    <Skeleton variant="text" width="120px" height={32} />
+  ) : (
+    <Typography
+      sx={{
+        fontSize: { xs: "18px", md: "24px" },
+        fontWeight: 700,
+        color: "neutral.1050",
+        lineHeight: 1.1,
+        letterSpacing: "-1.2px",
+        whiteSpace: "nowrap",
+      }}
+    >
+      {t("Top Brands")}
+    </Typography>
+  );
+
   return (
     <Box sx={{ py: "12px" }}>
-      <SliderSectionHeader
-        sliderRef={sliderRef}
-        currentSlide={currentSlide}
-        totalSlides={data?.length ?? 0}
-        slidesToShow={9}
-        sx={{ mb: "16px" }}
-        heading={
-          isLoading ? (
-            <Skeleton variant="text" width="120px" height={32} />
-          ) : (
-            <Typography
-              sx={{
-                fontSize: { xs: "18px", md: "24px" },
-                fontWeight: 700,
-                color: "neutral.1050",
-                lineHeight: 1.1,
-                letterSpacing: "-1.2px",
-                whiteSpace: "nowrap",
-              }}
-            >
-              {t("Top Brands")}
-            </Typography>
-          )
-        }
-      />
-
-      {/* Slider */}
       <BrandSliderWrapper>
-        <Slider
-          ref={sliderRef}
-          {...sliderSettings}
-          afterChange={(idx) => setCurrentSlide(idx)}
-        >
-          {isLoading || isFetching
-            ? [...Array(9)].map((_, i) => <BrandShimmerCard key={i} />)
-            : data?.map((item) => <NewBrandCard key={item?.id} item={item} />)}
-        </Slider>
+        <CustomSlider
+          items={isLoading || isFetching ? Array.from({ length: 9 }) : data ?? []}
+          renderItem={(item) =>
+            isLoading || isFetching ? (
+              <BrandShimmerCard />
+            ) : (
+              <NewBrandCard item={item} />
+            )
+          }
+          arrowVariant="section"
+          title={title}
+          slidesPerView={3.2}
+          spaceBetween={16}
+          breakpoints={brandsBreakpoints}
+        />
       </BrandSliderWrapper>
     </Box>
   );

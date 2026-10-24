@@ -36,6 +36,7 @@ import ProSavingsBanner from "components/pro-plan/ProSavingsBanner";
 import { getAmountWithSign } from "helper-functions/CardHelpers";
 import { getToken } from "helper-functions/getToken";
 import { toast } from "react-hot-toast";
+import { useGetProviderDetails } from "components/home/module-wise-components/rental/rental-api-manage/hooks/react-query/provider/useGetProviderDetails";
 const CarBookingModal = dynamic(() =>
   import(
     "components/home/module-wise-components/rental/components/global/CarBookingModal"
@@ -55,12 +56,11 @@ const RentalCartPage = () => {
   const [ids, setIds] = React.useState(null);
   const [updateCartObject, setUpdateCartObject] = React.useState({});
   const { cartList } = useSelector((state) => state.cart);
-  // Carts are shared across modules in redux. After a reload a food/grocery
-  // cart can land at index 0, so always resolve the rental cart by
-  // module_type instead of trusting carts[0].
-  const rentalCart = cartList?.carts?.find(
-    (c) => c?.module_type === "rental" && c?.provider
+  const rentalCart = cartList?.carts?.find((c) => c?.provider);
+  const { data: providerDetails } = useGetProviderDetails(
+    rentalCart?.provider?.id
   );
+  const scheduleOrderEnabled = providerDetails?.schedule_order !== false;
   const { configData } = useSelector((state) => state.configData);
   const currentTime = new Date().toLocaleTimeString();
   const proFeatureEnabled = configData?.pro_member_status === 1;
@@ -558,6 +558,7 @@ const RentalCartPage = () => {
             setOpenTripChange={setOpenTripChange}
             setIds={setIds}
             setUpdateCartObject={setUpdateCartObject}
+            scheduleOrderEnabled={scheduleOrderEnabled}
           />
         )}
       </CustomContainer>

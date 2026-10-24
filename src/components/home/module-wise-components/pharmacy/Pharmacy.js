@@ -15,6 +15,7 @@ import useGetOtherBanners from "../../../../api-manage/hooks/react-query/useGetO
 import CustomContainer from "../../../container";
 import OrderDetailsModal from "../../../order-details-modal/OrderDetailsModal";
 import Banners from "../../banners";
+import BasicCampaign from "../../basic-campaign/BasicCampaign";
 import FeaturedCategories from "../../featured-categories";
 import RunningCampaigns from "../../running-campaigns";
 import PromotionalBanner from "../../PromotionalBanner";
@@ -29,6 +30,10 @@ import { getPharmacySections } from "./pharmacySectionsConfig";
 import SelfCareOTCSection from "./SelfCareOTCSection";
 import VerifiedPharmacies from "./VerifiedPharmacies";
 import isVerifiedStoreEnabled from "helper-functions/isVerifiedStoreEnabled";
+import HappyHourSection from "components/happy-hour/HappyHourSection";
+import BogoBanner from "components/bogo/BogoBanner";
+import useGetBogoHome from "api-manage/hooks/react-query/bogo/useGetBogoHome";
+import BundleItemsSection from "../shared/BundleItemsSection";
 
 const S = ({ children }) => children ?? null;
 
@@ -115,6 +120,12 @@ const Pharmacy = ({ configData, routeSection }) => {
       </S>
 
       <S>
+        <CustomContainer>
+          <HappyHourSection />
+        </CustomContainer>
+      </S>
+
+      <S>
         <CustomContainer
           sx={{
             paddingLeft: "16px !important",
@@ -148,7 +159,11 @@ const Pharmacy = ({ configData, routeSection }) => {
           />
         </CustomContainer>
       </S>
-
+      <S>
+        <CustomContainer>
+          <BogoBanner />
+        </CustomContainer>
+      </S>
       <S>
         <CustomContainer>
           <RecommendedStore title={t("Recommended Pharmacies")} />
@@ -171,6 +186,12 @@ const Pharmacy = ({ configData, routeSection }) => {
         </CustomContainer>
       </S>
 
+      <S>
+        <CustomContainer>
+          <BasicCampaign />
+        </CustomContainer>
+      </S>
+
       {isVerifiedStoreEnabled(configData) && (
         <S>
           {/* new feature */}
@@ -184,6 +205,12 @@ const Pharmacy = ({ configData, routeSection }) => {
           </CustomContainer>
         </S>
       )}
+
+      <S>
+        <CustomContainer>
+          <BundleItemsSection />
+        </CustomContainer>
+      </S>
 
       <S>
         <CustomContainer noMobilePadding>
@@ -231,7 +258,8 @@ const Pharmacy = ({ configData, routeSection }) => {
     </Stack>
   );
 
-  const pharmacySections = getPharmacySections();
+  const { data: bogoHome } = useGetBogoHome();
+  const pharmacySections = getPharmacySections(!!bogoHome?.is_live);
   return (
     <ModuleHomeSidebarLayout
       overviewContent={overviewContent}

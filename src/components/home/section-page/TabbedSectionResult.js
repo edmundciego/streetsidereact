@@ -1,27 +1,30 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect } from "react";
 import {
   Box,
   CircularProgress,
   Grid,
-  Skeleton,
   Stack,
   Typography,
-  styled,
   useMediaQuery,
   useTheme,
 } from "@mui/material";
 import { useInView } from "react-intersection-observer";
-import Slider from "react-slick";
-import "slick-carousel/slick/slick.css";
+import CustomSlider from "components/common/CustomSlider";
 import { useTranslation } from "react-i18next";
 import NewProductCard from "components/cards/newCard/NewProductCard";
 import NewStoreCard from "components/cards/newCard/NewStoreCard";
 import SearchResultStoreCard from "components/cards/newCard/SearchResultStoreCard";
 import ProductCardSimmer from "components/Shimmer/ProductCardSimmer";
 import NewStoreCardSkeleton from "components/Shimmer/NewStoreCardSkeleton";
-import SliderSectionHeader from "components/common/SliderSectionHeader";
 import CustomPageBreadCrumb from "components/common/CustomPageBreadCrumb";
-import { CustomBoxFullWidth } from "styled-components/CustomStyles.style";
+
+// NewProductCard/SearchResultStoreCard both have their own self-governed
+// width, so slides size to the card's real content width via "auto" rather
+// than a computed fractional cell. All "auto" sliders here share the same
+// gap: 16px on mobile, 20px from tablet up.
+const SLIDER_GAP_BREAKPOINTS = {
+  901: { spaceBetween: 20 },
+};
 
 // ─── Tab values ────────────────────────────────────────────────────────────
 const TAB_ALL = "all";
@@ -63,16 +66,6 @@ const SearchEmptyState = ({ label, large = false }) => {
     </Stack>
   );
 };
-
-// ─── Slider wrapper ────────────────────────────────────────────────────────
-const SliderWrapper = styled(CustomBoxFullWidth)(({ theme }) => ({
-  "& .slick-track": { marginLeft: 0, marginRight: "auto" },
-  "& .slick-slide": { paddingRight: "20px" },
-  "& .slick-slide:first-child": { paddingLeft: 0 },
-  [theme.breakpoints.down("sm")]: {
-    "& .slick-slide": { paddingRight: "12px" },
-  },
-}));
 
 // ─── Filter pill ───────────────────────────────────────────────────────────
 const FilterPill = ({ label, active, onClick }) => (
@@ -137,44 +130,6 @@ const AllResult = ({
   t,
 }) => {
   const isSmall = useMediaQuery(theme.breakpoints.down("md"));
-  const [itemsCurrentSlide, setItemsCurrentSlide] = useState(0);
-  const [storesCurrentSlide, setStoresCurrentSlide] = useState(0);
-  const itemsSliderRef = useRef(null);
-  const storesSliderRef = useRef(null);
-
-  const itemsSettings = {
-    dots: false,
-    infinite: false,
-    speed: 500,
-    slidesToShow: 5,
-    slidesToScroll: 2,
-    swipeToSlide: true,
-    arrows: false,
-    responsive: [
-      { breakpoint: 1450, settings: { slidesToShow: 5, slidesToScroll: 2 , swipeToSlide: true} },
-      { breakpoint: 1024, settings: { slidesToShow: 4, slidesToScroll: 2 , swipeToSlide: true} },
-      { breakpoint: 760, settings: { slidesToShow: 3, slidesToScroll: 2 , swipeToSlide: true} },
-      { breakpoint: 480, settings: { slidesToShow: 2.6, slidesToScroll: 2 , swipeToSlide: true} },
-      { breakpoint: 400, settings: { slidesToShow: 2.2, slidesToScroll: 2 , swipeToSlide: true} },
-      { breakpoint: 340, settings: { slidesToShow: 2, slidesToScroll: 1 , swipeToSlide: true} },
-    ],
-  };
-
-  const storesSettings = {
-    dots: false,
-    infinite: false,
-    speed: 500,
-    slidesToShow: 2.8,
-    slidesToScroll: 2,
-    swipeToSlide: true,
-    arrows: false,
-    responsive: [
-      { breakpoint: 1024, settings: { slidesToShow: 2, slidesToScroll: 2 , swipeToSlide: true} },
-      { breakpoint: 600, settings: { slidesToShow: 1.5, slidesToScroll: 2 , swipeToSlide: true} },
-      { breakpoint: 480, settings: { slidesToShow: 1.1, slidesToScroll: 2 , swipeToSlide: true} },
-      { breakpoint: 400, settings: { slidesToShow: 1, slidesToScroll: 1 , swipeToSlide: true} },
-    ],
-  };
 
   const bothEmpty =
     !itemsLoading &&
@@ -188,99 +143,113 @@ const AllResult = ({
 
   return (
     <>
-      {showItems && (
-        <Stack
-          spacing={2}
-          sx={{
-            pb: { xs: "8px", md: 0 },
-            pl: { xs: "20px", md: 0 },
-            pr: { xs: 0, md: 0 },
-          }}
-        >
-          <SliderSectionHeader
-            sliderRef={itemsSliderRef}
-            currentSlide={itemsCurrentSlide}
-            totalSlides={items.length}
-            slidesToShow={5}
-            heading={<SectionTitle>{itemsLabel}</SectionTitle>}
-          />
-          <SliderWrapper>
-            {itemsLoading ? (
-              <Slider {...itemsSettings}>
-                {[...Array(5)].map((_, i) => (
-                  <ProductCardSimmer key={i} cardWidth={{ xs: "140px" }} />
-                ))}
-              </Slider>
-            ) : items.length > 0 ? (
-              <Slider
-                {...itemsSettings}
-                ref={itemsSliderRef}
-                afterChange={(i) => setItemsCurrentSlide(i)}
-              >
-                {items.map((item) => (
-                  <div key={item?.id}>
-                    <NewProductCard
-                      variant="vertical"
-                      item={item}
-                      cardWidth={isSmall ? "140px" : undefined}
-                    />
-                  </div>
-                ))}
-              </Slider>
-            ) : (
-              <SearchEmptyState label="No results found" />
+      {showItems &&
+        (itemsLoading ? (
+          <Stack
+            spacing={2}
+            sx={{
+              pb: { xs: "8px", md: 0 },
+              pl: { xs: "20px", md: 0 },
+              pr: { xs: 0, md: 0 },
+            }}
+          >
+            <SectionTitle>{itemsLabel}</SectionTitle>
+            <Stack direction="row" spacing={{ xs: "12px", md: "20px" }} sx={{ overflow: "hidden" }}>
+              {[...Array(5)].map((_, i) => (
+                <ProductCardSimmer key={i} cardWidth={{ xs: "140px" }} />
+              ))}
+            </Stack>
+          </Stack>
+        ) : items.length > 0 ? (
+          <CustomSlider
+            items={items}
+            renderItem={(item) => (
+              <NewProductCard
+                variant="vertical"
+                item={item}
+                cardWidth={isSmall ? "140px" : undefined}
+              />
             )}
-          </SliderWrapper>
-        </Stack>
-      )}
+            arrowVariant="section"
+            title={<SectionTitle>{itemsLabel}</SectionTitle>}
+            allowOverflowY={false}
+            stretchItems={false}
+            slidesPerView="auto"
+            spaceBetween={16}
+            breakpoints={SLIDER_GAP_BREAKPOINTS}
+            wrapperSx={{
+              pb: { xs: "8px", md: 0 },
+              pl: { xs: "20px", md: 0 },
+              pr: { xs: 0, md: 0 },
+            }}
+          />
+        ) : (
+          <Stack
+            spacing={2}
+            sx={{
+              pb: { xs: "8px", md: 0 },
+              pl: { xs: "20px", md: 0 },
+              pr: { xs: 0, md: 0 },
+            }}
+          >
+            <SectionTitle>{itemsLabel}</SectionTitle>
+            <SearchEmptyState label="No results found" />
+          </Stack>
+        ))}
 
-      {showStores && (
-        <Stack
-          spacing={2}
-          sx={{
-            pb: { xs: "8px", md: 0 },
-            pl: { xs: "20px", md: 0 },
-            pr: { xs: 0, md: 0 },
-          }}
-        >
-          <SliderSectionHeader
-            sliderRef={storesSliderRef}
-            currentSlide={storesCurrentSlide}
-            totalSlides={stores.length}
-            slidesToShow={2.8}
-            heading={<SectionTitle>{storesLabel}</SectionTitle>}
-          />
-          <SliderWrapper>
-            {storesLoading ? (
-              <Slider {...storesSettings}>
-                {[...Array(3)].map((_, i) => (
-                  <Box key={i} sx={{ pr: "20px" }}>
-                    <NewStoreCardSkeleton />
-                  </Box>
-                ))}
-              </Slider>
-            ) : stores.length > 0 ? (
-              <Slider
-                {...storesSettings}
-                ref={storesSliderRef}
-                afterChange={(i) => setStoresCurrentSlide(i)}
-              >
-                {stores.map((store) => (
-                  <div key={store?.id}>
-                    <SearchResultStoreCard
-                      store={store}
-                      showAdBadge={store?.ad}
-                      items={store?.top_items}
-                    />
-                  </div>
-                ))}
-              </Slider>
-            ) : (
-              <SearchEmptyState label="No results found" />
+      {showStores &&
+        (storesLoading ? (
+          <Stack
+            spacing={2}
+            sx={{
+              pb: { xs: "8px", md: 0 },
+              pl: { xs: "20px", md: 0 },
+              pr: { xs: 0, md: 0 },
+            }}
+          >
+            <SectionTitle>{storesLabel}</SectionTitle>
+            <Stack direction="row" spacing={{ xs: "12px", md: "20px" }} sx={{ overflow: "hidden" }}>
+              {[...Array(3)].map((_, i) => (
+                <NewStoreCardSkeleton key={i} />
+              ))}
+            </Stack>
+          </Stack>
+        ) : stores.length > 0 ? (
+          <CustomSlider
+            items={stores}
+            renderItem={(store) => (
+              <SearchResultStoreCard
+                store={store}
+                showAdBadge={store?.ad}
+                items={store?.top_items}
+              />
             )}
-          </SliderWrapper>
-        </Stack>
-      )}
+            arrowVariant="section"
+            title={<SectionTitle>{storesLabel}</SectionTitle>}
+            stretchItems={false}
+            allowOverflowY={false}
+            slidesPerView="auto"
+            spaceBetween={16}
+            breakpoints={SLIDER_GAP_BREAKPOINTS}
+            wrapperSx={{
+              pb: { xs: "8px", md: 0 },
+              pl: { xs: "20px", md: 0 },
+              pr: { xs: 0, md: 0 },
+            }}
+          />
+        ) : (
+          <Stack
+            spacing={2}
+            sx={{
+              pb: { xs: "8px", md: 0 },
+              pl: { xs: "20px", md: 0 },
+              pr: { xs: 0, md: 0 },
+            }}
+          >
+            <SectionTitle>{storesLabel}</SectionTitle>
+            <SearchEmptyState label="No results found" />
+          </Stack>
+        ))}
     </>
   );
 };

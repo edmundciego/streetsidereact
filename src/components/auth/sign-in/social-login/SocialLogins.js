@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import FbLoginComp from "./FbLoginComp";
 import { useRouter } from "next/router";
 import AppleLoginComp from "components/auth/sign-in/social-login/AppleLoginComp";
+import { getEnabledSocialLogins } from "helper-functions/loginOptions";
 
 const SocialLogins = (props) => {
   const router = useRouter();
@@ -24,32 +25,11 @@ const SocialLogins = (props) => {
   } = props;
   const { t } = useTranslation();
 
-  const combineLoginData = [...socialLogin, ...configData?.apple_login];
-  const dataWithCentralize = combineLoginData.map((item) => ({
-    ...item,
-    ...(configData?.centralize_login || {}),
-  }));
-
-  const dataWithCentralizeFiltered = dataWithCentralize.filter((item) => {
-    if (item?.login_medium === "google") {
-      return (
-        item?.status === true &&
-        configData?.centralize_login?.google_login_status === 1
-      );
-    }
-    if (item?.login_medium === "facebook") {
-      return (
-        item?.status === true &&
-        configData?.centralize_login?.facebook_login_status === 1
-      );
-    }
-    if (item?.login_medium === "apple") {
-      return (
-        item?.status === true &&
-        configData?.centralize_login?.apple_login_status === 1
-      );
-    }
-    return true; // Keep the item if it's not related to google, facebook, or apple
+  // Shared with AuthLanding, which needs the same answer to decide whether to
+  // draw the "Continue With" heading and the OR divider at all.
+  const dataWithCentralizeFiltered = getEnabledSocialLogins({
+    ...configData,
+    social_login: socialLogin,
   });
 
   if (isLandingVariant) {

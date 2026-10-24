@@ -1,3 +1,4 @@
+import dynamic from "next/dynamic";
 import {
   alpha,
   IconButton,
@@ -8,22 +9,26 @@ import {
 } from "@mui/material";
 import { Box, Stack } from "@mui/system";
 
-import dynamic from "next/dynamic";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/router";
 import { useTranslation } from "react-i18next";
-import Slider from "components/common/LazySlider";
 const ReactImageMagnify = dynamic(() => import("react-image-magnify"), {
   ssr: false,
 });
-import "slick-carousel/slick/slick-theme.css";
-import "slick-carousel/slick/slick.css";
+import CustomSlider from "components/common/CustomSlider";
 import VideoPlayer from "./VideoPlayer";
 import CustomModal from "components/modal";
 import { getLanguage } from "helper-functions/getLanguage";
 import { SliderCustom } from "styled-components/CustomStyles.style";
 import CustomImageContainer from "components/CustomImageContainer";
-import { ServicesThumbnailsSettings } from "./ServicesThumbnailsSettings";
+
+// react-slick breakpoint:X meant "apply for width <= X" (descending); these
+// Swiper breakpoints mean "apply for width >= X" (ascending) - shifted by +1.
+const THUMBS_BREAKPOINTS = {
+  401: { slidesPerView: 3 },
+  601: { slidesPerView: 4 },
+  901: { slidesPerView: 5 },
+};
 
 const ChildrenImageWrapper = styled(Box)(({ theme, index, image_index }) => ({
   cursor: "pointer",
@@ -508,12 +513,13 @@ const ServiceImageView = ({
             "& .slick-slide > div": { height: "100%" },
           }}
         >
-          <Slider {...ServicesThumbnailsSettings}>
-            {allThumbs.map((item, index) => {
+          <CustomSlider
+            items={allThumbs}
+            getKey={(item, index) => (item === VIDEO_SENTINEL ? "video-thumb" : index)}
+            renderItem={(item, index) => {
               if (item === VIDEO_SENTINEL) {
                 return (
                   <ChildrenImageWrapper
-                    key="video-thumb"
                     onClick={() => handleClick(VIDEO_SENTINEL, index)}
                     index={index}
                     image_index={imageIndex}
@@ -593,7 +599,6 @@ const ServiceImageView = ({
               }
               return (
                 <ChildrenImageWrapper
-                  key={index}
                   onClick={() => handleClick(item, index)}
                   index={index}
                   image_index={imageIndex}
@@ -606,8 +611,13 @@ const ServiceImageView = ({
                   />
                 </ChildrenImageWrapper>
               );
-            })}
-          </Slider>
+            }}
+            arrowVariant="inline"
+            stretchItems={false}
+            slidesPerView={2}
+            spaceBetween={8}
+            breakpoints={THUMBS_BREAKPOINTS}
+          />
         </SliderCustom>
       )}
 

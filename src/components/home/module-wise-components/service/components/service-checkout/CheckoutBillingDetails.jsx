@@ -4,16 +4,23 @@ import {
   CircularProgress,
   Skeleton,
   Stack,
+  Tooltip,
   Typography,
   alpha,
   styled,
   useMediaQuery,
   useTheme,
 } from "@mui/material";
+import useGetCartDiscountEligibility from "api-manage/hooks/react-query/add-cart/useGetCartDiscountEligibility";
 import { PrimaryButton } from "components/Map/map.style";
 
 import CustomImageContainer from "components/CustomImageContainer";
 import VariationContent from "components/added-cart-view/VariationContent";
+import CartBundleItem from "components/added-cart-view/CartBundleItem";
+import {
+  isBundleCartRow,
+  getBundleDetails,
+} from "helper-functions/bundleCartRow";
 import {
   getAmountWithSign,
   getDiscountedAmount,
@@ -27,7 +34,7 @@ import {
   cartItemsTotalAmount,
   formatPhoneNumber,
   getCouponDiscount,
-  handleTotalAmountWithAddons,
+  newHandleTotalAmountWithAddons,
 } from "utils/CustomFunctions";
 import {
   setGuestUserInfo,
@@ -78,7 +85,7 @@ const SidebarSurface = styled(Box)(({ theme }) => ({
 
 const CartItemRow = ({ cartItem }) => {
   const theme = useTheme();
-  const itemTotal = handleTotalAmountWithAddons(
+  const itemTotal = newHandleTotalAmountWithAddons(
     getDiscountedAmount(
       cartItem?.totalPrice,
       cartItem?.discount,
@@ -89,12 +96,13 @@ const CartItemRow = ({ cartItem }) => {
     cartItem?.selectedAddons,
   );
 
-  const originalPrice =
-    cartItem?.price && cartItem?.quantity
-      ? cartItem.price * cartItem.quantity
-      : null;
+  const quantity = Number(cartItem?.quantity) || 1;
+  const discountedUnitPrice = Number(itemTotal) / quantity;
+
+  const originalPrice = cartItem?.price ?? null;
   const showStrike =
-    originalPrice != null && Number(originalPrice) > Number(itemTotal);
+    originalPrice != null &&
+    Number(originalPrice) > Number(discountedUnitPrice);
 
   return (
     <Stack
@@ -151,7 +159,7 @@ const CartItemRow = ({ cartItem }) => {
                 color: theme.palette.text.primary,
               }}
             >
-              {getAmountWithSign(itemTotal)}
+              {getAmountWithSign(discountedUnitPrice)}
             </Typography>
             {showStrike && (
               <Typography
@@ -429,6 +437,11 @@ const CheckoutBillingDetails = ({
   const { offlineMethod } = useSelector((state) => state.offlinePayment);
   const providerDetails = providerData;
 
+  const { data: cartDiscountEligibility } = useGetCartDiscountEligibility(
+    providerDetails?.id,
+    !!providerDetails?.id,
+  );
+
   const token = getToken();
   const proFeatureEnabled = configData?.pro_member_status === 1;
   const { data: activeOfferRaw } = useGetProActiveOffer({
@@ -453,9 +466,32 @@ const CheckoutBillingDetails = ({
   const subtotal = cartItemsTotalAmount(displayCartList);
   const originalSubtotal = displayCartList?.reduce((sum, item) => {
     const itemQty = item?.quantity || 1;
-    const itemPrice = item?.price || 0;
+    // A bundle row's `price` is already the discounted bundle price — the
+    // "before discount" reference is `bundle_details.base_price`, not
+    // `item.price`, or this row's own discount collapses to 0 below.
+    const bundleDetails = item?.bundle_details;
+    const itemPrice = bundleDetails?.bundle_id
+      ? Number(bundleDetails?.base_price) || 0
+      : item?.price || 0;
     return sum + itemPrice * itemQty;
   }, 0);
+
+  const hasBundleDiscount = displayCartList?.some((item) => {
+    const bundleDetails = item?.bundle_details;
+    return (
+      bundleDetails?.bundle_id &&
+      (Number(bundleDetails?.base_price) || 0) >
+        (Number(bundleDetails?.bundle_price) || 0)
+    );
+  });
+  const discountTooltipText =
+    cartDiscountEligibility?.source === "happy_hour"
+      ? t("Happy Hour Discount")
+      : cartDiscountEligibility?.source === "store_discount"
+      ? t("Store Discount")
+      : hasBundleDiscount
+      ? ""
+      : "";
 
   // Provider/store-wide discount from the provider's `discount` object.
   // Computed directly because the shared getProductDiscount() returns NaN for
@@ -650,7 +686,10 @@ const CheckoutBillingDetails = ({
   // per-occurrence discount and mismatch the summary.
   const seriesCouponAmount = !isRepeatSeries
     ? couponAmount
-    : computeCoupon(seriesEffectiveSubtotal, originalSubtotal * seriesMultiplier);
+    : computeCoupon(
+        seriesEffectiveSubtotal,
+        originalSubtotal * seriesMultiplier,
+      );
 
   const seriesProBase = Math.max(
     0,
@@ -668,7 +707,9 @@ const CheckoutBillingDetails = ({
     : seriesProActive
     ? (() => {
         const raw = (seriesProBase * proOrderDiscountPct) / 100;
-        return proOrderDiscountMax > 0 ? Math.min(raw, proOrderDiscountMax) : raw;
+        return proOrderDiscountMax > 0
+          ? Math.min(raw, proOrderDiscountMax)
+          : raw;
       })()
     : 0;
 
@@ -709,9 +750,18 @@ const CheckoutBillingDetails = ({
   }, [grandTotal]);
 
   const [cashbackAmount, setCashbackAmount] = useState(null);
+  // Ignores stale onSuccess resolutions from a superseded amount.
+  const latestGrandTotalRef = useRef(grandTotal);
+  useEffect(() => {
+    latestGrandTotalRef.current = grandTotal;
+  }, [grandTotal]);
+  const handleCashbackAmount = (data) => {
+    if (grandTotal !== latestGrandTotalRef.current) return;
+    setCashbackAmount(data);
+  };
   const { refetch: refetchCashbackAmount } = useGetCashBackAmount({
     amount: grandTotal,
-    handleSuccess: setCashbackAmount,
+    handleSuccess: handleCashbackAmount,
   });
   useEffect(() => {
     if (token && grandTotal > 0) {
@@ -731,9 +781,7 @@ const CheckoutBillingDetails = ({
             cashbackAmount?.max_discount,
           )}.`
         : "";
-    return `${t(
-      "After completing the order, you will receive a",
-    )} ${value} ${t(
+    return `${t("After completing the order, you will receive a")} ${value} ${t(
       "cashback. The minimum purchase required to avail this offer is",
     )} ${getAmountWithSign(cashbackAmount?.min_purchase)}.${maxPart}`;
   })();
@@ -987,243 +1035,275 @@ const CheckoutBillingDetails = ({
             <BillingShimmer />
           ) : (
             <>
-          {isCustomService ? (
-            <CustomServiceInfo
-              service={{
-                image:
-                  reqServiceDetails?.data?.category?.image_full_url ?? null,
-                category: reqServiceDetails?.data?.category?.name ?? "",
-                sub_category: reqServiceDetails?.data?.sub_category?.name ?? "",
-                service_date: reqServiceDetails?.data?.booking_date
-                  ? dayjs(reqServiceDetails.data.booking_date).format(
-                      "D MMM YYYY",
-                    )
-                  : "",
-                service_time: reqServiceDetails?.data?.booking_time
-                  ? dayjs(
-                      reqServiceDetails.data.booking_time,
-                      "HH:mm:ss",
-                    ).format("hh:mm A")
-                  : "",
-                description: reqServiceDetails?.data?.description ?? "",
-              }}
-            />
-          ) : (
-            displayCartList.map((item) => (
-              <CartItemRow key={item?.cartItemId || item?.id} cartItem={item} />
-            ))
-          )}
+              {isCustomService ? (
+                <CustomServiceInfo
+                  service={{
+                    image:
+                      reqServiceDetails?.data?.category?.image_full_url ?? null,
+                    category: reqServiceDetails?.data?.category?.name ?? "",
+                    sub_category:
+                      reqServiceDetails?.data?.sub_category?.name ?? "",
+                    service_date: reqServiceDetails?.data?.booking_date
+                      ? dayjs(reqServiceDetails.data.booking_date).format(
+                          "D MMM YYYY",
+                        )
+                      : "",
+                    service_time: reqServiceDetails?.data?.booking_time
+                      ? dayjs(
+                          reqServiceDetails.data.booking_time,
+                          "HH:mm:ss",
+                        ).format("hh:mm A")
+                      : "",
+                    description: reqServiceDetails?.data?.description ?? "",
+                  }}
+                />
+              ) : (
+                displayCartList.map((item) =>
+                  isBundleCartRow(item) ? (
+                    <CartBundleItem
+                      key={item?.cartItemId || item?.id}
+                      bundleDetails={getBundleDetails(item)}
+                      quantity={item?.quantity}
+                      showStepper={false}
+                    />
+                  ) : (
+                    <CartItemRow
+                      key={item?.cartItemId || item?.id}
+                      cartItem={item}
+                    />
+                  ),
+                )
+              )}
 
-          <Stack
-            ref={priceSectionRef}
-            sx={{
-              borderTop: `1px solid ${theme.palette.divider}`,
-              padding: "24px 20px 0",
-              mb: 3,
-            }}
-            spacing={0.75}
-          >
-            {isRepeatSeries && (
               <Stack
-                direction="row"
-                alignItems="center"
-                justifyContent="space-between"
-                gap={1}
+                ref={priceSectionRef}
                 sx={{
-                  mb: 0.5,
-                  pb: 1,
-                  borderBottom: `1px dashed ${theme.palette.divider}`,
+                  borderTop: `1px solid ${theme.palette.divider}`,
+                  padding: "24px 20px 0",
+                  mb: 3,
                 }}
+                spacing={0.75}
               >
-                <Typography
-                  sx={{
-                    fontSize: "12px",
-                    fontWeight: 600,
-                    color: theme.palette.text.secondary,
-                  }}
-                >
-                  {showSingleBooking
-                    ? t("Per booking")
-                    : `${t("Total for")} ${repeatCount} ${t("bookings")}`}
-                </Typography>
-                <Typography
-                  onClick={() => setShowSingleBooking((v) => !v)}
-                  sx={{
-                    fontSize: "12px",
-                    fontWeight: 600,
-                    color: theme.palette.primary.main,
-                    cursor: "pointer",
-                    userSelect: "none",
-                    "&:hover": { textDecoration: "underline" },
-                  }}
-                >
-                  {showSingleBooking
-                    ? t("View total")
-                    : t("View single booking")}
-                </Typography>
+                {isRepeatSeries && (
+                  <Stack
+                    direction="row"
+                    alignItems="center"
+                    justifyContent="space-between"
+                    gap={1}
+                    sx={{
+                      mb: 0.5,
+                      pb: 1,
+                      borderBottom: `1px dashed ${theme.palette.divider}`,
+                    }}
+                  >
+                    <Typography
+                      sx={{
+                        fontSize: "12px",
+                        fontWeight: 600,
+                        color: theme.palette.text.secondary,
+                      }}
+                    >
+                      {showSingleBooking
+                        ? t("Per booking")
+                        : `${t("Total for")} ${repeatCount} ${t("bookings")}`}
+                    </Typography>
+                    <Typography
+                      onClick={() => setShowSingleBooking((v) => !v)}
+                      sx={{
+                        fontSize: "12px",
+                        fontWeight: 600,
+                        color: theme.palette.primary.main,
+                        cursor: "pointer",
+                        userSelect: "none",
+                        "&:hover": { textDecoration: "underline" },
+                      }}
+                    >
+                      {showSingleBooking
+                        ? t("View total")
+                        : t("View single booking")}
+                    </Typography>
+                  </Stack>
+                )}
+                {(isCustomService
+                  ? [
+                      {
+                        label: "Bidding Price",
+                        value: getAmountWithSign(effectiveSubtotal),
+                        negative: false,
+                      },
+                      ...(couponAmount > 0
+                        ? [
+                            {
+                              label: "Coupon",
+                              value: getAmountWithSign(couponAmount),
+                              negative: true,
+                            },
+                          ]
+                        : []),
+                      ...(proOrderDiscountActive && proDiscountAmount > 0
+                        ? [
+                            {
+                              label: "Pro Discount",
+                              value: getAmountWithSign(proDiscountAmount),
+                              negative: true,
+                            },
+                          ]
+                        : []),
+                      ...(firstOrderDiscount > 0
+                        ? [
+                            {
+                              label: "First Order Discount",
+                              value: getAmountWithSign(firstOrderDiscount),
+                              negative: true,
+                            },
+                          ]
+                        : []),
+                      ...(taxAmount > 0
+                        ? [
+                            {
+                              label: taxIncluded ? "Tax (Included)" : "Tax",
+                              value: getAmountWithSign(taxAmount),
+                              negative: false,
+                            },
+                          ]
+                        : []),
+                      ...(additionalChargeActive
+                        ? [
+                            {
+                              label: additionalChargeName,
+                              value: getAmountWithSign(additionalChargeAmount),
+                              negative: false,
+                            },
+                          ]
+                        : []),
+                    ]
+                  : [
+                      {
+                        label: "Item Price",
+                        value: getAmountWithSign(dItemPrice),
+                        negative: false,
+                      },
+                      {
+                        label: "Discount",
+                        value: getAmountWithSign(dDiscount),
+                        negative: true,
+                        tooltip: discountTooltipText,
+                      },
+                      ...(dCoupon > 0
+                        ? [
+                            {
+                              label: "Coupon",
+                              value: getAmountWithSign(dCoupon),
+                              negative: true,
+                            },
+                          ]
+                        : []),
+                      ...(dPro > 0
+                        ? [
+                            {
+                              label: "Pro Discount",
+                              value: getAmountWithSign(dPro),
+                              negative: true,
+                            },
+                          ]
+                        : []),
+                      ...(firstOrderDiscount > 0
+                        ? [
+                            {
+                              label: "First Order Discount",
+                              value: getAmountWithSign(dFirstOrder),
+                              negative: true,
+                            },
+                          ]
+                        : []),
+                      ...(taxAmount > 0
+                        ? [
+                            {
+                              label: taxIncluded ? "Tax (Included)" : "Tax",
+                              value: getAmountWithSign(dTax),
+                              negative: false,
+                            },
+                          ]
+                        : []),
+                      ...(additionalChargeActive
+                        ? [
+                            {
+                              label: additionalChargeName,
+                              value: getAmountWithSign(dAdditional),
+                              negative: false,
+                            },
+                          ]
+                        : []),
+                    ]
+                ).map(({ label, value, negative, tooltip }) => (
+                  <Stack
+                    key={label}
+                    direction="row"
+                    alignItems="center"
+                    justifyContent="space-between"
+                  >
+                    <Stack direction="row" alignItems="center" spacing={0.75}>
+                      <Typography
+                        sx={{
+                          fontSize: "14px",
+                          color: theme.palette.text.secondary,
+                        }}
+                      >
+                        {t(label)}
+                      </Typography>
+                      {tooltip ? (
+                        <Tooltip title={tooltip} placement="top" arrow>
+                          <i
+                            className="fi fi-br-info"
+                            style={{
+                              fontSize: "11px",
+                              display: "flex",
+                              lineHeight: 1,
+                              cursor: "pointer",
+                            }}
+                          />
+                        </Tooltip>
+                      ) : null}
+                    </Stack>
+                    <Typography
+                      sx={{
+                        fontSize: "14px",
+                        fontWeight: 400,
+                        color: theme.palette.text.primary,
+                      }}
+                    >
+                      {negative ? `– ${value}` : value}
+                    </Typography>
+                  </Stack>
+                ))}
               </Stack>
-            )}
-            {(isCustomService
-              ? [
-                  {
-                    label: "Bidding Price",
-                    value: getAmountWithSign(effectiveSubtotal),
-                    negative: false,
-                  },
-                  ...(couponAmount > 0
-                    ? [
-                        {
-                          label: "Coupon",
-                          value: getAmountWithSign(couponAmount),
-                          negative: true,
-                        },
-                      ]
-                    : []),
-                  ...(proOrderDiscountActive && proDiscountAmount > 0
-                    ? [
-                        {
-                          label: "Pro Discount",
-                          value: getAmountWithSign(proDiscountAmount),
-                          negative: true,
-                        },
-                      ]
-                    : []),
-                  ...(firstOrderDiscount > 0
-                    ? [
-                        {
-                          label: "First Order Discount",
-                          value: getAmountWithSign(firstOrderDiscount),
-                          negative: true,
-                        },
-                      ]
-                    : []),
-                  ...(taxAmount > 0
-                    ? [
-                        {
-                          label: taxIncluded ? "Tax (Included)" : "Tax",
-                          value: getAmountWithSign(taxAmount),
-                          negative: false,
-                        },
-                      ]
-                    : []),
-                  ...(additionalChargeActive
-                    ? [
-                        {
-                          label: additionalChargeName,
-                          value: getAmountWithSign(additionalChargeAmount),
-                          negative: false,
-                        },
-                      ]
-                    : []),
-                ]
-              : [
-                  {
-                    label: "Item Price",
-                    value: getAmountWithSign(dItemPrice),
-                    negative: false,
-                  },
-                  {
-                    label: "Discount",
-                    value: getAmountWithSign(dDiscount),
-                    negative: true,
-                  },
-                  ...(dCoupon > 0
-                    ? [
-                        {
-                          label: "Coupon",
-                          value: getAmountWithSign(dCoupon),
-                          negative: true,
-                        },
-                      ]
-                    : []),
-                  ...(dPro > 0
-                    ? [
-                        {
-                          label: "Pro Discount",
-                          value: getAmountWithSign(dPro),
-                          negative: true,
-                        },
-                      ]
-                    : []),
-                  ...(firstOrderDiscount > 0
-                    ? [
-                        {
-                          label: "First Order Discount",
-                          value: getAmountWithSign(dFirstOrder),
-                          negative: true,
-                        },
-                      ]
-                    : []),
-                  ...(taxAmount > 0
-                    ? [
-                        {
-                          label: taxIncluded ? "Tax (Included)" : "Tax",
-                          value: getAmountWithSign(dTax),
-                          negative: false,
-                        },
-                      ]
-                    : []),
-                  ...(additionalChargeActive
-                    ? [
-                        {
-                          label: additionalChargeName,
-                          value: getAmountWithSign(dAdditional),
-                          negative: false,
-                        },
-                      ]
-                    : []),
-                ]
-            ).map(({ label, value, negative }) => (
-              <Stack
-                key={label}
-                direction="row"
-                alignItems="center"
-                justifyContent="space-between"
-              >
-                <Typography
-                  sx={{ fontSize: "14px", color: theme.palette.text.secondary }}
-                >
-                  {t(label)}
-                </Typography>
-                <Typography
+
+              {cashbackText && (
+                <Box
                   sx={{
-                    fontSize: "14px",
-                    fontWeight: 400,
-                    color: theme.palette.text.primary,
+                    mx: "20px",
+                    mb: 3,
+                    borderRadius: "5px",
+                    borderLeft: `2px solid ${theme.palette.primary.main}`,
+                    backgroundColor: alpha(theme.palette.primary.main, 0.06),
+                    padding: "0.4rem 0.7rem",
                   }}
                 >
-                  {negative ? `– ${value}` : value}
-                </Typography>
-              </Stack>
-            ))}
-          </Stack>
+                  <Typography
+                    sx={{
+                      fontSize: "12px",
+                      lineHeight: 1.6,
+                      color: theme.palette.text.primary,
+                    }}
+                  >
+                    {cashbackText}
+                  </Typography>
+                </Box>
+              )}
 
-          {cashbackText && (
-            <Box
-              sx={{
-                mx: "20px",
-                mb: 3,
-                borderRadius: "5px",
-                borderLeft: `2px solid ${theme.palette.primary.main}`,
-                backgroundColor: alpha(theme.palette.primary.main, 0.06),
-                padding: "0.4rem 0.7rem",
-              }}
-            >
-              <Typography
-                sx={{
-                  fontSize: "12px",
-                  lineHeight: 1.6,
-                  color: theme.palette.text.primary,
-                }}
-              >
-                {cashbackText}
-              </Typography>
-            </Box>
-          )}
-
-          <PolicyBox
-            sx={{ display: { xs: "none", md: "block" }, mb: 3, mx: "20px" }}
-          />
+              <PolicyBox
+                sx={{ display: { xs: "none", md: "block" }, mb: 3, mx: "20px" }}
+              />
             </>
           )}
         </SimpleBar>

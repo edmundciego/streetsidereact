@@ -3,12 +3,13 @@ import { useQuery } from "react-query";
 
 import { onSingleErrorResponse } from "api-manage/api-error-response/ErrorResponses";
 import { vehicle_details } from "../../../ApiRoutes";
+import { getApiContent } from "api-manage/getApiContent";
 
 // Define a standalone fetcher function
 const fetchVehicleDetails = async (id) => {
   if (id) {
     const { data } = await MainApi.get(`${vehicle_details}/${id}`);
-    return data;
+    return getApiContent(data);
   }
 };
 

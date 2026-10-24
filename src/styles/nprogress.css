@@ -4,7 +4,7 @@
 }
 
 #nprogress .bar {
-  background: #039D55 !important;
+  background: #2A9153 !important; /* V1 H8: Streetside Sea Green (was #039D55, theme #5048E5) */
 
   position: fixed;
   z-index: 1031;
@@ -22,7 +22,7 @@
   right: 0;
   width: 100px;
   height: 100%;
-  box-shadow: 0 0 10px #29d, 0 0 5px #29d;
+  box-shadow: 0 0 10px #2A9153, 0 0 5px #2A9153; /* V1 H8: was foreign #29d */
   opacity: 1.0;
 
   -webkit-transform: rotate(3deg) translate(0px, -4px);
@@ -45,8 +45,8 @@
   box-sizing: border-box;
 
   border: solid 2px transparent;
-  border-top-color: #29d;
-  border-left-color: #29d;
+  border-top-color: #2A9153; /* V1 H8: was foreign #29d */
+  border-left-color: #2A9153; /* V1 H8: was foreign #29d */
   border-radius: 50%;
 
   -webkit-animation: nprogress-spinner 400ms linear infinite;

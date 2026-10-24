@@ -3,13 +3,14 @@ import MainApi from "api-manage/MainApi";
 
 import { onSingleErrorResponse } from "api-manage/api-error-response/ErrorResponses";
 import { vehicle_review } from "api-manage/ApiRoutes";
+import { getApiCollection } from "api-manage/getApiContent";
 
 const getProductReviews = async (pageParams) => {
   const { productId, page_limits, offSet } = pageParams;
   const { data } = await MainApi.get(
     `${vehicle_review}/${productId}?limit=${page_limits}&offset=${offSet}`
   );
-  return data;
+  return getApiCollection(data, "reviews");
 };
 
 export default function useGetVehicleReview(pageParams) {

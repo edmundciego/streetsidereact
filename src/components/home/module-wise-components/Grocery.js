@@ -24,14 +24,17 @@ import SpecialFoodOffers from "../special-food-offers";
 import Stores from "../stores";
 import VisitAgain from "../visit-again";
 import TrendingBites from "../trending-bites";
-import PharmacyStaticBanners from "./pharmacy/pharmacy-banners/PharmacyStaticBanners";
+import BasicCampaign from "../basic-campaign/BasicCampaign";
 import TopOffersNearMe from "../top-offers-nearme";
 import RecommendedStore from "components/home/recommended-store";
 import MobileAppBanner from "components/home/MobileAppBanner";
 import GrocerySearchBanner from "./grocery/GrocerySearchBanner";
 import { getGrocerySections } from "./grocery/grocerySectionsConfig";
 import TodaysDeals from "components/home/module-wise-components/grocery/TodaysDeals";
-import TopOfferNotifyBanner from "./food/TopOfferNotifyBanner";
+import TopOfferNHappyHourSection from "./shared/TopOfferNHappyHourSection";
+import BogoBanner from "components/bogo/BogoBanner";
+import useGetBogoHome from "api-manage/hooks/react-query/bogo/useGetBogoHome";
+import BundleItemsSection from "./shared/BundleItemsSection";
 import { useRouter } from "next/router";
 import LastOrdersSection from "./food/LastOrdersSection";
 import QuickDeliverySection from "./food/QuickDeliverySection";
@@ -114,7 +117,7 @@ const Grocery = (props) => {
       <S>
         <CustomContainer>
           {/* new feature */}
-          <TopOfferNotifyBanner />
+          <TopOfferNHappyHourSection />
         </CustomContainer>
       </S>
 
@@ -147,6 +150,11 @@ const Grocery = (props) => {
             title={t("Fresh Finds")}
             subtitle={t("Discover fresh groceries through reels")}
           />
+        </CustomContainer>
+      </S>
+      <S>
+        <CustomContainer>
+          <BogoBanner />
         </CustomContainer>
       </S>
 
@@ -194,6 +202,12 @@ const Grocery = (props) => {
       </S>
 
       <S>
+        <CustomContainer>
+          <BundleItemsSection />
+        </CustomContainer>
+      </S>
+
+      <S>
         <CustomContainer noMobilePadding>
           <MobileAppBanner />
         </CustomContainer>
@@ -237,7 +251,7 @@ const Grocery = (props) => {
 
       <S>
         <CustomContainer>
-          <PharmacyStaticBanners />
+          <BasicCampaign />
         </CustomContainer>
       </S>
 
@@ -267,7 +281,8 @@ const Grocery = (props) => {
     </Stack>
   );
 
-  const grocerySections = getGrocerySections();
+  const { data: bogoHome } = useGetBogoHome();
+  const grocerySections = getGrocerySections(!!bogoHome?.is_live);
   return (
     <ModuleHomeSidebarLayout
       overviewContent={overviewContent}

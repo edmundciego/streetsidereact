@@ -10,7 +10,11 @@
     "i18n:scan": "node i18n-scan.js",
     "i18n:watch": "node i18n-watch.js",
     "type-check": "tsc --noEmit",
-    "type-check:watch": "tsc --noEmit --watch"
+    "type-check:watch": "tsc --noEmit --watch",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:headed": "playwright test --headed",
+    "test:e2e:report": "playwright show-report"
   },
   "dependencies": {
     "@emotion/cache": "^11.10.5",
@@ -73,7 +77,8 @@
     "slick-carousel": "^1.8.1",
     "stylis-plugin-rtl": "^2.1.1",
     "yarn": "^1.22.22",
-    "yup": "^0.32.11"
+    "yup": "^0.32.11",
+    "swiper": "^14.3.0"
   },
   "devDependencies": {
     "@types/js-cookie": "^3.0.6",
@@ -85,7 +90,8 @@
     "@types/react-transition-group": "^4.4.12",
     "chokidar": "^5.0.0",
     "prettier": "2.8.0",
-    "typescript": "5.8.2"
+    "typescript": "5.8.2",
+    "@playwright/test": "^1.63.0"
   },
   "resolutions": {
     "@swc/helpers": "^0.5.0",

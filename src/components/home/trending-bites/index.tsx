@@ -1,4 +1,5 @@
 import TrendingIcon from "./TrendingIcon";
+import { getApiCollection } from "api-manage/getApiContent";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
@@ -331,7 +332,10 @@ const TrendingBites = ({ title, subtitle }: TrendingBitesProps) => {
         guestId ? `&guest_id=${guestId}` : ""
       }`;
       const { data } = await MainApi.get(url);
-      const newReels: any[] = data?.reels ?? [];
+      // v4.2 moved the rows from `reels` to `content.data`; alias keeps the
+      // existing read working.
+      const unwrapped: any = getApiCollection(data, "reels");
+      const newReels: any[] = unwrapped?.reels ?? [];
       if (newReels.length) {
         setItems((prev) => {
           const existingIds = new Set(prev.map((p) => p.id));
@@ -342,7 +346,8 @@ const TrendingBites = ({ title, subtitle }: TrendingBitesProps) => {
         });
         setNextOffset((prev) => prev + 1);
       }
-      if (data?.total_size != null) setTotalSize(Number(data.total_size));
+      if (unwrapped?.total_size != null)
+        setTotalSize(Number(unwrapped.total_size));
     } catch (_) {
       // silent — user can retry by clicking next again
     } finally {

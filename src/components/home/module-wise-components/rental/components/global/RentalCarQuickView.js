@@ -12,7 +12,7 @@ import {
   CustomBoxFullWidth,
   CustomStackFullWidth,
 } from "styled-components/CustomStyles.style";
-import Slider from "react-slick";
+import CustomSlider from "components/common/CustomSlider";
 import H2 from "components/typographies/H2";
 import FavoriteBorderOutlinedIcon from "@mui/icons-material/FavoriteBorderOutlined";
 import RentalCardWrapper from "./RentalCardWrapper";
@@ -155,45 +155,6 @@ const RentalCarQuickView = ({
   };
 
 
-  const settings = {
-    dots: true,
-    infinite: 5,
-    slidesToShow: 1,
-    cssEase: "ease-in-out",
-    autoplay: true,
-    speed: 800,
-    autoplaySpeed: 4000,
-    variableHeight: true,
-    responsive: [
-      {
-        breakpoint: 1200,
-        settings: {
-          slidesToShow: 1,
-          slidesToScroll: 1,
-          swipeToSlide: true,
-        },
-      },
-      {
-        breakpoint: 992,
-        settings: {
-          slidesToShow: 1,
-        },
-      },
-      {
-        breakpoint: 576,
-        settings: {
-          slidesToShow: 1,
-        },
-      },
-      {
-        breakpoint: 360,
-        settings: {
-          slidesToShow: 1,
-        },
-      },
-    ],
-  };
-
   const allImages = [
     carDetails?.thumbnail_full_url,
     ...carDetails?.images_full_url,
@@ -212,46 +173,53 @@ const RentalCarQuickView = ({
     >
       <Grid container spacing={2}>
         <Grid item xs={12} sm={12} md={6}>
-          <Slider {...settings}>
-            {allImages?.map((item, index) => {
-              return (
-                <Box key={index} sx={{ position: "relative" }}>
-                  <Typography
+          <CustomSlider
+            items={allImages ?? []}
+            getKey={(item, index) => index}
+            renderItem={(item) => (
+              <Box sx={{ position: "relative" }}>
+                <Typography
                   width="200px"
-                    component="span"
-                    sx={{
-                      position: "absolute",
-                      borderStartStartRadius: "10px",
-                      borderEndEndRadius: "10px",
-                      px: "5px",
-                      py: "2px",
-                      fontSize: "13px",
-                      fontWeight: "500",
-                      zIndex: 1000,
-                      color: (theme) => theme.palette.neutral[100],
-                    }}
-                  >
-                    {handleBadgeRental(carDetails)}
-                  </Typography>
-                  {carDetails?.new_tag === 1 ? (
-                    <CustomBadge
-                      top={30}
-                      bg_color="#EF8C45"
-                      text={t("New Arrival")}
-                      fontSize="12px"
-                      border_radius="5px 1px 14px 0px"
-                    />
-                  ) : null}
-                  <CustomImageContainer
-                    src={item}
-                    width={{ xs: "100%" }}
-                    height="214px"
-                    borderRadius={"10px"}
+                  component="span"
+                  sx={{
+                    position: "absolute",
+                    borderStartStartRadius: "10px",
+                    borderEndEndRadius: "10px",
+                    px: "5px",
+                    py: "2px",
+                    fontSize: "13px",
+                    fontWeight: "500",
+                    zIndex: 1000,
+                    color: (theme) => theme.palette.neutral[100],
+                  }}
+                >
+                  {handleBadgeRental(carDetails)}
+                </Typography>
+                {carDetails?.new_tag === 1 ? (
+                  <CustomBadge
+                    top={30}
+                    bg_color="#EF8C45"
+                    text={t("New Arrival")}
+                    fontSize="12px"
+                    border_radius="5px 1px 14px 0px"
                   />
-                </Box>
-              );
-            })}
-          </Slider>
+                ) : null}
+                <CustomImageContainer
+                  src={item}
+                  width={{ xs: "100%" }}
+                  height="214px"
+                  borderRadius={"10px"}
+                />
+              </Box>
+            )}
+            arrowVariant="none"
+            showDots
+            loop={allImages?.length > 1}
+            autoplay={allImages?.length > 1}
+            autoplayDelay={4000}
+            speed={800}
+            slidesPerView={1}
+          />
         </Grid>
         <Grid item xs={12} sm={12} md={6}>
           <RentalCardWrapper borderRadius="10px" sx={{paddingTop:"0px"}}>

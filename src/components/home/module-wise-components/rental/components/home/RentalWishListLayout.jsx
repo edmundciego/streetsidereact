@@ -15,15 +15,34 @@ import SimpleMobileHeader from "components/common/SimpleMobileHeader";
 import CarCard from "components/home/module-wise-components/rental/components/global/CarCard";
 import RentalProviderCard from "components/home/module-wise-components/rental/components/global/RentalProviderCard";
 import CustomPageBreadCrumb from "components/common/CustomPageBreadCrumb";
-import SliderSectionHeader from "components/common/SliderSectionHeader";
+import CustomSlider from "components/common/CustomSlider";
 import { useRouter } from "next/router";
-import { useEffect, useRef, useState } from "react";
+import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import Slider from "react-slick";
-import "slick-carousel/slick/slick.css";
 import { CustomBoxFullWidth } from "styled-components/CustomStyles.style";
 import { setWishList } from "redux/slices/wishList";
 import { useDispatch } from "react-redux";
+
+// react-slick breakpoint:X meant "apply for width <= X" (descending); these
+// Swiper breakpoints mean "apply for width >= X" (ascending) - shifted by +1.
+// Note: the >1450 dip back down to 4.2 is preserved exactly as the original
+// react-slick config specified.
+const VEHICLES_BREAKPOINTS = {
+  361: { slidesPerView: 2.2 },
+  401: { slidesPerView: 2.6 },
+  481: { slidesPerView: 3 },
+  761: { slidesPerView: 4 },
+  1025: { slidesPerView: 5 },
+  1451: { slidesPerView: 4.2 },
+};
+
+const PROVIDERS_BREAKPOINTS = {
+  351: { slidesPerView: 1.1 },
+  401: { slidesPerView: 1.27 },
+  481: { slidesPerView: 1.5 },
+  601: { slidesPerView: 2 },
+  1025: { slidesPerView: 3.3 },
+};
 
 const TAB_ALL = "all";
 const TAB_VEHICLES = "vehicles";
@@ -146,43 +165,6 @@ const AllResult = ({
   theme,
 }) => {
   const isSmall = useMediaQuery(theme.breakpoints.down("md"));
-  const [vehiclesSlide, setVehiclesSlide] = useState(0);
-  const [providersSlide, setProvidersSlide] = useState(0);
-  const vehiclesRef = useRef(null);
-  const providersRef = useRef(null);
-
-  const vehiclesSettings = {
-    dots: false,
-    arrows: false,
-    infinite: false,
-    speed: 500,
-    slidesToShow: 4.2,
-    slidesToScroll: 2,
-    responsive: [
-      { breakpoint: 1450, settings: { slidesToShow: 5 } },
-      { breakpoint: 1024, settings: { slidesToShow: 4 } },
-      { breakpoint: 760, settings: { slidesToShow: 3 } },
-      { breakpoint: 480, settings: { slidesToShow: 2.6 } },
-      { breakpoint: 400, settings: { slidesToShow: 2.2 } },
-      { breakpoint: 360, settings: { slidesToShow: 2 } },
-    ],
-  };
-
-  const providersSettings = {
-    dots: false,
-    arrows: false,
-    infinite: false,
-    speed: 500,
-    slidesToShow: 3.3,
-    slidesToScroll: 2,
-    responsive: [
-      { breakpoint: 1024, settings: { slidesToShow: 2 } },
-      { breakpoint: 600, settings: { slidesToShow: 1.5 } },
-      { breakpoint: 480, settings: { slidesToShow: 1.27 } },
-      { breakpoint: 400, settings: { slidesToShow: 1.1 } },
-      { breakpoint: 350, settings: { slidesToShow: 1 } },
-    ],
-  };
 
   return (
     <Stack spacing={4}>
@@ -191,25 +173,16 @@ const AllResult = ({
           spacing={2}
           sx={{ pl: { xs: "20px", md: 0 }, pr: { xs: 0, md: 0 } }}
         >
-          <SliderSectionHeader
-            sliderRef={vehiclesRef}
-            currentSlide={vehiclesSlide}
-            totalSlides={vehicles.length}
-            slidesToShow={5}
-            heading={<SectionTitle>{vehiclesLabel}</SectionTitle>}
-          />
           <SliderWrapper>
-            <Slider
-              ref={vehiclesRef}
-              afterChange={setVehiclesSlide}
-              {...vehiclesSettings}
-            >
-              {vehicles.map((item) => (
-                <div key={item?.id}>
-                  <CarCard data={item} />
-                </div>
-              ))}
-            </Slider>
+            <CustomSlider
+              items={vehicles}
+              getKey={(item) => item?.id}
+              renderItem={(item) => <CarCard data={item} />}
+              arrowVariant="section"
+              title={<SectionTitle>{vehiclesLabel}</SectionTitle>}
+              slidesPerView={2}
+              breakpoints={VEHICLES_BREAKPOINTS}
+            />
           </SliderWrapper>
         </Stack>
       )}
@@ -219,25 +192,18 @@ const AllResult = ({
           spacing={2}
           sx={{ pl: { xs: "20px", md: 0 }, pr: { xs: 0, md: 0 } }}
         >
-          <SliderSectionHeader
-            sliderRef={providersRef}
-            currentSlide={providersSlide}
-            totalSlides={providers.length}
-            slidesToShow={2.8}
-            heading={<SectionTitle>{providersLabel}</SectionTitle>}
-          />
           <SliderWrapper>
-            <Slider
-              ref={providersRef}
-              afterChange={setProvidersSlide}
-              {...providersSettings}
-            >
-              {providers.map((provider) => (
-                <div key={provider?.id}>
-                  <RentalProviderCard data={provider} initialWishlisted />
-                </div>
-              ))}
-            </Slider>
+            <CustomSlider
+              items={providers}
+              getKey={(provider) => provider?.id}
+              renderItem={(provider) => (
+                <RentalProviderCard data={provider} initialWishlisted />
+              )}
+              arrowVariant="section"
+              title={<SectionTitle>{providersLabel}</SectionTitle>}
+              slidesPerView={1}
+              breakpoints={PROVIDERS_BREAKPOINTS}
+            />
           </SliderWrapper>
         </Stack>
       )}

@@ -1,3 +1,4 @@
+import { getApiList } from "api-manage/getApiContent";
 import { Children } from "react";
 import Document, { Head, Html, Main, NextScript } from "next/document";
 import createEmotionServer from "@emotion/server/create-instance";
@@ -218,7 +219,7 @@ const fetchAnalyticsConfig = async () => {
 
   let analyticsConfig = {};
   try {
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://yourdomain.com";
+    const baseUrl = (process.env.NEXT_PUBLIC_BASE_URL || "https://yourdomain.com").replace(/\/+$/, "");
     const res = await fetch(`${baseUrl}/api/v1/config/get-analytic-scripts`, {
       headers: {
         "X-software-id": 33571750,
@@ -228,7 +229,7 @@ const fetchAnalyticsConfig = async () => {
       // AbortSignal.timeout requires Node 17.3+; Next.js 15 requires Node 18.17+
       signal: AbortSignal.timeout(3000),
     });
-    const data = await res.json();
+    const data = getApiList(await res.json());
     if (Array.isArray(data)) {
       data.forEach((item) => {
         if (item.type && item.script_id)

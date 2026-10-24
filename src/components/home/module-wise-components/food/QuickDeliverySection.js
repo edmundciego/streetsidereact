@@ -1,4 +1,3 @@
-import { useRef, useState } from "react";
 import {
   CustomBoxFullWidth,
   CustomStackFullWidth,
@@ -6,11 +5,9 @@ import {
 import { Skeleton, Stack, Typography, useTheme, styled } from "@mui/material";
 import { Box } from "@mui/system";
 import { t } from "i18next";
-import Slider from "react-slick";
-import "slick-carousel/slick/slick.css";
+import CustomSlider from "components/common/CustomSlider";
 import NewStoreCardSkeleton from "components/Shimmer/NewStoreCardSkeleton";
 import { HomeComponentsWrapper } from "components/home/HomePageComponents";
-import SliderSectionHeader from "components/common/SliderSectionHeader";
 import NewStoreCard from "components/cards/newCard/NewStoreCard";
 import ExpressStoreCard from "components/cards/newCard/ExpressStoreCard";
 import useGetQuickDeliveryStores from "api-manage/hooks/react-query/store/useGetQuickDeliveryStores";
@@ -43,257 +40,107 @@ const SliderWrapper = styled(CustomBoxFullWidth)(({ theme }) => ({
   },
 }));
 
+// react-slick breakpoint:X meant "apply for width <= X" (descending); these
+// Swiper breakpoints mean "apply for width >= X" (ascending) - shifted by +1.
+const FOOD_QUICK_DELIVERY_BREAKPOINTS = {
+  341: { slidesPerView: 1.4 },
+  481: { slidesPerView: 2 },
+  696: { slidesPerView: 2.8 },
+  761: { slidesPerView: 3 },
+  901: { slidesPerView: 3, spaceBetween: 20 },
+  1025: { slidesPerView: 3.5, spaceBetween: 20 },
+};
+const GROCERY_QUICK_DELIVERY_BREAKPOINTS = {
+  401: { slidesPerView: 1.2 },
+  481: { slidesPerView: 1.5 },
+  601: { slidesPerView: 2 },
+  761: { slidesPerView: 2.5 },
+  901: { slidesPerView: 2.5, spaceBetween: 20 },
+  1025: { slidesPerView: 2.8, spaceBetween: 20 },
+};
+
 const QuickDeliverySection = ({ title, subtitle, cardVariant = "" }) => {
   const theme = useTheme();
-  const slider = useRef(null);
-  const [currentSlide, setCurrentSlide] = useState(0);
   const { data, isLoading: popularIsLoading } = useGetQuickDeliveryStores({
     limit: 10,
     offset: 1,
     with_items: cardVariant === "withItems" ? 1 : null, // for ui food module no need to show item
   });
 
-  const foodSettings = {
-    dots: false,
-    infinite: false,
-    speed: 500,
-    slidesToShow: 3.5,
-    slidesToScroll: 1,
-    swipeToSlide: true,
-    arrows: false,
-    responsive: [
-      {
-        breakpoint: 1450,
-        settings: {
-          slidesToShow: 3.5,
-          slidesToScroll: 1,
-          infinite: false,
-          swipeToSlide: true,
-        },
-      },
-      {
-        breakpoint: 1024,
-        settings: {
-          slidesToShow: 3,
-          slidesToScroll: 1,
-          infinite: false,
-          swipeToSlide: true,
-        },
-      },
-      {
-        breakpoint: 760,
-        settings: {
-          slidesToShow: 2.8,
-          slidesToScroll: 2,
-          infinite: false,
-          swipeToSlide: true,
-        },
-      },
-      {
-        breakpoint: 695,
-        settings: {
-          slidesToShow: 2,
-          slidesToScroll: 2,
-          swipeToSlide: true,
-          initialSlide: 2,
-          infinite: false,
-        },
-      },
-      {
-        breakpoint: 600,
-        settings: {
-          slidesToShow: 2,
-          slidesToScroll: 2,
-          swipeToSlide: true,
-          initialSlide: 2,
-          infinite: false,
-        },
-      },
-      {
-        breakpoint: 480,
-        settings: {
-          slidesToShow: 1.4,
-          slidesToScroll: 1,
-          swipeToSlide: true,
-          initialSlide: 1,
-          infinite: false,
-        },
-      },
-      {
-        breakpoint: 340,
-        settings: {
-          slidesToShow: 1.2,
-          slidesToScroll: 1,
-          swipeToSlide: true,
-          initialSlide: 1,
-          infinite: false,
-        },
-      },
-    ],
-  };
-
-  const grocerySettings = {
-    dots: false,
-    infinite: false,
-    speed: 500,
-    slidesToShow: 2.8,
-    slidesToScroll: 1,
-    swipeToSlide: true,
-    arrows: false,
-    responsive: [
-      {
-        breakpoint: 1450,
-        settings: {
-          slidesToShow: 2.8,
-          slidesToScroll: 1,
-          infinite: false,
-          swipeToSlide: true,
-        },
-      },
-      {
-        breakpoint: 1024,
-        settings: {
-          slidesToShow: 2.5,
-          slidesToScroll: 1,
-          infinite: false,
-          swipeToSlide: true,
-        },
-      },
-      {
-        breakpoint: 760,
-        settings: {
-          slidesToShow: 2,
-          slidesToScroll: 1,
-          infinite: false,
-          swipeToSlide: true,
-        },
-      },
-      {
-        breakpoint: 600,
-        settings: {
-          slidesToShow: 1.5,
-          slidesToScroll: 1,
-          infinite: false,
-          swipeToSlide: true,
-        },
-      },
-      {
-        breakpoint: 480,
-        settings: {
-          slidesToShow: 1.2,
-          slidesToScroll: 1,
-          swipeToSlide: true,
-          initialSlide: 1,
-          infinite: false,
-        },
-      },
-      {
-        breakpoint: 400,
-        settings: {
-          slidesToShow: 1.1,
-          slidesToScroll: 1,
-          swipeToSlide: true,
-          initialSlide: 1,
-          infinite: false,
-        },
-      },
-      {
-        breakpoint: 340,
-        settings: {
-          slidesToShow: 1.1,
-          slidesToScroll: 1,
-          swipeToSlide: true,
-          initialSlide: 1,
-          infinite: false,
-        },
-      },
-    ],
-  };
-
-  const enhancedSettings =
-    cardVariant === "withItems" ? grocerySettings : foodSettings;
+  const isGrocery = cardVariant === "withItems";
 
   const stores = data?.stores ?? [];
 
   if (!popularIsLoading && !stores.length) return null;
 
+  const title_ = popularIsLoading ? (
+    <Skeleton variant="text" width="140px" />
+  ) : (
+    <Stack direction="row" alignItems="center" gap="12px">
+      <Box
+        sx={{
+          flexShrink: 0,
+          lineHeight: 0,
+          display: { xs: "none", md: "block" },
+        }}
+      >
+        {customIcon(53, 48)}
+      </Box>
+      <Stack sx={{ gap: "2px" }}>
+        <Typography
+          sx={{
+            fontSize: { xs: "18px", md: "24px" },
+            fontWeight: 700,
+            color: "neutral.1050",
+            lineHeight: 1.1,
+            letterSpacing: "-1.2px",
+          }}
+        >
+          {t(title ?? "Quick Delivery")}
+        </Typography>
+        <Typography
+          sx={{
+            fontSize: "14px",
+            fontWeight: 400,
+            color: "neutral.500",
+            lineHeight: 1.3,
+            display: { xs: "none", md: "block" },
+          }}
+        >
+          {t(subtitle ?? "Get fastest order from your nearby restaurant")}
+        </Typography>
+      </Stack>
+    </Stack>
+  );
+
   return (
     <HomeComponentsWrapper sx={{ gap: "1rem" }}>
-      <SliderSectionHeader
-        sliderRef={slider}
-        currentSlide={currentSlide}
-        totalSlides={stores.length}
-        slidesToShow={cardVariant === "withItems" ? 3 : 4}
-        sx={{ mb: "1rem" }}
-        heading={
-          popularIsLoading ? (
-            <Skeleton variant="text" width="140px" />
-          ) : (
-            <Stack direction="row" alignItems="center" gap="12px">
-              <Box
-                sx={{
-                  flexShrink: 0,
-                  lineHeight: 0,
-                  display: { xs: "none", md: "block" },
-                }}
-              >
-                {customIcon(53, 48)}
-              </Box>
-              <Stack sx={{ gap: "2px" }}>
-                <Typography
-                  sx={{
-                    fontSize: { xs: "18px", md: "24px" },
-                    fontWeight: 700,
-                    color: "neutral.1050",
-                    lineHeight: 1.1,
-                    letterSpacing: "-1.2px",
-                  }}
-                >
-                  {t(title ?? "Quick Delivery")}
-                </Typography>
-                <Typography
-                  sx={{
-                    fontSize: "14px",
-                    fontWeight: 400,
-                    color: "neutral.500",
-                    lineHeight: 1.3,
-                    display: { xs: "none", md: "block" },
-                  }}
-                >
-                  {t(
-                    subtitle ?? "Get fastest order from your nearby restaurant",
-                  )}
-                </Typography>
-              </Stack>
-            </Stack>
-          )
-        }
-      />
       <SliderWrapper>
-        <Slider
-          {...enhancedSettings}
-          ref={slider}
-          afterChange={(idx) => setCurrentSlide(idx)}
-        >
-          {popularIsLoading
-            ? [...Array(4)].map((_, i) => <NewStoreCardSkeleton key={i} />)
-            : stores.map((item, index) =>
-                cardVariant === "withItems" ? (
-                  <ExpressStoreCard
-                    key={index}
-                    store={item}
-                    items={item?.top_items || []}
-                  />
-                ) : (
-                  <NewStoreCard
-                    key={index}
-                    variant="normal"
-                    item={item}
-                    imageUrl={item?.cover_photo_full_url}
-                  />
-                ),
-              )}
-        </Slider>
+        <CustomSlider
+          items={popularIsLoading ? Array.from({ length: 4 }) : stores}
+          renderItem={(item) =>
+            popularIsLoading ? (
+              <NewStoreCardSkeleton />
+            ) : isGrocery ? (
+              <ExpressStoreCard store={item} items={item?.top_items || []} />
+            ) : (
+              <NewStoreCard
+                variant="normal"
+                item={item}
+                imageUrl={item?.cover_photo_full_url}
+              />
+            )
+          }
+          arrowVariant="section"
+          title={title_}
+          slidesPerView={isGrocery ? 1.1 : 1.2}
+          spaceBetween={16}
+          breakpoints={
+            isGrocery
+              ? GROCERY_QUICK_DELIVERY_BREAKPOINTS
+              : FOOD_QUICK_DELIVERY_BREAKPOINTS
+          }
+        />
       </SliderWrapper>
     </HomeComponentsWrapper>
   );

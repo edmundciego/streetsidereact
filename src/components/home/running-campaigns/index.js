@@ -1,10 +1,9 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { t } from "i18next";
 import { Skeleton, Typography, styled } from "@mui/material";
 import { Box } from "@mui/system";
 import { useRouter } from "next/router";
-import Slider from "react-slick";
-import "slick-carousel/slick/slick.css";
+import CustomSlider from "components/common/CustomSlider";
 import { handleProductRedirect } from "helper-functions/handleProductRedirect";
 
 import { useDispatch, useSelector } from "react-redux";
@@ -15,7 +14,6 @@ import { setCampaignItem } from "redux/slices/cart";
 import { setRunningCampaigns } from "redux/slices/storedData";
 import FoodDetailModal from "../../food-details/foodDetail-modal/FoodDetailModal";
 import { HomeComponentsWrapper } from "../HomePageComponents";
-import SliderSectionHeader from "components/common/SliderSectionHeader";
 import NextImage from "components/NextImage";
 import { CustomBoxFullWidth } from "styled-components/CustomStyles.style";
 
@@ -59,36 +57,15 @@ const SliderWrapper = styled(CustomBoxFullWidth)(({ theme }) => ({
   },
 }));
 
-const sliderSettings = {
-  dots: false,
-  infinite: false,
-  speed: 500,
-  slidesToShow: 6,
-  slidesToScroll: 1,
-  swipeToSlide: true,
-  arrows: false,
-  responsive: [
-    {
-      breakpoint: 1450,
-      settings: { slidesToShow: 5.5, slidesToScroll: 1, infinite: false, swipeToSlide: true },
-    },
-    {
-      breakpoint: 1024,
-      settings: { slidesToShow: 4.5, slidesToScroll: 1, infinite: false, swipeToSlide: true },
-    },
-    {
-      breakpoint: 760,
-      settings: { slidesToShow: 3.5, slidesToScroll: 1, infinite: false, swipeToSlide: true },
-    },
-    {
-      breakpoint: 600,
-      settings: { slidesToShow: 2.8, slidesToScroll: 1, infinite: false, swipeToSlide: true },
-    },
-    {
-      breakpoint: 480,
-      settings: { slidesToShow: 2.2, slidesToScroll: 1, infinite: false, swipeToSlide: true },
-    },
-  ],
+// react-slick breakpoint:X meant "apply for width <= X" (descending); these
+// Swiper breakpoints mean "apply for width >= X" (ascending) - shifted by +1.
+const RUNNING_CAMPAIGNS_BREAKPOINTS = {
+  481: { slidesPerView: 2.8 },
+  601: { slidesPerView: 3.5 },
+  761: { slidesPerView: 4.5 },
+  901: { slidesPerView: 4.5, spaceBetween: 20 },
+  1025: { slidesPerView: 5.5, spaceBetween: 20 },
+  1451: { slidesPerView: 6, spaceBetween: 20 },
 };
 
 const RunningCampaigns = () => {
@@ -99,8 +76,6 @@ const RunningCampaigns = () => {
   const { data, isFetching } = useGetItemCampaigns();
   const router = useRouter();
   const dispatch = useDispatch();
-  const slider = useRef(null);
-  const [currentSlide, setCurrentSlide] = useState(0);
 
   useEffect(() => {
     dispatch(setRunningCampaigns(data));
@@ -126,53 +101,46 @@ const RunningCampaigns = () => {
   return (
     <>
       <HomeComponentsWrapper sx={{ gap: "1rem" }}>
-        <SliderSectionHeader
-          sliderRef={slider}
-          currentSlide={currentSlide}
-          totalSlides={data?.length ?? 0}
-          slidesToShow={6}
-          heading={
-            <Typography
-              sx={{
-                fontSize: { xs: "18px", md: "24px" },
-                fontWeight: 700,
-                color: "neutral.1050",
-                lineHeight: 1.1,
-                letterSpacing: "-1.2px",
-              }}
-              component="h2"
-            >
-              {t("Just For You")}
-            </Typography>
-          }
-        />
-        <SliderWrapper sx={{ mt: "1rem" }}>
-          <Slider
-            {...sliderSettings}
-            ref={slider}
-            afterChange={(idx) => setCurrentSlide(idx)}
-          >
-            {isFetching
-              ? [...Array(6)].map((_, index) => (
-                  <ImageContainer key={index}>
-                    <Skeleton variant="rectangle" height="100%" width="100%" />
-                  </ImageContainer>
-                ))
-              : data?.map((item, index) => (
-                  <ImageContainer
-                    key={index}
-                    onClick={() => handleClick(item)}
-                  >
-                    <NextImage
-                      src={item?.image_full_url}
-                      alt={item?.title}
-                      height={160}
-                      width={160}
-                      objectFit="cover"
-                    />
-                  </ImageContainer>
-                ))}
-          </Slider>
+        <SliderWrapper>
+          <CustomSlider
+            items={isFetching ? Array.from({ length: 6 }) : data}
+            renderItem={(item) =>
+              isFetching ? (
+                <ImageContainer>
+                  <Skeleton variant="rectangle" height="100%" width="100%" />
+                </ImageContainer>
+              ) : (
+                <ImageContainer onClick={() => handleClick(item)}>
+                  <NextImage
+                    src={item?.image_full_url}
+                    alt={item?.title}
+                    height={160}
+                    width={160}
+                    objectFit="cover"
+                  />
+                </ImageContainer>
+              )
+            }
+            arrowVariant="section"
+            title={
+              <Typography
+                sx={{
+                  fontSize: { xs: "18px", md: "24px" },
+                  fontWeight: 700,
+                  color: "neutral.1050",
+                  lineHeight: 1.1,
+                  letterSpacing: "-1.2px",
+                }}
+                component="h2"
+              >
+                {t("Just For You")}
+              </Typography>
+            }
+            allowOverflowY={false}
+            slidesPerView={2.2}
+            spaceBetween={16}
+            breakpoints={RUNNING_CAMPAIGNS_BREAKPOINTS}
+          />
         </SliderWrapper>
       </HomeComponentsWrapper>
       {openModal && (

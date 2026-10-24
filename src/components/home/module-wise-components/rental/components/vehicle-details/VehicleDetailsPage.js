@@ -23,7 +23,7 @@ const VehicleDetailsPage = ({ vehicleDetailsData }) => {
   const { id, from } = router.query;
   const { cartList } = useSelector((state) => state.cart);
   const rentalSearch = useSelector(
-    (state) => state?.rentalSearch?.rentalSearch
+    (state) => state?.rentalSearch?.rentalSearch,
   );
 
   const [selectedPricing, setSelectedPricing] = useState("hourly");
@@ -35,7 +35,7 @@ const VehicleDetailsPage = ({ vehicleDetailsData }) => {
 
   const isProductExist = () => {
     return cartList?.carts?.find(
-      (item) => item.vehicle?.id === vehicleDetails?.id
+      (item) => item.vehicle?.id === vehicleDetails?.id,
     );
   };
 
@@ -114,7 +114,7 @@ const VehicleDetailsPage = ({ vehicleDetailsData }) => {
         <Box sx={{ mt: { xs: 2, md: 1 }, pt: { xs: 1, md: 0 } }}>
           <CustomPageBreadCrumb items={breadcrumbItems} />
         </Box>
-        <Grid container spacing={2.5} sx={{ mt: { xs: "10px", md: "24px" } }}>
+        <Grid container spacing={2.5} sx={{ mt: { xs: "8px", md: "5px" } }}>
           <Grid item xs={12} lg={9}>
             <Stack sx={{ position: "sticky", top: "100px" }}>
               <VehicleDetailsTopSection

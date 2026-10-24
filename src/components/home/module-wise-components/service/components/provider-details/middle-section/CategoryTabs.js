@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 const ALL_TAB_ID = "__all__";
+export const BUNDLE_TAB_ID = "__bundle__";
 
 const CategoryTabs = ({
   categories,
@@ -13,6 +14,7 @@ const CategoryTabs = ({
   onSelect,
   isLoading,
   showAllTab = true,
+  showBundleTab = false,
 }) => {
   const { t } = useTranslation();
   const theme = useTheme();
@@ -76,6 +78,7 @@ const CategoryTabs = ({
 
   const tabs = [
     ...(showAllTab ? [{ id: ALL_TAB_ID, name: t("Most Popular") }] : []),
+    ...(showBundleTab ? [{ id: BUNDLE_TAB_ID, name: t("Bundle Items") }] : []),
     ...(categories || []).map((c) => ({ id: c?.id, name: c?.name })),
   ];
 

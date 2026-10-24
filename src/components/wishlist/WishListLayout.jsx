@@ -5,7 +5,6 @@ import {
   Skeleton,
   Stack,
   Typography,
-  styled,
   useMediaQuery,
   useTheme,
 } from "@mui/material";
@@ -21,17 +20,31 @@ import NewProductCard from "components/cards/newCard/NewProductCard";
 import ProductCardSimmer from "components/Shimmer/ProductCardSimmer";
 import NewStoreCard from "components/cards/newCard/NewStoreCard";
 import CustomPageBreadCrumb from "components/common/CustomPageBreadCrumb";
-import SliderSectionHeader from "components/common/SliderSectionHeader";
+import CustomSlider from "components/common/CustomSlider";
 import { getItemsOrFoods } from "helper-functions/getItemsOrFoods";
 import { getStoresOrRestaurants } from "helper-functions/getStoresOrRestaurants";
 import { useRouter } from "next/router";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useDispatch } from "react-redux";
 import { setWishList } from "redux/slices/wishList";
-import Slider from "react-slick";
-import "slick-carousel/slick/slick.css";
-import { CustomBoxFullWidth } from "styled-components/CustomStyles.style";
+
+// react-slick breakpoint:X meant "apply for width <= X" (descending); these
+// Swiper breakpoints mean "apply for width >= X" (ascending) - shifted by +1.
+const ITEMS_BREAKPOINTS = {
+  361: { slidesPerView: 2.2 },
+  401: { slidesPerView: 2.6 },
+  481: { slidesPerView: 3 },
+  761: { slidesPerView: 4 },
+  1025: { slidesPerView: 5 },
+};
+const STORES_BREAKPOINTS = {
+  351: { slidesPerView: 1.1 },
+  401: { slidesPerView: 1.27 },
+  481: { slidesPerView: 1.5 },
+  601: { slidesPerView: 2 },
+  1025: { slidesPerView: 3.3 },
+};
 
 const TAB_ALL = "all";
 
@@ -195,15 +208,6 @@ const EmptyWishlist = ({ label, t }) => (
 const TAB_FOODS = "foods";
 const TAB_RESTAURANTS = "restaurants";
 
-const SliderWrapper = styled(CustomBoxFullWidth)(({ theme }) => ({
-  "& .slick-track": { marginLeft: 0, marginRight: "auto" },
-  "& .slick-slide": { paddingRight: "20px" },
-  "& .slick-slide:first-child": { paddingLeft: 0 },
-  [theme.breakpoints.down("sm")]: {
-    "& .slick-slide": { paddingRight: "12px" },
-  },
-}));
-
 const FilterPill = ({ label, active, onClick }) => (
   <Box
     onClick={onClick}
@@ -254,109 +258,41 @@ const SectionTitle = ({ children }) => (
 
 // ── All tab ───────────────────────────────────────────────────────────────────
 
-const AllResult = ({ items, stores, itemsLabel, storesLabel, t, theme }) => {
-  const isSmall = useMediaQuery(theme.breakpoints.down("md"));
-  const [itemsSlide, setItemsSlide] = useState(0);
-  const [storesSlide, setStoresSlide] = useState(0);
-  const itemsRef = useRef(null);
-  const storesRef = useRef(null);
-
-  const itemsSettings = {
-    dots: false,
-    arrows: false,
-    infinite: false,
-    speed: 500,
-    slidesToShow: 5,
-    slidesToScroll: 2,
-    responsive: [
-      { breakpoint: 1450, settings: { slidesToShow: 5 } },
-      { breakpoint: 1024, settings: { slidesToShow: 4 } },
-      { breakpoint: 760, settings: { slidesToShow: 3 } },
-      { breakpoint: 480, settings: { slidesToShow: 2.6 } },
-      { breakpoint: 400, settings: { slidesToShow: 2.2 } },
-      { breakpoint: 360, settings: { slidesToShow: 2 } },
-    ],
-  };
-
-  const storesSettings = {
-    dots: false,
-    arrows: false,
-    infinite: false,
-    speed: 500,
-    slidesToShow: 3.3,
-    slidesToScroll: 2,
-    responsive: [
-      { breakpoint: 1024, settings: { slidesToShow: 2 } },
-      { breakpoint: 600, settings: { slidesToShow: 1.5 } },
-      { breakpoint: 480, settings: { slidesToShow: 1.27 } },
-      { breakpoint: 400, settings: { slidesToShow: 1.1 } },
-      { breakpoint: 350, settings: { slidesToShow: 1 } },
-    ],
-  };
-
+const AllResult = ({ items, stores, itemsLabel, storesLabel, t }) => {
   return (
     <Stack spacing={4}>
       {items.length > 0 && (
-        <Stack
-          spacing={2}
-          sx={{ pl: { xs: "20px", md: 0 }, pr: { xs: 0, md: 0 } }}
-        >
-          <SliderSectionHeader
-            sliderRef={itemsRef}
-            currentSlide={itemsSlide}
-            totalSlides={items.length}
-            slidesToShow={5}
-            heading={<SectionTitle>{itemsLabel}</SectionTitle>}
-          />
-          <SliderWrapper>
-            <Slider
-              ref={itemsRef}
-              afterChange={setItemsSlide}
-              {...itemsSettings}
-            >
-              {items.map((item) => (
-                <div key={item?.id}>
-                  <NewProductCard
-                    variant="vertical"
-                    item={item}
-                    cardWidth="100%"
-                  />
-                </div>
-              ))}
-            </Slider>
-          </SliderWrapper>
-        </Stack>
+        <CustomSlider
+          items={items}
+          renderItem={(item) => (
+            <NewProductCard variant="vertical" item={item} cardWidth="100%" />
+          )}
+          arrowVariant="section"
+          title={<SectionTitle>{itemsLabel}</SectionTitle>}
+          slidesPerView={2}
+          spaceBetween={12}
+          breakpoints={ITEMS_BREAKPOINTS}
+          wrapperSx={{ pl: { xs: "20px", md: 0 }, pr: { xs: 0, md: 0 } }}
+        />
       )}
 
       {stores.length > 0 && (
-        <Stack
-          spacing={2}
-          sx={{ pl: { xs: "20px", md: 0 }, pr: { xs: 0, md: 0 } }}
-        >
-          <SliderSectionHeader
-            sliderRef={storesRef}
-            currentSlide={storesSlide}
-            totalSlides={stores.length}
-            slidesToShow={2.8}
-            heading={<SectionTitle>{storesLabel}</SectionTitle>}
-          />
-          <SliderWrapper>
-            <Slider
-              ref={storesRef}
-              afterChange={setStoresSlide}
-              {...storesSettings}
-            >
-              {stores.map((store) => (
-                <NewStoreCard
-                  key={store?.id}
-                  variant="normal"
-                  item={store}
-                  imageUrl={store?.cover_photo_full_url}
-                />
-              ))}
-            </Slider>
-          </SliderWrapper>
-        </Stack>
+        <CustomSlider
+          items={stores}
+          renderItem={(store) => (
+            <NewStoreCard
+              variant="normal"
+              item={store}
+              imageUrl={store?.cover_photo_full_url}
+            />
+          )}
+          arrowVariant="section"
+          title={<SectionTitle>{storesLabel}</SectionTitle>}
+          slidesPerView={1}
+          spaceBetween={12}
+          breakpoints={STORES_BREAKPOINTS}
+          wrapperSx={{ pl: { xs: "20px", md: 0 }, pr: { xs: 0, md: 0 } }}
+        />
       )}
 
       {items.length === 0 && stores.length === 0 && (

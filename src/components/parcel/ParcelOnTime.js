@@ -1,8 +1,6 @@
 import React, { useEffect } from "react";
-import { Box, Skeleton, useMediaQuery, useTheme } from "@mui/material";
-import Slider from "react-slick";
-import "slick-carousel/slick/slick-theme.css";
-import "slick-carousel/slick/slick.css";
+import { Box, Skeleton } from "@mui/material";
+import CustomSlider from "components/common/CustomSlider";
 import NextImage from "components/NextImage";
 import useGetOtherBanners from "../../api-manage/hooks/react-query/useGetOtherBanners";
 import {
@@ -11,110 +9,98 @@ import {
 } from "../../styled-components/CustomStyles.style";
 import { HomeComponentsWrapper } from "../home/HomePageComponents";
 
+// react-slick breakpoints meant "apply for width <= X" (descending); these
+// Swiper breakpoints mean "apply for width >= X" (ascending) - re-derived,
+// with the 901px gap bump merged in.
+const parcelOnTimeBreakpoints = {
+  577: { slidesPerView: 2 },
+  901: { slidesPerView: 2, spaceBetween: 20 },
+  993: { slidesPerView: 3, spaceBetween: 20 },
+};
+
+// Every card is a 2:1 box: the slide width drives the height, and the image
+// covers it, so the ratio holds at every breakpoint instead of a fixed
+// pixel height stretching with the slide.
+const bannerBoxSx = {
+  width: "100%",
+  aspectRatio: "2 / 1",
+  borderRadius: "20px",
+  overflow: "hidden",
+  position: "relative",
+  img: { width: "100%", height: "100%", display: "block" },
+};
+
 const ParcelOnTime = () => {
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
-  const bannerHeight = isMobile ? 133 : 212;
   const { data, isLoading, refetch } = useGetOtherBanners();
+  // For the parcel module this endpoint returns a paginated list
+  // ({ data: [{ value_full_url }], pagination }) rather than the bare array
+  // other modules get, so accept both shapes.
+  const banners = Array.isArray(data)
+    ? data
+    : Array.isArray(data?.data)
+    ? data.data
+    : [];
 
   useEffect(() => {
     refetch();
   }, []);
 
-  const settings = {
-    dots: true,
-    infinite: data?.banners?.length > 3,
-    slidesToShow: 3,
-    cssEase: "ease-in-out",
-    autoplay: true,
-    speed: 800,
-    autoplaySpeed: 4000,
-    variableHeight: true,
-    initialSlide: 0,
-    centerMode: false,
-    responsive: [
-      {
-        breakpoint: 992,
-        settings: {
-          slidesToShow: 2,
-          infinite: data?.banners?.length > 2,
-        },
-      },
-      {
-        breakpoint: 576,
-        settings: {
-          slidesToShow: 1.1,
-          slidesToScroll: 1,
-          swipeToSlide: true,
-          infinite: false,
-          dots: false,
-        },
-      },
-    ],
-  };
-
-  if (!isLoading && !data?.banners?.length) {
+  if (!isLoading && banners.length === 0) {
     return null;
   }
 
   return (
-    <HomeComponentsWrapper
-      sx={{
-        // Reserve space inside each slide for a gap, then pull the track
-        // edges back in by the same amount so the row still aligns flush.
-        ".slick-list": {
-          marginInline: "-8px",
-        },
-        ".slick-slide > div": {
-          paddingInline: "8px",
-          boxSizing: "border-box",
-        },
-        ".slick-slide": {
-          padding: "0 0px",
-        },
-      }}
-    >
+    <HomeComponentsWrapper>
       <CustomStackFullWidth
         alignItems="center"
         justifyContent="center"
         spacing={1}
       >
-        <CustomBoxFullWidth
-          sx={{
-            ".slick-dots": { mt: 0 },
-            ".slick-track ": {
-              marginLeft: "0px",
-              marginRight: "0px",
-            },
-          }}
-        >
+        <CustomBoxFullWidth>
           {isLoading ? (
-            <Slider {...settings}>
-              {[...Array(4)].map((_, index) => (
-                <Skeleton
-                  key={index}
-                  variant="rounded"
-                  height={bannerHeight}
-                  width={400}
-                />
-              ))}
-            </Slider>
+            <CustomSlider
+              items={[...Array(4)]}
+              getKey={(_, index) => index}
+              renderItem={() => (
+                <Box sx={bannerBoxSx}>
+                  <Skeleton variant="rectangular" width="100%" height="100%" />
+                </Box>
+              )}
+              arrowVariant="none"
+              showDots
+              allowOverflowY={false}
+              autoplay
+              autoplayDelay={4000}
+              speed={800}
+              slidesPerView={1.1}
+              spaceBetween={16}
+              breakpoints={parcelOnTimeBreakpoints}
+            />
           ) : (
-            <Slider {...settings}>
-              {data?.banners?.map((item, index) => (
-                <Box key={index} sx={{ img: { width: "100%" } }}>
+            <CustomSlider
+              items={banners}
+              getKey={(item, index) => index}
+              renderItem={(item) => (
+                <Box sx={bannerBoxSx}>
                   <NextImage
                     src={item?.value_full_url || ""}
                     width={400}
-                    maxWidth="100%"
-                    height={bannerHeight}
-                    bg="#ddd"
-                    borderRadius={20}
+                    height={200}
                     objectFit="cover"
                   />
                 </Box>
-              ))}
-            </Slider>
+              )}
+              arrowVariant="none"
+              showDots
+              allowOverflowY={false}
+              loop={banners.length > 3}
+              autoplay
+              autoplayDelay={4000}
+              speed={800}
+              slidesPerView={1.1}
+              spaceBetween={16}
+              breakpoints={parcelOnTimeBreakpoints}
+            />
           )}
         </CustomBoxFullWidth>
       </CustomStackFullWidth>

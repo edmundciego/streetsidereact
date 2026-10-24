@@ -2,6 +2,7 @@ import { useQuery } from "react-query";
 import { onSingleErrorResponse } from "api-manage/api-error-response/ErrorResponses";
 import { data_limit, service_booking_list_api } from "../../../ApiRoutes";
 import MainApi from "api-manage/MainApi";
+import { getApiContent } from "api-manage/getApiContent";
 
 const PAGE_SIZE = Number(data_limit);
 
@@ -61,9 +62,10 @@ const buildQuery = ({
 
 const fetchPage = async (params) => {
   const query = buildQuery(params);
-  const { data } = await MainApi.get(
+  const { data: __env } = await MainApi.get(
     `${service_booking_list_api}?${query.toString()}`
   );
+  const data = getApiContent(__env);
   return { bookings: data?.bookings ?? [], total_size: data?.total_size ?? 0 };
 };
 

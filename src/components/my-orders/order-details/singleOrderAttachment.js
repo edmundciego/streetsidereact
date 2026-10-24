@@ -1,42 +1,15 @@
 import CloseIcon from "@mui/icons-material/Close";
 import { Box, Stack } from "@mui/system";
-import { createEnhancedArrows } from "components/common/EnhancedSliderArrows";
 import { useState } from "react";
-import Slider from "react-slick";
-import {
-  CustomStackFullWidth,
-  SliderCustom,
-} from "styled-components/CustomStyles.style";
+import CustomSlider from "components/common/CustomSlider";
+import { CustomStackFullWidth } from "styled-components/CustomStyles.style";
 import CustomImageContainer from "../../CustomImageContainer";
 import CustomModal from "../../modal";
 
 const SingleOrderAttachment = (props) => {
   const { title, trackOrderData, configData } = props;
   const [selectedImage, setSelectedImage] = useState(null);
-  const [isSliderHovered, setIsSliderHovered] = useState(false);
   const images = trackOrderData?.order_attachment_full_url ?? [];
-
-  const sliderSettings = {
-    dots: false,
-    infinite: false,
-    speed: 500,
-    slidesToShow: 4,
-    slidesToScroll: 1,
-    ...createEnhancedArrows(isSliderHovered, {
-      displayNoneOnMobile: false,
-      variant: "white",
-    }),
-    responsive: [
-      {
-        breakpoint: 900,
-        settings: { slidesToShow: 3 },
-      },
-      {
-        breakpoint: 600,
-        settings: { slidesToShow: 2.5 },
-      },
-    ],
-  };
 
   return (
     <CustomStackFullWidth
@@ -45,48 +18,36 @@ const SingleOrderAttachment = (props) => {
       pl={{ xs: "0px", sm: "0px", md: "28px" }}
       pb="20px"
     >
-      <SliderCustom
-        nopadding="true"
-        padding="0"
-        sx={{
-          "& .slick-slide > div": {
-            padding: "0 6px",
-            height: "100px",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-          },
-          "& div:has(> .client-nav)": { display: "flex !important" },
-        }}
-        onMouseEnter={() => setIsSliderHovered(true)}
-        onMouseLeave={() => setIsSliderHovered(false)}
-      >
-        <Slider {...sliderSettings}>
-          {images.map((url, index) => (
-            <Box
-              key={index}
-              onClick={() => setSelectedImage(url)}
-              sx={{
-                width: "100px",
-                height: "100px",
-                overflow: "hidden",
-                borderRadius: "4px",
-                cursor: "pointer",
-                flexShrink: 0,
-              }}
-            >
-              <CustomImageContainer
-                src={url}
-                width="100%"
-                height="100%"
-                objectfit="cover"
-                alt="prescription"
-                borderRadius="4px"
-              />
-            </Box>
-          ))}
-        </Slider>
-      </SliderCustom>
+      <CustomSlider
+        items={images}
+        getKey={(url, index) => index}
+        renderItem={(url) => (
+          <Box
+            onClick={() => setSelectedImage(url)}
+            sx={{
+              width: "100px",
+              height: "100px",
+              overflow: "hidden",
+              borderRadius: "4px",
+              cursor: "pointer",
+              flexShrink: 0,
+            }}
+          >
+            <CustomImageContainer
+              src={url}
+              width="100%"
+              height="100%"
+              objectfit="cover"
+              alt="prescription"
+              borderRadius="4px"
+            />
+          </Box>
+        )}
+        arrowVariant="inline"
+        stretchItems={false}
+        slidesPerView="auto"
+        spaceBetween={16}
+      />
 
       <CustomModal
         openModal={!!selectedImage}

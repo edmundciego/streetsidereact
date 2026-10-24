@@ -1,3 +1,4 @@
+import { getApiCollection } from "../../../getApiContent";
 import MainApi from "../../../MainApi";
 import { new_arrival_stores_api } from "../../../ApiRoutes";
 import { useQuery } from "react-query";
@@ -12,7 +13,7 @@ const getData = async (pageParams) => {
   const { data } = await MainApi.get(
     `${new_arrival_stores_api}?type=${type}&limit=${limit}&offset=${offset}`
   );
-  return data;
+  return getApiCollection(data, "stores");
 };
 
 export default function useGetNewArrivalStores(pageParams) {

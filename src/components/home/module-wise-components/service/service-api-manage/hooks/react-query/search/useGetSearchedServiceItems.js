@@ -2,11 +2,13 @@ import MainApi from "api-manage/MainApi";
 import { search_api } from "../../../ApiRoutes";
 import { useInfiniteQuery } from "react-query";
 import { onSingleErrorResponse } from "api-manage/api-error-response/ErrorResponses";
+import { getApiContent } from "api-manage/getApiContent";
 
 const getData = async ({ searchKey, limit, pageParam }) => {
-  const { data } = await MainApi.get(
+  const { data: __env } = await MainApi.get(
     `${search_api}?name=${encodeURIComponent(searchKey)}&limit=${limit}&offset=${pageParam}`
   );
+  const data = getApiContent(__env);
   // Normalise: the service search returns `services`; map to `products` so
   // callers can use a single shape regardless of module.
   return {

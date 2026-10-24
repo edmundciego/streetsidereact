@@ -71,6 +71,7 @@ import ChangeTripType from "components/home/module-wise-components/rental/compon
 import ChangeTripHours from "components/home/module-wise-components/rental/components/vehicle-details/ChangeTripHours";
 import NextImage from "components/NextImage";
 import { RentalImageOverlay } from "components/cards/newCard/NewProductCard";
+import { useGetProviderDetails } from "components/home/module-wise-components/rental/rental-api-manage/hooks/react-query/provider/useGetProviderDetails";
 
 const CarBookingModal = dynamic(() =>
   import(
@@ -121,6 +122,8 @@ const CarCard = ({
   const dispatch = useDispatch();
   const router = useRouter();
   const { ref: textRef, isEllipsed } = useTextEllipsis(data?.name);
+  const { data: providerDetails } = useGetProviderDetails(data?.provider?.id);
+  const scheduleOrderEnabled = providerDetails?.schedule_order !== false;
   const [isWishlisted, setIsWishlisted] = useState(false);
   const [cartItemData, setCartItemData] = useState({});
   const [carDetails, setCarDetails] = useState({});
@@ -1006,6 +1009,7 @@ const CarCard = ({
           setIds={setIds}
           setUpdateCartObject={setUpdateCartObject}
           isDayWise={data?.trip_day_wise}
+          scheduleOrderEnabled={scheduleOrderEnabled}
         />
       )}
       <CustomModal
