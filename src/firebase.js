@@ -37,6 +37,45 @@ export const getMessagingObject = async () => {
   }
 };
 
+const getMessagingServiceWorker = async () => {
+  if (typeof navigator === "undefined" || !("serviceWorker" in navigator)) {
+    return null;
+  }
+
+  // Keep Firebase's push worker separate from the offline worker registered
+  // at `/`. Registering both at `/` makes them replace one another.
+  const registration = await navigator.serviceWorker.register(
+    "/firebase-messaging-sw.js",
+    { scope: "/firebase/" }
+  );
+  const worker = registration.installing || registration.waiting;
+
+  if (worker && worker.state !== "activated") {
+    await new Promise((resolve, reject) => {
+      const handleStateChange = () => {
+        if (worker.state === "activated") {
+          worker.removeEventListener("statechange", handleStateChange);
+          resolve();
+        } else if (worker.state === "redundant") {
+          worker.removeEventListener("statechange", handleStateChange);
+          reject(
+            new Error("Firebase messaging service worker failed to activate")
+          );
+        }
+      };
+
+      worker.addEventListener("statechange", handleStateChange);
+      handleStateChange();
+    });
+  }
+
+  if (!registration.active) {
+    throw new Error("Firebase messaging service worker is not active");
+  }
+
+  return registration;
+};
+
 // fetchToken function
 export const fetchToken = async (setTokenFound, setFcmToken) => {
   try {
@@ -51,8 +90,11 @@ export const fetchToken = async (setTokenFound, setFcmToken) => {
     }
     const messaging = await getMessagingObject();
     if (!messaging) return;
+    const serviceWorkerRegistration = await getMessagingServiceWorker();
+    if (!serviceWorkerRegistration) return;
 
     const currentToken = await getToken(messaging, {
+      serviceWorkerRegistration,
       vapidKey:
                 "BFyeO2SnW09j8eJjb3rmOcjdA5yYrly0Z3FVeNvLoY01pxu_fA4CyPhLB8nFjmTadTSfAmz67m6fCVfzMP1ixRg",
     });
