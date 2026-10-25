@@ -82,16 +82,21 @@ const AddressReselect = ({ location, setOpenDrawer }) => {
 
   useEffect(() => {
     if (address) {
-      localStorage.setItem("location", address?.address);
-      const values = { lat: address?.lat, lng: address?.lng };
-      localStorage.setItem("currentLatLng", JSON.stringify(values));
-      if (address.zone_ids && address.zone_ids.length > 0) {
-        const value = [address.zone_ids];
-
-        localStorage.setItem("zoneid", JSON.stringify(address.zone_ids));
-        toast.success(t(`New ${getModule()?.module_type === "rental" ? "Pickup" : "Delivery"} address selected.`));
-        setOpenPopover(false);
+      const zoneIds = Array.isArray(address.zone_ids) ? address.zone_ids : [];
+      if (zoneIds.length === 0) {
+        toast.error(t("This address is not available for delivery."));
+        return;
       }
+
+      localStorage.setItem("location", address.address);
+      localStorage.setItem(
+        "currentLatLng",
+        JSON.stringify({ lat: address.lat, lng: address.lng })
+      );
+      localStorage.setItem("zoneid", JSON.stringify(zoneIds));
+      toast.success(t(`New ${getModule()?.module_type === "rental" ? "Pickup" : "Delivery"} address selected.`));
+      setOpenPopover(false);
+      window.location.reload();
     }
   }, [address, t]);
   const handleClickToLandingPage = () => {

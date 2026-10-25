@@ -60,6 +60,7 @@ const HeroLocationForm = ({ onLocationSaved }) => {
   const [placeDescription, setPlaceDescription] = useState(undefined);
   const [placeDetailsEnabled, setPlaceDetailsEnabled] = useState(false);
   const [openModuleSelection, setOpenModuleSelection] = useState(false);
+  const [isSelectingLocation, setIsSelectingLocation] = useState(false);
   const [pickLocation, setPickLocation] = useState(false);
   const [isSelectedByGps, setIsSelectedByGps] = useState(false);
   const dispatch = useDispatch();
@@ -168,19 +169,10 @@ const HeroLocationForm = ({ onLocationSaved }) => {
     }
   }, [geoCodeResults, location]);
 
-  const { data: zoneData, isLoading: isLoadingZone } = useGetZoneId(
+  const { data: zoneData, refetch: refetchZoneId } = useGetZoneId(
     location,
     zoneIdEnabled
   );
-
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      if (zoneData) {
-        // dispatch(setZoneData(zoneData?.data?.zone_data));
-        localStorage.setItem("zoneid", zoneData?.zone_id);
-      }
-    }
-  }, [zoneData]);
   //
   // //********************Pick Location */
   const { isLoading: isLoading2, data: placeDetails } = useGetPlaceDetails(
@@ -213,13 +205,39 @@ const HeroLocationForm = ({ onLocationSaved }) => {
   };
   const { refetch: wishlistRefetch } = useWishListGet({}, false, onSuccessHandler);
   const setLocationEnable = async () => {
-    setGeoLocationEnable(true);
-    setZoneIdEnabled(true);
-    if (currentLocation && location && !isLoadingZone && !zoneData) {
-      toast.error(t("Sorry, we are not available in this area yet."));
+    if (
+      !currentLocation ||
+      location?.lat === undefined ||
+      location?.lng === undefined
+    ) {
+      toast.error(t("Location is required."), { id: "id" });
       return;
     }
-    if (currentLocation && location) {
+
+    setIsSelectingLocation(true);
+    setGeoLocationEnable(true);
+    try {
+      // A manually selected place may not have triggered the zone query yet.
+      // Await the result here so we don't open the home/module flow on stale
+      // query state or silently strand the user after a 403.
+      let resolvedZoneData = zoneData;
+      if (!resolvedZoneData?.zone_id) {
+        const result = await refetchZoneId();
+        if (result.error) throw result.error;
+        resolvedZoneData = result.data;
+      }
+
+      if (!resolvedZoneData?.zone_id) {
+        toast.error(t("Sorry, we are not available in this area yet."));
+        return;
+      }
+
+      setZoneIdEnabled(true);
+      localStorage.setItem("zoneid", resolvedZoneData.zone_id);
+      localStorage.setItem("location", currentLocation);
+      localStorage.setItem("currentLatLng", JSON.stringify(location));
+      onLocationSaved?.(currentLocation);
+
       if (getToken()) {
         if (moduleType === "rental") {
           await rentalWishlistRefetch();
@@ -227,17 +245,21 @@ const HeroLocationForm = ({ onLocationSaved }) => {
           await wishlistRefetch();
         }
       }
-      localStorage.setItem("location", currentLocation);
-      localStorage.setItem("currentLatLng", JSON.stringify(location));
-      //handleModalClose();
-
       toast.success(t("New location has been set."));
-      onLocationSaved?.(currentLocation);
       setOpenModuleSelection(true);
-    } else {
-      toast.error(t("Location is required."), {
-        id: "id",
-      });
+    } catch (error) {
+      const responseData = error?.response?.data;
+      const errors = responseData?.errors;
+      const firstError = Array.isArray(errors)
+        ? errors[0]
+        : Object.values(errors || {}).flat()[0];
+      toast.error(
+        (typeof firstError === "string" ? firstError : firstError?.message) ||
+          responseData?.message ||
+          t("Sorry, we are not available in this area yet.")
+      );
+    } finally {
+      setIsSelectingLocation(false);
     }
   };
   const handleCloseModuleModal = (item) => {
@@ -387,7 +409,13 @@ const HeroLocationForm = ({ onLocationSaved }) => {
                 }}
                 onClick={() => setLocationEnable()}
                 radiuschange={isXSmall ? "false" : "true"}
-                disabled={!location?.lat || isLoadingGeoCode}
+                disabled={
+                  location?.lat === undefined ||
+                  location?.lng === undefined ||
+                  isLoadingGeoCode ||
+                  isLoading2 ||
+                  isSelectingLocation
+                }
               >
                 {t("Discover")}
               </StyledButton>
@@ -412,7 +440,7 @@ const HeroLocationForm = ({ onLocationSaved }) => {
           />
         )}
       </CustomStackFullWidth>
-      {zoneData && openModuleSelection && (
+      {openModuleSelection && (
         <ModuleSelection
           location={currentLocation}
           closeModal={handleCloseModuleModal}
