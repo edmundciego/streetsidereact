@@ -129,18 +129,22 @@ const MobileNavBar = ({ configData, location, setOpenSignIn }) => {
   useEffect(() => {
     if (!address) return;
     if (typeof window === "undefined") return;
-    localStorage.setItem("location", address?.address);
-    localStorage.setItem(
-      "currentLatLng",
-      JSON.stringify({ lat: address?.lat, lng: address?.lng }),
-    );
-    if (address.zone_ids && address.zone_ids.length > 0) {
-      localStorage.setItem("zoneid", JSON.stringify(address.zone_ids));
+    const zoneIds = Array.isArray(address.zone_ids) ? address.zone_ids : [];
+    if (zoneIds.length > 0) {
+      localStorage.setItem("location", address.address);
+      localStorage.setItem(
+        "currentLatLng",
+        JSON.stringify({ lat: address.lat, lng: address.lng }),
+      );
+      localStorage.setItem("zoneid", JSON.stringify(zoneIds));
       const isRental = getModule()?.module_type === "rental";
       toast.success(
         t(`New ${isRental ? "Pickup" : "Delivery"} address selected.`),
       );
       setAddressPopoverOpen(false);
+      window.location.reload();
+    } else {
+      toast.error(t("This address is not available for delivery."));
     }
   }, [address]);
 

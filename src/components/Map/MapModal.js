@@ -578,7 +578,9 @@ const MapModal = ({
                       handleClose();
                     }}
                   >
-                    {errorLocation?.response?.data?.errors[0]?.message}
+                    {errorLocation?.response?.data?.errors?.[0]?.message ||
+                      errorLocation?.response?.data?.message ||
+                      t("Unable to set this location. Please try another location.")}
                   </Button>
                 ) : (
                   <>

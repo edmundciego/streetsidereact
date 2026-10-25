@@ -117,12 +117,7 @@ const DeliveryAddress = ({
   }, [data]);
 
   const handleLatLng = (values) => {
-    if (renderOnNavbar === "true") {
-      setAddress({ ...values, lat: values.latitude, lng: values.longitude });
-      window.location.reload();
-    } else {
-      setAddress({ ...values, lat: values.latitude, lng: values.longitude });
-    }
+    setAddress({ ...values, lat: values.latitude, lng: values.longitude });
   };
 
   const { mutate } = usePostAddress();
