@@ -1,6 +1,13 @@
 import "../src/styles/globals.css";
 import "../src/styles/nprogress.css";
-import "@flaticon/flaticon-uicons/css/all/all.css";
+// Load only the Flaticon families used by this app. The package's all.css
+// includes every icon weight/shape and adds about 290 KB of unused source CSS.
+import "@flaticon/flaticon-uicons/css/regular/rounded.css";
+import "@flaticon/flaticon-uicons/css/regular/straight.css";
+import "@flaticon/flaticon-uicons/css/solid/rounded.css";
+import "@flaticon/flaticon-uicons/css/solid/straight.css";
+import "@flaticon/flaticon-uicons/css/bold/rounded.css";
+import "@flaticon/flaticon-uicons/css/bold/straight.css";
 import { CacheProvider } from "@emotion/react";
 import { Provider as ReduxProvider } from "react-redux";
 import createEmotionCache from "../src/utils/create-emotion-cache";

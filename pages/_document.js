@@ -53,21 +53,19 @@ class CustomDocument extends Document {
             href="https://fonts.gstatic.com"
             crossOrigin=""
           />
-          <link
-            href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Rubik:wght@300;400;500;600;700&display=swap"
-            rel="stylesheet"
-          />
-
-          {/* Social login scripts */}
           <script
-            type="application/javascript"
-            src="https://accounts.google.com/gsi/client"
-            async
-          />
-          <script
-            type="text/javascript"
-            src="https://appleid.cdn-apple.com/appleauth/static/jsapi/appleid/1/en_US/appleid.auth.js"
-            async
+            dangerouslySetInnerHTML={{
+              __html: `
+                (function () {
+                  var link = document.createElement("link");
+                  link.rel = "stylesheet";
+                  link.href = "https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap";
+                  link.media = "print";
+                  link.onload = function () { link.media = "all"; };
+                  document.head.appendChild(link);
+                })();
+              `,
+            }}
           />
           <meta name="theme-color" content="#111827" />
 

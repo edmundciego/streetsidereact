@@ -17,10 +17,8 @@ import dynamic from "next/dynamic";
 import { useRouter } from "next/router";
 import { useEffect, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import TaxiView from "components/home/module-wise-components/rental/components/home/TaxiView";
 import CustomContainer from "../../container";
 import LogoSide from "../../logo/LogoSide";
-import WishListCardView from "../../wishlist";
 import ManageSearch from "../second-navbar/ManageSearch";
 import ModuleWiseNav from "../second-navbar/ModuleWiseNav";
 import MobileNavBar from "./MobileNavBar";
@@ -41,16 +39,21 @@ import {
 import { handleProductValueWithOutDiscount } from "utils/CustomFunctions";
 
 import useGetBookingList from "api-manage/hooks/react-query/useGetBookingList";
-import ForgotPassword from "components/auth/ForgotPassword/ForgotPassword";
-import CustomModal from "components/modal";
 import useGetGroupedCart from "../../../api-manage/hooks/react-query/add-cart/useGetGroupedCart";
 import useGetGuest from "../../../api-manage/hooks/react-query/guest/useGetGuest";
-import AllCartDrawer from "./AllCartDrawer";
 import { getCurrentModuleType } from "helper-functions/getCurrentModuleType";
 import { ModuleTypes } from "helper-functions/moduleTypes";
 import { getModuleIdentifier, saveModuleParam } from "utils/moduleParamManager";
 
 const AuthModal = dynamic(() => import("components/auth/AuthModal"));
+const AllCartDrawer = dynamic(() => import("./AllCartDrawer"));
+const TaxiView = dynamic(
+  () => import("components/home/module-wise-components/rental/components/home/TaxiView")
+);
+const ForgotPassword = dynamic(
+  () => import("components/auth/ForgotPassword/ForgotPassword")
+);
+const CustomModal = dynamic(() => import("components/modal"));
 
 // ─── Styled ─────────────────────────────────────────────────────────────────
 
@@ -172,12 +175,14 @@ const CartIcon = ({ refetch }) => {
           refetch={refetch}
         />
       )} */}
-      <AllCartDrawer
-        open={open}
-        onClose={() => setOpen(false)}
-        cartData={cartList}
-        refetch={refetch}
-      />
+      {open && (
+        <AllCartDrawer
+          open={open}
+          onClose={() => setOpen(false)}
+          cartData={cartList}
+          refetch={refetch}
+        />
+      )}
     </>
   );
 };
@@ -830,13 +835,15 @@ const NewNavBar = ({ configData }) => {
         onSignInClick={() => setOpenSignIn(true)}
       />
 
-      <AuthModal
-        modalFor={modalFor}
-        setModalFor={setModalFor}
-        open={openSignIn}
-        handleClose={handleClose}
-        initialView={authInitialView}
-      />
+      {openSignIn && (
+        <AuthModal
+          modalFor={modalFor}
+          setModalFor={setModalFor}
+          open={openSignIn}
+          handleClose={handleClose}
+          initialView={authInitialView}
+        />
+      )}
 
       {openForgotPasswordModal && (
         <CustomModal

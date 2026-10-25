@@ -105,33 +105,64 @@ const PushNotificationLayout = ({
       </IconButton>
     </CustomPaperRefer>
   );
-  // Defer Firebase Messaging SDK until browser is idle so it never blocks
-  // initial render / LCP. Dynamically imports ../firebase (which pulls
-  // firebase/messaging) after idle.
+  // Firebase Messaging is a large optional bundle. Load it only after the
+  // initial page load and a browser idle window so it does not compete with
+  // the landing page's first render and LCP.
   useEffect(() => {
     let cancelled = false;
-    const load = async () => {
+    let idleCallbackId;
+    let timeoutId;
+
+    const loadPushSdk = async () => {
       try {
-        const { fetchToken } = await import("../firebase");
-        if (!cancelled) await fetchToken(setTokenFound, setFcmToken);
+        const { fetchToken, onMessageListener } = await import("../firebase");
+        if (cancelled) return;
+
+        onMessageListener()
+          .then((payload) => {
+            if (!cancelled && payload?.data) setNotification(payload.data);
+          })
+          .catch(() => {});
+
+        await fetchToken(
+          (value) => {
+            if (!cancelled) setTokenFound(value);
+          },
+          (value) => {
+            if (!cancelled) setFcmToken(value);
+          }
+        );
       } catch {
         // push unsupported — silently skip
       }
     };
-    if (typeof window !== "undefined") {
-      if ("requestIdleCallback" in window) {
-        const id = window.requestIdleCallback(load, { timeout: 4000 });
-        return () => {
-          cancelled = true;
-          window.cancelIdleCallback?.(id);
-        };
+
+    const scheduleWhenIdle = () => {
+      if (window.requestIdleCallback) {
+        idleCallbackId = window.requestIdleCallback(loadPushSdk, {
+          timeout: 3000,
+        });
+      } else {
+        timeoutId = window.setTimeout(loadPushSdk, 1000);
       }
-      const t = setTimeout(load, 2500);
-      return () => {
-        cancelled = true;
-        clearTimeout(t);
-      };
+    };
+
+    if (typeof window !== "undefined") {
+      if (document.readyState === "complete") {
+        scheduleWhenIdle();
+      } else {
+        window.addEventListener("load", scheduleWhenIdle, { once: true });
+      }
     }
+
+    return () => {
+      cancelled = true;
+      window.removeEventListener("load", scheduleWhenIdle);
+      if (idleCallbackId !== undefined) {
+        window.cancelIdleCallback?.(idleCallbackId);
+      }
+      if (timeoutId !== undefined) window.clearTimeout(timeoutId);
+    };
   }, []);
 
   useEffect(() => {
@@ -177,20 +208,6 @@ const PushNotificationLayout = ({
       );
     }
   };
-
-  // Listen for foreground messages once (firebase lazily loaded)
-  useEffect(() => {
-    let cancelled = false;
-    import("../firebase")
-      .then(({ onMessageListener }) => onMessageListener())
-      .then((payload) => {
-        if (!cancelled && payload?.data) setNotification(payload.data);
-      })
-      .catch(() => {}); // push unsupported — skip
-    return () => {
-      cancelled = true;
-    };
-  }, []);
 
   // Render toast when a notification arrives
   useEffect(() => {

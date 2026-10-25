@@ -7,13 +7,13 @@ import {
   useTheme,
 } from "@mui/material";
 import { useRouter } from "next/router";
+import dynamic from "next/dynamic";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { t } from "i18next";
 import toast from "react-hot-toast";
 
 import AddressReselectPopover from "../top-navbar/address-reselect/AddressReselectPopover";
-import AllCartDrawer from "./AllCartDrawer";
 import { getModule } from "helper-functions/getLanguage";
 import MobileSearchOverlay from "./MobileSearchOverlay";
 import { getCurrentModuleType } from "helper-functions/getCurrentModuleType";
@@ -25,7 +25,6 @@ import { getEcommerceSections } from "components/home/module-wise-components/eco
 
 import useGetGroupedCart from "../../../api-manage/hooks/react-query/add-cart/useGetGroupedCart";
 import useGetBookingList from "api-manage/hooks/react-query/useGetBookingList";
-import TaxiView from "components/home/module-wise-components/rental/components/home/TaxiView";
 import DirectionsCarOutlinedIcon from "@mui/icons-material/DirectionsCarOutlined";
 import { setCartList, clearCartGroups } from "redux/slices/cart";
 import { getCartListModuleWise } from "helper-functions/getCartListModuleWise";
@@ -34,6 +33,11 @@ import { setSelectedModule } from "redux/slices/utils";
 import { useScrollCollapseClass } from "hooks/useScrollDirection";
 import useAnimatedSearchPlaceholder from "hooks/useAnimatedSearchPlaceholder";
 import { getServiceSections } from "components/home/module-wise-components/service/serviceSectionsConfig";
+
+const AllCartDrawer = dynamic(() => import("./AllCartDrawer"));
+const TaxiView = dynamic(
+  () => import("components/home/module-wise-components/rental/components/home/TaxiView")
+);
 
 /**
  * Mobile navbar — three sections (default state):
@@ -780,12 +784,14 @@ const MobileNavBar = ({ configData, location, setOpenSignIn }) => {
           )}
       </Box>
 
-      <AllCartDrawer
-        open={cartOpen}
-        onClose={() => setCartOpen(false)}
-        cartData={cartList}
-        refetch={cartListRefetch}
-      />
+      {cartOpen && (
+        <AllCartDrawer
+          open={cartOpen}
+          onClose={() => setCartOpen(false)}
+          cartData={cartList}
+          refetch={cartListRefetch}
+        />
+      )}
 
       {taxiOpen && (
         <TaxiView

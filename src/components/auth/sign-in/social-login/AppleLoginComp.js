@@ -10,6 +10,7 @@ import appleLogo from "../../asset/Apple Logo.svg";
 import jwt_decode from "jwt-decode";
 import { getGuestId } from "helper-functions/getToken";
 import { onErrorResponse } from "api-manage/api-error-response/ErrorResponses";
+import { loadSocialLoginScript } from "utils/loadSocialLoginScript";
 
 const AppleLoginComp = (props) => {
   const {
@@ -35,12 +36,20 @@ const AppleLoginComp = (props) => {
   // client_id
   // Load Apple SDK
   useEffect(() => {
-    if (typeof AppleID !== "undefined") {
-      setAppleSdkLoaded(true);
-    } else {
-      console.warn("Apple SDK not loaded");
-    }
-  }, []); // Only runs once when the component mounts
+    let cancelled = false;
+
+    loadSocialLoginScript("apple")
+      .then(() => {
+        if (!cancelled) setAppleSdkLoaded(true);
+      })
+      .catch(() => {
+        if (!cancelled) setAppleSdkLoaded(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const handleToken = (token) => {
     if (token) {

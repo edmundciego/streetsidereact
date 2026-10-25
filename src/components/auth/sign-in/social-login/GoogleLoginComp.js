@@ -8,6 +8,7 @@ import { alpha, Box, Typography, useMediaQuery, useTheme } from "@mui/material";
 import googleLatest from "../../asset/Google_Logo.png";
 import { t } from "i18next";
 import { getGuestId } from "helper-functions/getToken";
+import { loadSocialLoginScript } from "utils/loadSocialLoginScript";
 
 export const CustomGoogleButton = styled(Stack)(({ theme, width, height }) => ({
   width: width,
@@ -123,18 +124,27 @@ const GoogleLoginComp = (props) => {
     });
   };
   useEffect(() => {
-    // Initialize Google button
-    if (typeof window !== undefined) {
-      window?.google?.accounts?.id?.initialize({
-        client_id: clientId,
-        callback: handleCallBackResponse,
-      });
-      window?.google?.accounts?.id?.renderButton(buttonDiv.current, {
-        theme: "outline",
-        size: "large", // Set button size to 'large' for better scaling
-        logo_alignment: "left",
-      });
-    }
+    let cancelled = false;
+
+    loadSocialLoginScript("google")
+      .then(() => {
+        if (cancelled || !buttonDiv.current) return;
+
+        window.google.accounts.id.initialize({
+          client_id: clientId,
+          callback: handleCallBackResponse,
+        });
+        window.google.accounts.id.renderButton(buttonDiv.current, {
+          theme: "outline",
+          size: "large",
+          logo_alignment: "left",
+        });
+      })
+      .catch(() => {});
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const handleView = () => {
