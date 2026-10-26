@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Box, Stack, Typography } from "@mui/material";
 import { useTranslation } from "react-i18next";
 import { CustomStackForLoaction } from "../../styled-components/CustomStyles.style";
@@ -12,14 +12,27 @@ const DeliveryPlace = () => {
   const { t } = useTranslation();
   const router = useRouter();
   const theme = useTheme();
-  let zoneid = undefined;
-  let location = undefined;
+  const [location, setLocation] = useState(undefined);
+  const [zoneid, setZoneid] = useState(undefined);
 
-  if (typeof window !== "undefined") {
-    zoneid = localStorage.getItem("zoneid");
+  useEffect(() => {
+    const loadLocation = () => {
+      if (typeof window !== "undefined") {
+        setLocation(localStorage.getItem("location"));
+        setZoneid(localStorage.getItem("zoneid"));
+      }
+    };
+    loadLocation();
 
-    location = localStorage.getItem("location");
-  }
+    const handleStorageChange = (e) => {
+      if (e.key === "location" || e.key === "zoneid") {
+        loadLocation();
+      }
+    };
+
+    window.addEventListener("storage", handleStorageChange);
+    return () => window.removeEventListener("storage", handleStorageChange);
+  }, []);
 
   return (
     <Stack pb="10px">

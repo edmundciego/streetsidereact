@@ -9,7 +9,12 @@ import { getApiContent } from "../../../getApiContent";
 import { store } from "redux/store";
 import { mergeZoneData } from "redux/slices/zoneData";
 const getZoneId = async (location, zoneIdEnabled) => {
-  if (location?.lat && location?.lng) {
+  if (
+    location?.lat !== undefined &&
+    location?.lat !== null &&
+    location?.lng !== undefined &&
+    location?.lng !== null
+  ) {
     const { data } = await MainApi.get(
       `${zoneId_api}?lat=${location?.lat}&lng=${location?.lng}`
     );

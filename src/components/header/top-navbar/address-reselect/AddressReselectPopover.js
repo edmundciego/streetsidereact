@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import {Button, Popover, Stack, Typography, useTheme} from "@mui/material";
+import toast from "react-hot-toast";
 
 import SimpleBar from "simplebar-react";
 import "simplebar-react/dist/simplebar.min.css";
@@ -13,15 +14,14 @@ import useGetZoneId from "../../../../api-manage/hooks/react-query/google-api/us
 import dynamic from "next/dynamic";
 const MapModal = dynamic(() => import("../../../Map/MapModal"));
 const AddressReselectPopover = (props) => {
-  const { anchorEl, onClose, open, t, address, setAddress, token, currentLatLngForMar, ...other } =
+  const { anchorEl, onClose, open, t, address, setAddress, token, currentLatLngForMar, onLocationChange, ...other } =
     props;
   const theme = useTheme();
   const [openMapModal, setOpenMapModal] = useState(false);
   const [location, setLocation] = useState(undefined);
-  const [currentLocation, setCurrentLocation] = useState(undefined);
-  const [showCurrentLocation, setShowCurrentLocation] = useState(false);
   const [geoLocationEnable, setGeoLocationEnable] = useState(false);
   const [zoneIdEnabled, setZoneIdEnabled] = useState(false);
+  const [pendingCurrentLocation, setPendingCurrentLocation] = useState(false);
   const { coords } = useGeolocated({
     positionOptions: {
       enableHighAccuracy: false,
@@ -31,48 +31,82 @@ const AddressReselectPopover = (props) => {
   });
 
   const handleAgreeLocation = () => {
-    // e.stopPropagation();
-    if (coords) {
-      setLocation({ lat: coords?.latitude, lng: coords?.longitude });
-      setShowCurrentLocation(true);
-      setGeoLocationEnable(true);
-      setZoneIdEnabled(true);
+    if (!coords) {
+      toast.error(
+        t("Unable to determine your current location. Please pick a location from the map.")
+      );
+      return;
     }
+
+    setLocation({ lat: coords.latitude, lng: coords.longitude });
+    setPendingCurrentLocation(true);
     setGeoLocationEnable(true);
     setZoneIdEnabled(true);
-    window.location.reload();
   };
 
-  const handleSetLocation = async () => {
-    if (currentLocation && location) {
-      localStorage.setItem("location", currentLocation);
-      localStorage.setItem("currentLatLng", JSON.stringify(location));
-      window.location.reload();
+  const {
+    data: geoCodeResults,
+    isFetching: isFetchingGeoCode,
+    error: geoCodeError,
+  } = useGetGeoCode(location, geoLocationEnable);
+  const {
+    data: zoneData,
+    isFetching: isFetchingZone,
+    error: zoneError,
+  } = useGetZoneId(location, zoneIdEnabled);
+
+  useEffect(() => {
+    if (!pendingCurrentLocation || !location) return;
+    if (isFetchingGeoCode || isFetchingZone) return;
+
+    const responseError = zoneError || geoCodeError;
+    if (responseError) {
+      const responseData = responseError?.response?.data;
+      const errors = responseData?.errors;
+      const firstError = Array.isArray(errors)
+        ? errors[0]
+        : Object.values(errors || {}).flat()[0];
+      toast.error(
+        (typeof firstError === "string" ? firstError : firstError?.message) ||
+          responseData?.message ||
+          t("Unable to set this location. Please try another location.")
+      );
+      setPendingCurrentLocation(false);
+      return;
     }
-  };
-  const { data: geoCodeResults, isLoading: isLoadingGeoCode } = useGetGeoCode(
+
+    const formattedAddress = geoCodeResults?.results?.[0]?.formatted_address;
+    if (!formattedAddress) {
+      toast.error(t("Unable to find an address for your current location."));
+      setPendingCurrentLocation(false);
+      return;
+    }
+
+    if (!zoneData?.zone_id) {
+      toast.error(t("Sorry, we are not available in this area yet."));
+      setPendingCurrentLocation(false);
+      return;
+    }
+
+    localStorage.setItem("location", formattedAddress);
+    localStorage.setItem("currentLatLng", JSON.stringify(location));
+    localStorage.setItem("zoneid", zoneData.zone_id);
+    setPendingCurrentLocation(false);
+    onLocationChange?.(formattedAddress);
+    onClose?.();
+  }, [
+    pendingCurrentLocation,
     location,
-    geoLocationEnable
-  );
-
-  useEffect(() => {
-    handleSetLocation();
-  }, [currentLocation, location,address?.address]);
-  useEffect(() => {
-    if (geoCodeResults?.results && showCurrentLocation) {
-      setCurrentLocation(geoCodeResults?.results?.[0]?.formatted_address);
-    }
-  }, [geoCodeResults, location]);
-
-  const { data: zoneData } = useGetZoneId(location, zoneIdEnabled);
-
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      if (zoneData) {
-        localStorage.setItem("zoneid", zoneData?.zone_id);
-      }
-    }
-  }, [zoneData]);
+    isFetchingGeoCode,
+    isFetchingZone,
+    geoCodeError,
+    zoneError,
+    geoCodeResults,
+    zoneData,
+    t,
+    onClose,
+    onLocationChange,
+  ]);
   const handleCloseMapModal = () => {
     setOpenMapModal(false);
     onClose();
@@ -145,6 +179,7 @@ const AddressReselectPopover = (props) => {
           </SimpleBar>
          <Button
            fullWidth
+              disabled={pendingCurrentLocation}
               onClick={handleAgreeLocation}
               startIcon={
                 <ControlPointOutlinedIcon sx={{ color: theme.palette.primary.main }} />
@@ -158,7 +193,9 @@ const AddressReselectPopover = (props) => {
                 color: theme.palette.primary.main,
               }}
             >
-              {t("Use Current Location")}
+              {pendingCurrentLocation
+                ? t("Setting location...")
+                : t("Use Current Location")}
             </Button>
           <Stack width="100%" justifyContent="center" alignItems="center">
             <CustomButtonPrimary onClick={() => setOpenMapModal(true)}>
@@ -168,7 +205,14 @@ const AddressReselectPopover = (props) => {
         </Stack>
       </Popover>
       {openMapModal && (
-        <MapModal open={openMapModal} handleClose={handleCloseMapModal}  selectedLocation={currentLatLngForMar}/>
+        <MapModal
+          open={openMapModal}
+          handleClose={handleCloseMapModal}
+          handleLocation={(_coordinates, formattedAddress) =>
+            onLocationChange?.(formattedAddress)
+          }
+          selectedLocation={currentLatLngForMar}
+        />
       )}
     </>
   );

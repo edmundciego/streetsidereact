@@ -7,8 +7,9 @@ import {
   useTheme,
 } from "@mui/material";
 import { useRouter } from "next/router";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
+import { useQueryClient } from "react-query";
 import { t } from "i18next";
 import toast from "react-hot-toast";
 
@@ -46,10 +47,11 @@ import { getServiceSections } from "components/home/module-wise-components/servi
  *     stays sticky at top.
  *   - Scrolling up → all three sections become visible again.
  */
-const MobileNavBar = ({ configData, location, setOpenSignIn }) => {
+const MobileNavBar = ({ configData, location, setLocation, setOpenSignIn }) => {
   const theme = useTheme();
   const router = useRouter();
   const dispatch = useDispatch();
+  const queryClient = useQueryClient();
 
   const isSearchPage = router.pathname === "/search";
   const isHomePage = router.pathname === "/home";
@@ -89,6 +91,14 @@ const MobileNavBar = ({ configData, location, setOpenSignIn }) => {
   const [addressPopoverOpen, setAddressPopoverOpen] = useState(false);
   const [address, setAddress] = useState(null);
   const addressAnchorRef = useRef(null);
+  const handleLocationChange = useCallback(
+    (nextLocation) => {
+      setLocation?.(nextLocation);
+      queryClient.invalidateQueries();
+      router.replace(router.asPath, undefined, { scroll: false });
+    },
+    [queryClient, router, setLocation],
+  );
   // Single global cart fetch: cart/get-all. Mutations invalidate the
   // "cart-groups" query, triggering auto-refetch.
   const { refetch: cartListRefetch } = useGetGroupedCart();
@@ -129,20 +139,25 @@ const MobileNavBar = ({ configData, location, setOpenSignIn }) => {
   useEffect(() => {
     if (!address) return;
     if (typeof window === "undefined") return;
-    localStorage.setItem("location", address?.address);
-    localStorage.setItem(
-      "currentLatLng",
-      JSON.stringify({ lat: address?.lat, lng: address?.lng }),
-    );
-    if (address.zone_ids && address.zone_ids.length > 0) {
-      localStorage.setItem("zoneid", JSON.stringify(address.zone_ids));
+    const zoneIds = Array.isArray(address.zone_ids) ? address.zone_ids : [];
+    if (zoneIds.length > 0) {
+      localStorage.setItem("location", address.address);
+      localStorage.setItem(
+        "currentLatLng",
+        JSON.stringify({ lat: address.lat, lng: address.lng }),
+      );
+      localStorage.setItem("zoneid", JSON.stringify(zoneIds));
       const isRental = getModule()?.module_type === "rental";
       toast.success(
         t(`New ${isRental ? "Pickup" : "Delivery"} address selected.`),
       );
       setAddressPopoverOpen(false);
+      setAddress(null);
+      handleLocationChange(address.address);
+    } else {
+      toast.error(t("This address is not available for delivery."));
     }
-  }, [address]);
+  }, [address, handleLocationChange]);
 
   // Cycling "Search for <noun>" placeholder. The hook only reaches for the
   // category list when the persisted store has none, so this costs no request
@@ -811,6 +826,7 @@ const MobileNavBar = ({ configData, location, setOpenSignIn }) => {
         setAddress={setAddress}
         token={token}
         currentLatLngForMar={currentLatLngForMar}
+        onLocationChange={handleLocationChange}
       />
     </>
   );

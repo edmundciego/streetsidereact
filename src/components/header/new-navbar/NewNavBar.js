@@ -607,7 +607,7 @@ const NewNavBar = ({ configData }) => {
 
       {/* Location: right after logo, 24px gap */}
       <Box sx={{ flexShrink: 0, ml: "24px" }}>
-        <AddressReselect location={location} />
+        <AddressReselect location={location} setLocation={setLocation} />
       </Box>
 
       {/* Search: grows to fill space, 24px from icons */}
@@ -798,6 +798,7 @@ const NewNavBar = ({ configData }) => {
         <MobileNavBar
           configData={configData}
           location={location}
+          setLocation={setLocation}
           setOpenSignIn={setOpenSignIn}
         />
       ) : (

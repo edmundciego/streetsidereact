@@ -226,6 +226,8 @@ const MapModal = ({
   const { refetch: rentalWishlistRefetch } = useGetWishList(onSuccessHandler);
   const handlePickLocationOnClick = () => {
     if (zoneId && geoCodeResults && location) {
+      const formattedAddress =
+        geoCodeResults?.results?.[0]?.formatted_address;
       if (getToken()) {
         if (moduleType === "rental") {
           rentalWishlistRefetch();
@@ -237,33 +239,40 @@ const MapModal = ({
         localStorage.setItem("zoneid", zoneId);
       }
       if (fromReceiver !== "1" && toparcel !== "1") {
-        localStorage.setItem(
-          "location",
-          geoCodeResults?.results?.[0]?.formatted_address
-        );
+        localStorage.setItem("location", formattedAddress);
         localStorage.setItem("currentLatLng", JSON.stringify(location));
       } else {
         toast.success(t("New location has been set."));
       }
 
       if (toparcel === "1") {
-        handleLocation(location, geoCodeResults?.results?.[0]?.formatted_address);
+        handleLocation?.(location, formattedAddress);
         handleClose();
       } else {
         if (fromStore) {
           if (fromparcel) {
-            localStorage.setItem(
-              "location",
-              geoCodeResults?.results?.[0]?.formatted_address
-            );
+            localStorage.setItem("location", formattedAddress);
             localStorage.setItem("currentLatLng", JSON.stringify(location));
             handleClose();
           } else {
-            window.location.reload();
+            handleLocation?.(location, formattedAddress);
             handleClose();
           }
+        } else if (handleLocation) {
+          handleLocation(location, formattedAddress);
+          handleClose();
         } else if (location && selectedModule) {
-          window.location.reload();
+          const moduleIdentifier = selectedModule?.slug || selectedModule?.id;
+          router.push(
+            moduleIdentifier
+              ? {
+                  pathname: "/home",
+                  query: { module: String(moduleIdentifier) },
+                }
+              : "/home",
+            undefined,
+            { shallow: true, scroll: true }
+          );
           handleClose();
         } else {
           setOpenModuleSelection(true);
@@ -578,7 +587,9 @@ const MapModal = ({
                       handleClose();
                     }}
                   >
-                    {errorLocation?.response?.data?.errors[0]?.message}
+                    {errorLocation?.response?.data?.errors?.[0]?.message ||
+                      errorLocation?.response?.data?.message ||
+                      t("Unable to set this location. Please try another location.")}
                   </Button>
                 ) : (
                   <>
