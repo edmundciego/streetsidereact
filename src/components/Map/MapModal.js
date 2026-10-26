@@ -259,11 +259,11 @@ const MapModal = ({
             localStorage.setItem("currentLatLng", JSON.stringify(location));
             handleClose();
           } else {
-            window.location.reload();
+            handleLocation(location, geoCodeResults?.results?.[0]?.formatted_address);
             handleClose();
           }
         } else if (location && selectedModule) {
-          window.location.reload();
+          handleLocation(location, geoCodeResults?.results?.[0]?.formatted_address);
           handleClose();
         } else {
           setOpenModuleSelection(true);
