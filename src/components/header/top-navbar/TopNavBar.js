@@ -95,6 +95,7 @@ const TopNavBar = () => {
 									<AddressReselect
 												setOpenDrawer={setOpenDrawer}
 												location={tempLocation}
+											setLocation={setTempLocation}
 											/>
 									</CustomStackForLoaction>
 									<Stack

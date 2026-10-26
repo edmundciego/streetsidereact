@@ -69,6 +69,20 @@ const HeroLocationForm = ({ onLocationSaved }) => {
     setOpen(false);
   };
   const handleOpen = () => setOpen(true);
+  const handleMapLocation = (coordinates, address) => {
+    setLocation(coordinates);
+    setCurrentLocation(address);
+    setSearchKey(address || "");
+    setEnabled(false);
+    setPlaceId("");
+    setPlaceDescription(undefined);
+    setPlaceDetailsEnabled(false);
+    setGeoLocationEnable(true);
+    setZoneIdEnabled(true);
+    setShowCurrentLocation(false);
+    setIsSelectedByGps(false);
+    onLocationSaved?.(address);
+  };
 
   //****getting current location/***/
   const { coords, isGeolocationAvailable, isGeolocationEnabled, getPosition } =
@@ -428,6 +442,7 @@ const HeroLocationForm = ({ onLocationSaved }) => {
             handleClose={handleClose}
             coords={coords}
             selectedLocation={location}
+            handleLocation={handleMapLocation}
             disableAutoFocus
             userLocation={location}
           />

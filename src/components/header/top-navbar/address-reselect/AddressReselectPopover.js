@@ -14,7 +14,7 @@ import useGetZoneId from "../../../../api-manage/hooks/react-query/google-api/us
 import dynamic from "next/dynamic";
 const MapModal = dynamic(() => import("../../../Map/MapModal"));
 const AddressReselectPopover = (props) => {
-  const { anchorEl, onClose, open, t, address, setAddress, token, currentLatLngForMar, ...other } =
+  const { anchorEl, onClose, open, t, address, setAddress, token, currentLatLngForMar, onLocationChange, ...other } =
     props;
   const theme = useTheme();
   const [openMapModal, setOpenMapModal] = useState(false);
@@ -92,8 +92,8 @@ const AddressReselectPopover = (props) => {
     localStorage.setItem("currentLatLng", JSON.stringify(location));
     localStorage.setItem("zoneid", zoneData.zone_id);
     setPendingCurrentLocation(false);
+    onLocationChange?.(formattedAddress);
     onClose?.();
-    window.location.reload();
   }, [
     pendingCurrentLocation,
     location,
@@ -105,6 +105,7 @@ const AddressReselectPopover = (props) => {
     zoneData,
     t,
     onClose,
+    onLocationChange,
   ]);
   const handleCloseMapModal = () => {
     setOpenMapModal(false);
@@ -204,7 +205,14 @@ const AddressReselectPopover = (props) => {
         </Stack>
       </Popover>
       {openMapModal && (
-        <MapModal open={openMapModal} handleClose={handleCloseMapModal}  selectedLocation={currentLatLngForMar}/>
+        <MapModal
+          open={openMapModal}
+          handleClose={handleCloseMapModal}
+          handleLocation={(_coordinates, formattedAddress) =>
+            onLocationChange?.(formattedAddress)
+          }
+          selectedLocation={currentLatLngForMar}
+        />
       )}
     </>
   );
