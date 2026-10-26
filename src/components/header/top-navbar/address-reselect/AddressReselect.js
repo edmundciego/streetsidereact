@@ -2,7 +2,8 @@ import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import RoomIcon from "@mui/icons-material/Room";
 import { alpha, ClickAwayListener, Grid, Stack, Tooltip, Typography, useTheme } from "@mui/material";
 import { useRouter } from "next/router";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import { useQueryClient } from "react-query";
 import toast from "react-hot-toast";
 import { useTranslation } from "react-i18next";
 import { CustomStackFullWidth } from "../../../../styled-components/CustomStyles.style";
@@ -10,15 +11,21 @@ import AddressReselectPopover from "./AddressReselectPopover";
 import { getModule } from "helper-functions/getLanguage";
 import { AddressTypographyGray } from "../TopNavBar";
 
-const AddressReselect = ({ location, setOpenDrawer }) => {
+const AddressReselect = ({ location, setLocation, setOpenDrawer }) => {
   const theme = useTheme();
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [openReselectModal, setOpenReselectModal] = useState(false);
   const [tooltipOpen, setTooltipOpen] = useState(true);
 
   const [openPopover, setOpenPopover] = useState(false);
   const [address, setAddress] = useState(null);
+  const [displayLocation, setDisplayLocation] = useState(location);
   const { t } = useTranslation();
+
+  useEffect(() => {
+    setDisplayLocation(location);
+  }, [location]);
   let token = undefined;
   if (typeof window !== "undefined") {
     token = localStorage.getItem("token");
@@ -80,6 +87,18 @@ const AddressReselect = ({ location, setOpenDrawer }) => {
     }
   }, []);
 
+  const handleLocationChange = useCallback(
+    (nextLocation) => {
+      setLocation?.(nextLocation);
+      setDisplayLocation(nextLocation);
+      // Refresh location-dependent data in place and re-run the current route's
+      // server props without discarding the app's UI state in a document reload.
+      queryClient.invalidateQueries();
+      router.replace(router.asPath, undefined, { scroll: false });
+    },
+    [queryClient, router, setLocation],
+  );
+
   useEffect(() => {
     if (address) {
       const zoneIds = Array.isArray(address.zone_ids) ? address.zone_ids : [];
@@ -96,9 +115,10 @@ const AddressReselect = ({ location, setOpenDrawer }) => {
       localStorage.setItem("zoneid", JSON.stringify(zoneIds));
       toast.success(t(`New ${getModule()?.module_type === "rental" ? "Pickup" : "Delivery"} address selected.`));
       setOpenPopover(false);
-      window.location.reload();
+      setAddress(null);
+      handleLocationChange(address.address);
     }
-  }, [address, t]);
+  }, [address, handleLocationChange, t]);
   const handleClickToLandingPage = () => {
     setOpenPopover(true);
     setOpenDrawer?.(false);
@@ -126,7 +146,7 @@ const AddressReselect = ({ location, setOpenDrawer }) => {
         onClick={handleClickToLandingPage}
       >
         <Grid item xs={11} align="left">
-          {!location ? (
+          {!displayLocation ? (
             router.pathname !== "/" ? (
               <>
                 <ClickAwayListener onClickAway={handleTooltipClose}>
@@ -218,7 +238,7 @@ const AddressReselect = ({ location, setOpenDrawer }) => {
                   // width: "210px",
                 }}
               >
-                {location}
+                {displayLocation}
               </Typography>
             </CustomStackFullWidth>
           )}
@@ -244,6 +264,7 @@ const AddressReselect = ({ location, setOpenDrawer }) => {
         setAddress={setAddress}
         token={token}
         currentLatLngForMar={currentLatLngForMar}
+        onLocationChange={handleLocationChange}
       />
     </>
   );

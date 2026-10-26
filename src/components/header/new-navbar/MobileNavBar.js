@@ -7,8 +7,10 @@ import {
   useTheme,
 } from "@mui/material";
 import { useRouter } from "next/router";
-import { useEffect, useMemo, useRef, useState } from "react";
+import dynamic from "next/dynamic";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
+import { useQueryClient } from "react-query";
 import { t } from "i18next";
 import toast from "react-hot-toast";
 
@@ -25,15 +27,21 @@ import { getEcommerceSections } from "components/home/module-wise-components/eco
 
 import useGetGroupedCart from "../../../api-manage/hooks/react-query/add-cart/useGetGroupedCart";
 import useGetBookingList from "api-manage/hooks/react-query/useGetBookingList";
-import TaxiView from "components/home/module-wise-components/rental/components/home/TaxiView";
 import DirectionsCarOutlinedIcon from "@mui/icons-material/DirectionsCarOutlined";
 import { setCartList, clearCartGroups } from "redux/slices/cart";
 import { getCartListModuleWise } from "helper-functions/getCartListModuleWise";
 import { getModuleIdentifier, saveModuleParam } from "utils/moduleParamManager";
 import { setSelectedModule } from "redux/slices/utils";
 import { useScrollCollapseClass } from "hooks/useScrollDirection";
+import { scrollActiveTabIntoView } from "utils/scrollActiveTabIntoView";
 import useAnimatedSearchPlaceholder from "hooks/useAnimatedSearchPlaceholder";
 import { getServiceSections } from "components/home/module-wise-components/service/serviceSectionsConfig";
+
+const TaxiView = dynamic(() =>
+  import(
+    "components/home/module-wise-components/rental/components/home/TaxiView"
+  )
+);
 
 /**
  * Mobile navbar — three sections (default state):
@@ -46,10 +54,11 @@ import { getServiceSections } from "components/home/module-wise-components/servi
  *     stays sticky at top.
  *   - Scrolling up → all three sections become visible again.
  */
-const MobileNavBar = ({ configData, location, setOpenSignIn }) => {
+const MobileNavBar = ({ configData, location, setLocation, setOpenSignIn }) => {
   const theme = useTheme();
   const router = useRouter();
   const dispatch = useDispatch();
+  const queryClient = useQueryClient();
 
   const isSearchPage = router.pathname === "/search";
   const isHomePage = router.pathname === "/home";
@@ -89,6 +98,14 @@ const MobileNavBar = ({ configData, location, setOpenSignIn }) => {
   const [addressPopoverOpen, setAddressPopoverOpen] = useState(false);
   const [address, setAddress] = useState(null);
   const addressAnchorRef = useRef(null);
+  const handleLocationChange = useCallback(
+    (nextLocation) => {
+      setLocation?.(nextLocation);
+      queryClient.invalidateQueries();
+      router.replace(router.asPath, undefined, { scroll: false });
+    },
+    [queryClient, router, setLocation],
+  );
   // Single global cart fetch: cart/get-all. Mutations invalidate the
   // "cart-groups" query, triggering auto-refetch.
   const { refetch: cartListRefetch } = useGetGroupedCart();
@@ -134,19 +151,20 @@ const MobileNavBar = ({ configData, location, setOpenSignIn }) => {
       localStorage.setItem("location", address.address);
       localStorage.setItem(
         "currentLatLng",
-        JSON.stringify({ lat: address.lat, lng: address.lng }),
+        JSON.stringify({ lat: address.lat, lng: address.lng })
       );
       localStorage.setItem("zoneid", JSON.stringify(zoneIds));
       const isRental = getModule()?.module_type === "rental";
       toast.success(
-        t(`New ${isRental ? "Pickup" : "Delivery"} address selected.`),
+        t(`New ${isRental ? "Pickup" : "Delivery"} address selected.`)
       );
       setAddressPopoverOpen(false);
-      window.location.reload();
+      setAddress(null);
+      handleLocationChange(address.address);
     } else {
       toast.error(t("This address is not available for delivery."));
     }
-  }, [address]);
+  }, [address, handleLocationChange]);
 
   // Cycling "Search for <noun>" placeholder. The hook only reaches for the
   // category list when the persisted store has none, so this costs no request
@@ -270,20 +288,13 @@ const MobileNavBar = ({ configData, location, setOpenSignIn }) => {
     router.push(
       { pathname: "/home", query: { module: moduleIdentifier } },
       undefined,
-      { shallow: isHome },
+      { shallow: isHome, scroll: true }
     );
   };
 
   // Keep the active module tab visible
   useEffect(() => {
-    const el = moduleTabsRef.current?.querySelector("[data-active='true']");
-    if (el && el.scrollIntoView) {
-      el.scrollIntoView({
-        behavior: "smooth",
-        inline: "center",
-        block: "nearest",
-      });
-    }
+    scrollActiveTabIntoView(moduleTabsRef.current);
   }, [selectedModule?.id]);
 
   // ── Render ──
@@ -398,7 +409,7 @@ const MobileNavBar = ({ configData, location, setOpenSignIn }) => {
           "html.mobile-nav-collapsed &": {
             boxShadow: `0px 1px 2px ${alpha(
               theme.palette.common.black,
-              0.1,
+              0.1
             )}, 0px 1px 2px ${alpha(theme.palette.common.black, 0.05)}`,
           },
         }}
@@ -601,8 +612,8 @@ const MobileNavBar = ({ configData, location, setOpenSignIn }) => {
                         color: isActive
                           ? theme.palette.neutral[1050]
                           : isDark
-                            ? theme.palette.text.secondary
-                            : "#757575",
+                          ? theme.palette.text.secondary
+                          : "#757575",
                         fontWeight: isActive ? 600 : 400,
                         fontSize: "14px",
                         borderRadius: "8px 8px 0 0",
@@ -815,6 +826,7 @@ const MobileNavBar = ({ configData, location, setOpenSignIn }) => {
         setAddress={setAddress}
         token={token}
         currentLatLngForMar={currentLatLngForMar}
+        onLocationChange={handleLocationChange}
       />
     </>
   );

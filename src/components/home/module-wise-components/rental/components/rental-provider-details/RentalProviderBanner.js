@@ -6,7 +6,6 @@ import RentalCarDetailsBannerImg from "./RentalCarDetailsBannerImg";
 import { useRouter } from "next/router";
 import { useTranslation } from "react-i18next";
 import { useGetProviderDetails } from "components/home/module-wise-components/rental/rental-api-manage/hooks/react-query/provider/useGetProviderDetails";
-import useScrollToTop from "api-manage/hooks/custom-hooks/useScrollToTop";
 import StoreCustomMessage from "components/store-details/StoreCustomMessage";
 import useGetProviderBanner from "../../rental-api-manage/hooks/react-query/provider/useGetProviderBanner";
 import CustomPageBreadCrumb from "components/common/CustomPageBreadCrumb";
@@ -29,7 +28,6 @@ const ProPlanPaymentModal = dynamic(() =>
 );
 
 const RentalProviderBanner = ({ configData }) => {
-  useScrollToTop();
   const { t } = useTranslation();
   const router = useRouter();
   const queryClient = useQueryClient();

@@ -1,4 +1,3 @@
-import useScrollToTop from "api-manage/hooks/custom-hooks/useScrollToTop";
 import {
   Box,
   Button,
@@ -132,7 +131,6 @@ const ServiceInfoShimmer = () => (
 );
 
 const CustomServiceDetails = ({ serviceId, configData }) => {
-  useScrollToTop();
   const theme = useTheme();
   const { t } = useTranslation();
   const router = useRouter();

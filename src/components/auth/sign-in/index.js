@@ -35,7 +35,7 @@ import {
 } from "utils/toasterMessages";
 import useGetGroupedCart from "../../../api-manage/hooks/react-query/add-cart/useGetGroupedCart";
 import useGetProfile from "../../../api-manage/hooks/react-query/profile/useGetProfile";
-import { getSelectedVariations } from "../../header/second-navbar/SecondNavbar";
+import { getSelectedVariations } from "helper-functions/getSelectedVariations";
 import { ModuleSelection } from "../../landing-page/hero-section/module-selection";
 import CustomModal from "../../modal";
 import AuthHeader from "../AuthHeader";

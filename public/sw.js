@@ -127,19 +127,6 @@ const staleWhileRevalidate = async (request, cacheName, maxAge, limit) => {
   return (await network) || cached || fetch(request);
 };
 
-const networkFirst = async (request, cacheName, maxAge, limit) => {
-  try {
-    return await put(cacheName, request, await fetch(request), limit);
-  } catch (error) {
-    const cached = await (
-      await caches.open(cacheName)
-    ).match(cacheKey(request));
-    const cache = await caches.open(cacheName);
-    if (await fresh(cache, request, cached, maxAge)) return cached;
-    throw error;
-  }
-};
-
 const isPublicRequest = (request) =>
   request.method === "GET" && !request.headers.has("authorization");
 
@@ -226,8 +213,14 @@ self.addEventListener("fetch", (event) => {
   } else if (
     /\/api\/v1\/(items|stores|banners|campaigns|flash-sales)(?:\/|$)/.test(path)
   ) {
+    // Keep public browse results responsive while a fresh 60s copy is revalidated.
     event.respondWith(
-      networkFirst(request, CACHE.catalog, MAX_AGE.catalog, MAX_ENTRIES.catalog)
+      staleWhileRevalidate(
+        request,
+        CACHE.catalog,
+        MAX_AGE.catalog,
+        MAX_ENTRIES.catalog
+      )
     );
   }
 });

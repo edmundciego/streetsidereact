@@ -363,7 +363,7 @@ const Top = (props) => {
 
   useEffect(() => {
     let observer;
-    // Delay one rAF so the parent's useScrollToTop runs first.
+    // Wait one frame for navigation scroll handling before observing the hero.
     // Without this, on client-side navigation the previous page's scroll
     // position can briefly put the sentinel out of view and flash the header.
     const raf = requestAnimationFrame(() => {

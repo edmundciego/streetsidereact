@@ -105,15 +105,34 @@ const PushNotificationLayout = ({
       </IconButton>
     </CustomPaperRefer>
   );
-  // Defer Firebase Messaging SDK until browser is idle so it never blocks
-  // initial render / LCP. Dynamically imports ../firebase (which pulls
-  // firebase/messaging) after idle.
+  // Messaging uses its own entry point: opening a browsing screen must not
+  // initialize Firebase Auth or download its hidden authentication iframe.
   useEffect(() => {
     let cancelled = false;
+    let unsubscribe;
     const load = async () => {
+      if (!("Notification" in window) || Notification.permission === "denied")
+        return;
       try {
-        const { fetchToken } = await import("../firebase");
-        if (!cancelled) await fetchToken(setTokenFound, setFcmToken);
+        const { fetchToken, subscribeToMessages } = await import(
+          "../firebase-messaging"
+        );
+        if (cancelled) return;
+        unsubscribe = await subscribeToMessages((payload) => {
+          if (!cancelled && payload?.data) setNotification(payload.data);
+        });
+        if (cancelled) {
+          unsubscribe?.();
+          return;
+        }
+        await fetchToken(
+          (value) => {
+            if (!cancelled) setTokenFound(value);
+          },
+          (value) => {
+            if (!cancelled) setFcmToken(value);
+          }
+        );
       } catch {
         // push unsupported — silently skip
       }
@@ -124,12 +143,14 @@ const PushNotificationLayout = ({
         return () => {
           cancelled = true;
           window.cancelIdleCallback?.(id);
+          unsubscribe?.();
         };
       }
       const t = setTimeout(load, 2500);
       return () => {
         cancelled = true;
         clearTimeout(t);
+        unsubscribe?.();
       };
     }
   }, []);
@@ -144,10 +165,10 @@ const PushNotificationLayout = ({
   const { mutate } = useStoreFcm();
 
   useEffect(() => {
-    if (userToken) {
+    if (userToken && fcmToken) {
       mutate(fcmToken);
     }
-  }, [fcmToken]);
+  }, [fcmToken, userToken, mutate]);
 
   const clickHandler = () => {
     if (notification.type === "message") {
@@ -177,20 +198,6 @@ const PushNotificationLayout = ({
       );
     }
   };
-
-  // Listen for foreground messages once (firebase lazily loaded)
-  useEffect(() => {
-    let cancelled = false;
-    import("../firebase")
-      .then(({ onMessageListener }) => onMessageListener())
-      .then((payload) => {
-        if (!cancelled && payload?.data) setNotification(payload.data);
-      })
-      .catch(() => {}); // push unsupported — skip
-    return () => {
-      cancelled = true;
-    };
-  }, []);
 
   // Render toast when a notification arrives
   useEffect(() => {

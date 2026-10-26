@@ -59,7 +59,9 @@ import {
 import TrackOrderSvg from "components/header/TrackOrderSvg";
 import NextImage from "components/NextImage";
 import trackImage from "./assets/fi_2726193.png";
-const AuthModal = dynamic(() => import("components/auth/AuthModal"));
+import { getSelectedVariations } from "helper-functions/getSelectedVariations";
+export { getSelectedVariations } from "helper-functions/getSelectedVariations";
+import AuthModal from "components/auth/DeferredAuthModal";
 
 const parseJsonFromStorage = (value) => {
   if (!value) return null;
@@ -185,27 +187,6 @@ const WishListSideBar = ({ totalWishList }) => {
   );
 };
 
-export const getSelectedVariations = (variations) => {
-  let selectedItem = [];
-  if (variations?.length > 0) {
-    variations?.forEach((item, index) => {
-      item?.values?.forEach((value, optionIndex) => {
-        if (value?.isSelected) {
-          const itemObj = {
-            choiceIndex: index,
-            isSelected: value?.isSelected,
-            label: value?.label,
-            optionIndex: optionIndex,
-            optionPrice: value?.optionPrice,
-            // type:item?.
-          };
-          selectedItem.push(itemObj);
-        }
-      });
-    });
-  }
-  return selectedItem;
-};
 const getOtherModuleVariation = (itemVariations, selectedVariation) => {
   let selectedItem = [];
   itemVariations?.forEach((item) => {

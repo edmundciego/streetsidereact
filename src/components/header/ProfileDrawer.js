@@ -25,7 +25,7 @@ const ProfileDrawer = ({ open, onClose, onSignInClick }) => {
       anchor="bottom"
       open={open}
       onClose={onClose}
-      sx={{ zIndex: 1400 }}
+      sx={{ zIndex: theme.zIndex.modal }}
       PaperProps={{
         sx: {
           width: "100%",

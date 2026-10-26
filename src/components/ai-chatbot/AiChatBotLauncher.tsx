@@ -1,12 +1,76 @@
 import CloseIcon from "@mui/icons-material/Close";
 import SmartToyOutlinedIcon from "@mui/icons-material/SmartToyOutlined";
-import { Badge, Box, Fab, Tooltip, Zoom, alpha } from "@mui/material";
+import {
+  Badge,
+  Box,
+  Fab,
+  IconButton,
+  Skeleton,
+  Tooltip,
+  Typography,
+  Zoom,
+  alpha,
+} from "@mui/material";
 import { useTheme } from "@mui/material/styles";
-import { useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useSelector } from "react-redux";
 import { getToken } from "../../helper-functions/getToken";
-import ChatBotPopover from "./ChatBotPopover";
+import DeferredPanel from "components/common/DeferredPanel";
+
+const ChatBotPopover = lazy(() => import("./ChatBotPopover"));
+const preloadChat = () => {
+  void import("./ChatBotPopover").catch(() => {});
+};
+
+const ChatLoadingPanel = ({ onClose }: { onClose: () => void }) => {
+  const { t } = useTranslation();
+  return (
+    <Box
+      role="status"
+      aria-live="polite"
+      sx={{
+        position: "fixed",
+        zIndex: (theme) => theme.zIndex.modal + 1,
+        inset: { xs: 0, sm: "auto" },
+        right: { sm: 24 },
+        bottom: { sm: 96 },
+        width: { sm: 380 },
+        height: { sm: 560 },
+        p: 2,
+        bgcolor: "background.paper",
+        borderRadius: { xs: 0, sm: 3 },
+      }}
+    >
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          mb: 3,
+        }}
+      >
+        <Typography>{t("Loading...")}</Typography>
+        <IconButton onClick={onClose} aria-label={t("Close") as string}>
+          <CloseIcon />
+        </IconButton>
+      </Box>
+      <Skeleton
+        animation={false}
+        variant="rounded"
+        height={56}
+        sx={{ mb: 2 }}
+      />
+      <Skeleton
+        animation={false}
+        variant="rounded"
+        height={96}
+        sx={{ mb: 2 }}
+      />
+      <Skeleton animation={false} variant="rounded" height={56} />
+    </Box>
+  );
+};
 
 interface AiChatBotLauncherProps {
   unreadCount?: number;
@@ -37,12 +101,14 @@ const AiChatBotLauncher = ({
     return () => window.removeEventListener("storage", handleStorage);
   }, [profileInfo]);
 
- // if (!isLoggedIn) return null;
+  // if (!isLoggedIn) return null;
 
   return (
     <>
       <Tooltip
-        title={open ? (t("Close") as string) : (t("Ask AI Assistant") as string)}
+        title={
+          open ? (t("Close") as string) : (t("Ask AI Assistant") as string)
+        }
         placement="left"
       >
         <Box
@@ -68,6 +134,11 @@ const AiChatBotLauncher = ({
             <Fab
               color="primary"
               aria-label={t("AI Assistant") as string}
+              aria-expanded={open}
+              aria-haspopup="dialog"
+              onPointerEnter={preloadChat}
+              onFocus={preloadChat}
+              onPointerDown={preloadChat}
               onClick={() => setOpen((v) => !v)}
               sx={{
                 width: 56,
@@ -77,15 +148,13 @@ const AiChatBotLauncher = ({
                 } 0%, ${alpha(theme.palette.primary.main, 0.78)} 100%)`,
                 boxShadow: `0 10px 24px ${alpha(
                   theme.palette.primary.main,
-                  0.45,
+                  0.45
                 )}`,
                 "&:hover": {
-                  background: `linear-gradient(135deg, ${
-                    theme.palette.primary.dark
-                  } 0%, ${theme.palette.primary.main} 100%)`,
+                  background: `linear-gradient(135deg, ${theme.palette.primary.dark} 0%, ${theme.palette.primary.main} 100%)`,
                   boxShadow: `0 12px 28px ${alpha(
                     theme.palette.primary.main,
-                    0.55,
+                    0.55
                   )}`,
                 },
                 "&::after": open
@@ -117,7 +186,15 @@ const AiChatBotLauncher = ({
         </Box>
       </Tooltip>
 
-      <ChatBotPopover open={open} onClose={() => setOpen(false)} />
+      <DeferredPanel open={open}>
+        <Suspense
+          fallback={
+            open ? <ChatLoadingPanel onClose={() => setOpen(false)} /> : null
+          }
+        >
+          <ChatBotPopover open={open} onClose={() => setOpen(false)} />
+        </Suspense>
+      </DeferredPanel>
     </>
   );
 };

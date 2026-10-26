@@ -57,6 +57,10 @@ const GetLocationAlert = ({ setOpenAlert }) => {
         <MapModal
           open={open}
           handleClose={() => setOpen(false)}
+          handleLocation={() => {
+            setOpen(false);
+            setOpenAlert?.(false);
+          }}
           coords={coords}
           disableAutoFocus
           fromStore

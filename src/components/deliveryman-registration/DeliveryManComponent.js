@@ -21,13 +21,11 @@ import {
 } from "./CustomStylesDeliveryman";
 import { objectToFormData } from "helper-functions/objectToFormData";
 import { FORM_TITLE } from "./constants";
-import useScrollToTop from "api-manage/hooks/custom-hooks/useScrollToTop";
 
 const DeliveryManComponent = ({
   configData,
   applicationTitle = "Deliveryman Application",
 }) => {
-  useScrollToTop();
   const router = useRouter();
   const { t } = useTranslation();
   const [image, setImage] = useState("");

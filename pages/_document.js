@@ -46,29 +46,7 @@ class CustomDocument extends Document {
               `,
             }}
           />
-          {/* Fonts */}
-          <link rel="preconnect" href="https://fonts.googleapis.com" />
-          <link
-            rel="preconnect"
-            href="https://fonts.gstatic.com"
-            crossOrigin=""
-          />
-          <link
-            href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Rubik:wght@300;400;500;600;700&display=swap"
-            rel="stylesheet"
-          />
-
-          {/* Social login scripts */}
-          <script
-            type="application/javascript"
-            src="https://accounts.google.com/gsi/client"
-            async
-          />
-          <script
-            type="text/javascript"
-            src="https://appleid.cdn-apple.com/appleauth/static/jsapi/appleid/1/en_US/appleid.auth.js"
-            async
-          />
+          {/* Fonts are served locally; login SDKs load with their panels. */}
           <meta name="theme-color" content="#111827" />
 
           {/* ✅ Analytics scripts */}
@@ -211,7 +189,10 @@ class CustomDocument extends Document {
 // same network round-trip doesn't block every SSR render. A short timeout
 // prevents a slow backend from stalling HTML delivery.
 const ANALYTICS_CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes
-const analyticsConfigCache = new LRUCache({ max: 10, ttl: ANALYTICS_CACHE_TTL_MS });
+const analyticsConfigCache = new LRUCache({
+  max: 10,
+  ttl: ANALYTICS_CACHE_TTL_MS,
+});
 
 const fetchAnalyticsConfig = async () => {
   const cached = analyticsConfigCache.get("config");
@@ -219,7 +200,9 @@ const fetchAnalyticsConfig = async () => {
 
   let analyticsConfig = {};
   try {
-    const baseUrl = (process.env.NEXT_PUBLIC_BASE_URL || "https://yourdomain.com").replace(/\/+$/, "");
+    const baseUrl = (
+      process.env.NEXT_PUBLIC_BASE_URL || "https://yourdomain.com"
+    ).replace(/\/+$/, "");
     const res = await fetch(`${baseUrl}/api/v1/config/get-analytic-scripts`, {
       headers: {
         "X-software-id": 33571750,

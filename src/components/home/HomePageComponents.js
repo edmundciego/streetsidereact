@@ -180,10 +180,6 @@ const HomePageComponents = ({
     if (openPaymentModal) refetchOfflinePaymentOptions();
   }, [openPaymentModal, refetchOfflinePaymentOptions]);
 
-  useEffect(() => {
-    window.scrollTo(0, 0);
-  }, [router.query.search]);
-
   const onSuccessHandler = (response) => {
     setWishListsData(response);
     dispatch(setWishList(response));

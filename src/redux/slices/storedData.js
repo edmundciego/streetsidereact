@@ -1,6 +1,8 @@
 import { createSlice } from "@reduxjs/toolkit";
+import { setLogoutUser } from "./profileInfo";
 
 const initialState = {
+  moduleId: null,
   categories: [],
   subCategories: [],
   popularStores: [],
@@ -97,6 +99,16 @@ export const storedDataSlice = createSlice({
     setSearchPlaceholderCategories: (state, action) => {
       state.searchPlaceholderCategories = action.payload;
     },
+    setStoredDataModule: (state, action) => {
+      const moduleId = String(action.payload);
+      if (state.moduleId === moduleId) return;
+      return {
+        ...initialState,
+        moduleId,
+        landingPage: state.landingPage,
+        searchPlaceholderCategories: state.searchPlaceholderCategories,
+      };
+    },
     // Clears the module-scoped lists on a module switch. `landingPage` is
     // global CMS content and `searchPlaceholderCategories` carries its own
     // module tag, so neither is what this reset is for — dropping them just
@@ -106,6 +118,13 @@ export const storedDataSlice = createSlice({
       landingPage: state.landingPage,
       searchPlaceholderCategories: state.searchPlaceholderCategories,
     }),
+  },
+  extraReducers: (builder) => {
+    builder.addCase(setLogoutUser, (state) => ({
+      ...initialState,
+      landingPage: state.landingPage,
+      searchPlaceholderCategories: state.searchPlaceholderCategories,
+    }));
   },
 });
 
@@ -124,6 +143,7 @@ export const {
   setBestReviewedItems,
   setYouWillLoveItems,
   setResetStoredData,
+  setStoredDataModule,
   setLandingPage,
   setSearchPlaceholderCategories,
   setAllSaveAddress,

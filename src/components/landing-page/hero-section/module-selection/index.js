@@ -32,7 +32,7 @@ import { setCartList } from "redux/slices/cart";
 import useGetBookingList from "api-manage/hooks/react-query/useGetBookingList";
 import useGetGroupedCart from "api-manage/hooks/react-query/add-cart/useGetGroupedCart";
 import { handleProductValueWithOutDiscount } from "utils/CustomFunctions";
-import { getSelectedVariations } from "components/header/second-navbar/SecondNavbar";
+import { getSelectedVariations } from "helper-functions/getSelectedVariations";
 import { getGuestId } from "helper-functions/getToken";
 import { getCurrentModuleType } from "helper-functions/getCurrentModuleType";
 import useDeleteAllCarts from "api-manage/hooks/react-query/useDeleteAllCarts";

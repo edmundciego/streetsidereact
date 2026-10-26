@@ -2,6 +2,7 @@ const nextConfig = {
   reactStrictMode: true,
   compress: true,
   experimental: {
+    scrollRestoration: true,
     swcPlugins: [],
     optimizePackageImports: [
       "@mui/material",

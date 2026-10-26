@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React from "react";
 import {
   CustomPaperBigCard,
   CustomStackFullWidth,
@@ -8,20 +8,12 @@ import { Stack } from "@mui/material";
 import MiddleSection from "./MiddleSection";
 import ItemSection from "./ItemSection";
 import { useTheme } from "@emotion/react";
-import { useRouter } from "next/router";
 import SimpleMobileHeader from "components/common/SimpleMobileHeader";
 import CustomContainer from "components/container";
 
 const CampaignsDetails = ({ campaignsDetails, isRefetching, isLoading }) => {
   const theme = useTheme();
-  const router = useRouter();
   const camImage = campaignsDetails?.image_full_url;
-  useEffect(() => {
-    // Wait for query to be available
-    if (router.isReady) {
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    }
-  }, [router.isReady]);
   return (
     <CustomStackFullWidth mt={{ xs: 0, md: "16px" }}>
       <SimpleMobileHeader title={campaignsDetails?.title ?? "Campaigns"} />

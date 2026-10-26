@@ -21,10 +21,6 @@ const Index = ({ configData, productDetailsData, isCampaign }) => {
 
 
   useEffect(() => {
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  }, []);
-
-  useEffect(() => {
     if (configData) {
       dispatch(setConfigData(configData));
     }

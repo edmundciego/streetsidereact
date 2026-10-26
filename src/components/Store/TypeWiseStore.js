@@ -10,11 +10,9 @@ import useGetPopularStore, {
 import { Box } from "@mui/system";
 import Shimmer from "../home/stores-with-filter/Shimmer";
 import useGetTopOffers from "api-manage/hooks/react-query/product-details/useGetTopOffers";
-import useScrollToTop from "api-manage/hooks/custom-hooks/useScrollToTop";
 import { getCurrentModuleType } from "helper-functions/getCurrentModuleType";
 
 const TypeWiseStore = ({ storeType, title }) => {
-  useScrollToTop();
   const [type, setType] = useState("all");
   const { data, refetch, isLoading } = useGetTypeWiseStore(storeType, type);
   const [sortby, setSortby] = useState('')

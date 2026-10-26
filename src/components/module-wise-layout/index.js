@@ -1,32 +1,35 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { setResetStoredData } from "redux/slices/storedData";
+import { setStoredDataModule } from "redux/slices/storedData";
 import { CustomStackFullWidth } from "styled-components/CustomStyles.style";
 import HomePageComponents from "../home/HomePageComponents";
 
-const ModuleWiseLayout = ({ configData, landingPageData, routeSection, routeCategory }) => {
-	const [rerender, setRerender] = useState(false);
-	const { selectedModule } = useSelector((state) => state.utilsData);
-	const dispatch = useDispatch();
+const ModuleWiseLayout = ({
+  configData,
+  landingPageData,
+  routeSection,
+  routeCategory,
+}) => {
+  const { selectedModule } = useSelector((state) => state.utilsData);
+  const dispatch = useDispatch();
 
-	useEffect(() => {
-		if (!selectedModule) return;
-		dispatch(setResetStoredData());
-		setRerender((previous) => !previous);
-	}, [dispatch, selectedModule]);
+  useEffect(() => {
+    if (!selectedModule?.id) return;
+    dispatch(setStoredDataModule(selectedModule.id));
+  }, [dispatch, selectedModule?.id]);
 
-	return (
-		<CustomStackFullWidth>
-			{/* ModuleSelect sidebar hidden */}
-			<HomePageComponents
-				key={rerender}
-				configData={configData}
-				landingPageData={landingPageData}
-				routeSection={routeSection}
-				routeCategory={routeCategory}
-			/>
-		</CustomStackFullWidth>
-	);
+  return (
+    <CustomStackFullWidth>
+      {/* ModuleSelect sidebar hidden */}
+      <HomePageComponents
+        key={selectedModule?.id ?? "loading"}
+        configData={configData}
+        landingPageData={landingPageData}
+        routeSection={routeSection}
+        routeCategory={routeCategory}
+      />
+    </CustomStackFullWidth>
+  );
 };
 
 export default React.memo(ModuleWiseLayout);
