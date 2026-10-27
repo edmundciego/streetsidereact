@@ -27,14 +27,13 @@ import { useDispatch } from "react-redux";
 import { setSelectedModule } from "redux/slices/utils";
 import CustomModal from "components/modal";
 import RestaurantReviewModal from "components/store-details/ReviewModal";
-import useScrollToTop from "api-manage/hooks/custom-hooks/useScrollToTop";
 import useGetAllCartList from "api-manage/hooks/react-query/add-cart/useGetAllCartList";
 import dynamic from "next/dynamic";
 import CustomImageContainer from "components/CustomImageContainer";
 import locationImage from "../../../../../../../public/static/fi_854878.svg";
 import CloseIcon from "@mui/icons-material/Close";
 import { useTranslation } from "react-i18next";
-import { getSelectedVariations } from "components/header/second-navbar/SecondNavbar";
+import { getSelectedVariations } from "helper-functions/getSelectedVariations";
 import { setCartList, setStoreCartList } from "redux/slices/cart";
 import { saveModuleParam } from "utils/moduleParamManager";
 import CustomContainer from "components/container";
@@ -68,7 +67,6 @@ const parseZoneIdsFromStorageValue = (rawZoneIds) => {
 };
 
 const ProviderDetails = ({ providerDetails, configData }) => {
-  useScrollToTop();
   const dispatch = useDispatch();
   const { t } = useTranslation();
   const [openReviewModal, setOpenReviewModal] = useState(false);

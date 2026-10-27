@@ -8,6 +8,7 @@ import { alpha, Box, Typography, useMediaQuery, useTheme } from "@mui/material";
 import googleLatest from "../../asset/Google_Logo.png";
 import { t } from "i18next";
 import { getGuestId } from "helper-functions/getToken";
+import Script from "next/script";
 
 export const CustomGoogleButton = styled(Stack)(({ theme, width, height }) => ({
   width: width,
@@ -122,9 +123,8 @@ const GoogleLoginComp = (props) => {
       },
     });
   };
-  useEffect(() => {
-    // Initialize Google button
-    if (typeof window !== undefined) {
+  const initializeGoogle = () => {
+    if (typeof window !== "undefined" && buttonDiv.current) {
       window?.google?.accounts?.id?.initialize({
         client_id: clientId,
         callback: handleCallBackResponse,
@@ -135,7 +135,16 @@ const GoogleLoginComp = (props) => {
         logo_alignment: "left",
       });
     }
-  }, []);
+  };
+
+  const googleScript = (
+    <Script
+      id="google-login-sdk"
+      src="https://accounts.google.com/gsi/client"
+      strategy="afterInteractive"
+      onReady={initializeGoogle}
+    />
+  );
 
   const handleView = () => {
     // Handle conditional rendering for social login button style
@@ -226,6 +235,7 @@ const GoogleLoginComp = (props) => {
   if (isLandingVariant) {
     return (
       <Box sx={{ width: "100%", position: "relative", overflow: "hidden" }}>
+        {googleScript}
         <Box
           sx={{
             display: "flex",
@@ -267,6 +277,7 @@ const GoogleLoginComp = (props) => {
       width={socialLength === 3 && state?.status !== "social" ? "45px" : "100%"}
       maxWidth="355px"
     >
+      {googleScript}
       <div
         style={{
           position: "relative",

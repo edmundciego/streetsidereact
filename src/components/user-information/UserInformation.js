@@ -21,7 +21,6 @@ import useGetUserInfo from "../../api-manage/hooks/react-query/user/useGetUserIn
 import PushNotificationLayout from "../PushNotificationLayout";
 import CustomContainer from "../container";
 import BodySection from "./BodySection";
-import useScrollToTop from "api-manage/hooks/custom-hooks/useScrollToTop";
 import ProfileIntro from "./ProfileIntro";
 import AccountMenuPanel from "components/header/second-navbar/account-popover/AccountMenuPanel";
 
@@ -65,7 +64,6 @@ const PAGE_TO_MENU_KEY = {
 
 const UserInformation = ({ page, configData, orderId }) => {
   const theme = useTheme();
-  useScrollToTop();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
   const [accountDeleteStatus, setAccountDeleteStatus] = useState(true);
   const dispatch = useDispatch();

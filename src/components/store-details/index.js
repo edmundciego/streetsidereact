@@ -34,7 +34,6 @@ import { useDispatch } from "react-redux";
 import { setSelectedModule } from "redux/slices/utils";
 import CustomModal from "components/modal";
 import RestaurantReviewModal from "components/store-details/ReviewModal";
-import useScrollToTop from "api-manage/hooks/custom-hooks/useScrollToTop";
 import LastOrdersSection from "components/home/module-wise-components/food/LastOrdersSection";
 import useGetProActiveOffer from "api-manage/hooks/react-query/pro-plans/useGetProActiveOffer";
 import useSubscribeProPlan from "api-manage/hooks/react-query/pro-plans/useSubscribeProPlan";
@@ -51,7 +50,7 @@ import CustomImageContainer from "components/CustomImageContainer";
 import locationImage from "../../../public/static/fi_854878.svg";
 import CloseIcon from "@mui/icons-material/Close";
 import { useTranslation } from "react-i18next";
-import { getSelectedVariations } from "components/header/second-navbar/SecondNavbar";
+import { getSelectedVariations } from "helper-functions/getSelectedVariations";
 import { setCartList, setStoreCartList } from "redux/slices/cart";
 import { saveModuleParam } from "utils/moduleParamManager";
 import CartDiscountEligibilityBanner from "components/added-cart-view/CartDiscountEligibilityBanner";
@@ -81,7 +80,6 @@ const parseZoneIdsFromStorageValue = (rawZoneIds) => {
 };
 
 const StoreDetails = ({ storeDetails, configData }) => {
-  useScrollToTop();
   const dispatch = useDispatch();
   const queryClient = useQueryClient();
   const { t } = useTranslation();

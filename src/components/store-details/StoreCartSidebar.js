@@ -87,17 +87,17 @@ import CartDiscountEligibilityBanner from "components/added-cart-view/CartDiscou
 import useGetCartDiscountEligibility from "api-manage/hooks/react-query/add-cart/useGetCartDiscountEligibility";
 
 const ProPlanSubscriptionModal = dynamic(() =>
-  import("../pro-plan/ProPlanSubscriptionModal"),
+  import("../pro-plan/ProPlanSubscriptionModal")
 );
 const ProPlanPaymentModal = dynamic(() =>
-  import("../pro-plan/ProPlanPaymentModal"),
+  import("../pro-plan/ProPlanPaymentModal")
 );
 
 const FoodDetailModal = dynamic(() =>
-  import("../food-details/foodDetail-modal/FoodDetailModal"),
+  import("../food-details/foodDetail-modal/FoodDetailModal")
 );
 const ModuleModal = dynamic(() => import("../cards/ModuleModal"));
-const AuthModal = dynamic(() => import("../auth/AuthModal"));
+import AuthModal from "components/auth/DeferredAuthModal";
 const GuestCheckoutModal = dynamic(() => import("../cards/GuestCheckoutModal"));
 
 const SidebarSurface = styled(Box)(({ theme }) => ({
@@ -161,8 +161,7 @@ const CartItemRow = ({ cartItem }) => {
 
   const { mutate: deleteMutate, isLoading: removeIsLoading } =
     useDeleteCartItem();
-  const { mutate: updateMutate, isLoading: qtyIsLoading } =
-    useCartItemUpdate();
+  const { mutate: updateMutate, isLoading: qtyIsLoading } = useCartItemUpdate();
 
   const serverQuantity = Number(cartItem?.quantity) || 1;
   const displayQuantity = serverQuantity;
@@ -209,7 +208,7 @@ const CartItemRow = ({ cartItem }) => {
       cartItem,
       nextQty,
       mainPrice,
-      guestId,
+      guestId
     );
     setTargetQty(nextQty);
     updateMutate(itemObject, {
@@ -274,12 +273,12 @@ const CartItemRow = ({ cartItem }) => {
   const optionsTotal = (cartItem?.selectedOption ?? []).reduce(
     (sum, o) =>
       o?.isSelected === false ? sum : sum + (Number(o?.optionPrice) || 0),
-    0,
+    0
   );
 
   const addonsTotal = (cartItem?.selectedAddons ?? []).reduce(
     (sum, a) => sum + (Number(a?.price) || 0) * (Number(a?.quantity) || 0),
-    0,
+    0
   );
 
   // Addons are never discounted (the discounted/discount-free item price is
@@ -489,7 +488,8 @@ const FreeDeliveryHint = ({ zoneData, sx }) => {
   const isOfferActive =
     freeDelivery?.status === true &&
     (isAllStoreFree ||
-      (freeDelivery?.type === "specific_criteria" && freeDeliveryThreshold > 0));
+      (freeDelivery?.type === "specific_criteria" &&
+        freeDeliveryThreshold > 0));
 
   if (!isOfferActive) return null;
 
@@ -559,7 +559,7 @@ const MonthlyOrderInfo = () => {
 
   const policyItems = [
     t(
-      "Your selected items will be automatically added to your cart every month.",
+      "Your selected items will be automatically added to your cart every month."
     ),
     t("Prices and availability may change based on current store updates"),
     t("If any item is unavailable, it may be removed"),
@@ -736,7 +736,7 @@ const StoreCartSidebar = ({
           },
         },
         undefined,
-        { shallow: true },
+        { shallow: true }
       );
     } else {
       toast.error(t(not_logged_in_message));
@@ -753,7 +753,7 @@ const StoreCartSidebar = ({
       ? storeCartList
       : currentStoreId != null
       ? (Array.isArray(cartList) ? cartList : [])?.filter(
-          (i) => String(i?.store_id) === String(currentStoreId),
+          (i) => String(i?.store_id) === String(currentStoreId)
         )
       : Array.isArray(cartList)
       ? cartList
@@ -776,7 +776,7 @@ const StoreCartSidebar = ({
       : null;
   const { data: zoneData } = useGetZoneId(
     currentLatLng,
-    !!currentLatLng?.lat && !!currentLatLng?.lng,
+    !!currentLatLng?.lat && !!currentLatLng?.lng
   );
 
   // Packaging fee comes from the parent's `storeDetails` (the store-details
@@ -805,7 +805,7 @@ const StoreCartSidebar = ({
   useEffect(() => {
     if (typeof window === "undefined") return;
     setMonthlyOrder(
-      monthlySubKey ? localStorage.getItem(monthlySubKey) === "1" : false,
+      monthlySubKey ? localStorage.getItem(monthlySubKey) === "1" : false
     );
   }, [monthlySubKey]);
   // Default `extraPackaging` to false to match ItemCheckout's `isPackaging`
@@ -828,7 +828,7 @@ const StoreCartSidebar = ({
         addCutlery,
         unavailableChoice,
         monthlySubscribe: monthlyOrder,
-      }),
+      })
     );
   }, [extraPackaging, addCutlery, unavailableChoice, monthlyOrder, dispatch]);
 
@@ -899,7 +899,7 @@ const StoreCartSidebar = ({
     // later in the function body, so we recompute here to keep this IIFE
     // self-contained without reordering the rest of the file).
     const cartSubtotal = cartItemsTotalAmount(
-      getCartListModuleWise(storeScopedCart),
+      getCartListModuleWise(storeScopedCart)
     );
 
     const qualifiesForOffer =
@@ -911,7 +911,7 @@ const StoreCartSidebar = ({
       // "Add ৳X more to save" message regardless of benefit type.
       const amountToReachText = getAmountWithSign(amountToReachMin);
       return `${t("Add")} ${amountToReachText} ${t(
-        "more to save with Pro Plan",
+        "more to save with Pro Plan"
       )}`;
     }
     if (benefitType === "discount") {
@@ -970,10 +970,10 @@ const StoreCartSidebar = ({
           },
           onError: (err) => {
             toast.error(
-              err?.response?.data?.message || t("Subscription failed"),
+              err?.response?.data?.message || t("Subscription failed")
             );
           },
-        },
+        }
       );
       return;
     }
@@ -988,7 +988,7 @@ const StoreCartSidebar = ({
 
   const hasFlashSaleItem = useMemo(
     () => moduleCartList?.some((item) => Number(item?.flash_sale) === 1),
-    [moduleCartList],
+    [moduleCartList]
   );
 
   const subtotal =
@@ -1009,7 +1009,7 @@ const StoreCartSidebar = ({
           const optionsTotal = (item?.selectedOption ?? []).reduce(
             (s, o) =>
               o?.isSelected === false ? s : s + (Number(o?.optionPrice) || 0),
-            0,
+            0
           );
           unitPrice = (Number(item?.price) || 0) + optionsTotal;
         } else {
@@ -1031,7 +1031,7 @@ const StoreCartSidebar = ({
       const addons = item?.selectedAddons ?? [];
       const addonsTotal = addons.reduce(
         (t, a) => t + (Number(a?.price) || 0) * (Number(a?.quantity) || 0),
-        0,
+        0
       );
 
       return sum + discountedUnitPrice * itemQty + addonsTotal;
@@ -1065,7 +1065,7 @@ const StoreCartSidebar = ({
     const addons = item?.selectedAddons ?? item?.addons ?? [];
     const addonTotal = addons.reduce(
       (t, a) => t + (Number(a?.price) || 0) * (Number(a?.quantity) || 0),
-      0,
+      0
     );
     return sum + unitPrice * itemQty + addonTotal;
   }, 0);
@@ -1075,7 +1075,7 @@ const StoreCartSidebar = ({
 
   const { data: cartDiscountEligibility } = useGetCartDiscountEligibility(
     storeDetails?.id,
-    !!storeDetails?.id && moduleCartList?.length > 0,
+    !!storeDetails?.id && moduleCartList?.length > 0
   );
   const eligibilityDiscountAmount = cartDiscountEligibility?.is_qualified
     ? Number(cartDiscountEligibility?.discount_amount) || 0
@@ -1446,7 +1446,7 @@ const StoreCartSidebar = ({
                           key={item?.cartItemId || item?.id}
                           cartItem={item}
                         />
-                      ),
+                      )
                     )}
                   </Stack>
                 </Stack>
@@ -1455,7 +1455,7 @@ const StoreCartSidebar = ({
 
                 {/* Add To Monthly Order — grocery & pharmacy only, hidden when any cart item is a flash sale */}
                 {[ModuleTypes.GROCERY, ModuleTypes.PHARMACY].includes(
-                  getCurrentModuleType(),
+                  getCurrentModuleType()
                 ) &&
                 configData?.monthly_order_reminder &&
                 !hasFlashSaleItem ? (
@@ -1470,7 +1470,7 @@ const StoreCartSidebar = ({
                       borderRadius: 1,
                       backgroundColor: alpha(
                         theme.palette.warning?.main || "#F59E0B",
-                        0.12,
+                        0.12
                       ),
                     }}
                   >
@@ -1551,7 +1551,7 @@ const StoreCartSidebar = ({
                           }}
                         >
                           {`${t("An additional")} ${getAmountWithSign(
-                            extraPackagingAmount,
+                            extraPackagingAmount
                           )} ${t("will be applied.")}`}
                         </Typography>
                       </Stack>
@@ -1592,7 +1592,7 @@ const StoreCartSidebar = ({
                           }}
                         >
                           {t(
-                            "If available, your order will come with cutlery.",
+                            "If available, your order will come with cutlery."
                           )}
                         </Typography>
                       </Stack>
@@ -1652,7 +1652,7 @@ const StoreCartSidebar = ({
                           borderRadius: 2,
                           backgroundColor: alpha(
                             theme.palette.text.primary,
-                            0.03,
+                            0.03
                           ),
                         }}
                       >

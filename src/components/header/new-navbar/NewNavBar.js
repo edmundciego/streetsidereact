@@ -17,10 +17,8 @@ import dynamic from "next/dynamic";
 import { useRouter } from "next/router";
 import { useEffect, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import TaxiView from "components/home/module-wise-components/rental/components/home/TaxiView";
 import CustomContainer from "../../container";
 import LogoSide from "../../logo/LogoSide";
-import WishListCardView from "../../wishlist";
 import ManageSearch from "../second-navbar/ManageSearch";
 import ModuleWiseNav from "../second-navbar/ModuleWiseNav";
 import MobileNavBar from "./MobileNavBar";
@@ -41,7 +39,6 @@ import {
 import { handleProductValueWithOutDiscount } from "utils/CustomFunctions";
 
 import useGetBookingList from "api-manage/hooks/react-query/useGetBookingList";
-import ForgotPassword from "components/auth/ForgotPassword/ForgotPassword";
 import CustomModal from "components/modal";
 import useGetGroupedCart from "../../../api-manage/hooks/react-query/add-cart/useGetGroupedCart";
 import useGetGuest from "../../../api-manage/hooks/react-query/guest/useGetGuest";
@@ -49,8 +46,17 @@ import AllCartDrawer from "./AllCartDrawer";
 import { getCurrentModuleType } from "helper-functions/getCurrentModuleType";
 import { ModuleTypes } from "helper-functions/moduleTypes";
 import { getModuleIdentifier, saveModuleParam } from "utils/moduleParamManager";
+import { scrollActiveTabIntoView } from "utils/scrollActiveTabIntoView";
 
-const AuthModal = dynamic(() => import("components/auth/AuthModal"));
+import AuthModal from "components/auth/DeferredAuthModal";
+const ForgotPassword = dynamic(() =>
+  import("components/auth/ForgotPassword/ForgotPassword")
+);
+const TaxiView = dynamic(() =>
+  import(
+    "components/home/module-wise-components/rental/components/home/TaxiView"
+  )
+);
 
 // ─── Styled ─────────────────────────────────────────────────────────────────
 
@@ -310,7 +316,7 @@ const NewNavBar = ({ configData }) => {
     const matched = modules.find(
       (m) =>
         String(m?.slug) === String(urlModuleParam) ||
-        String(m?.id) === String(urlModuleParam),
+        String(m?.id) === String(urlModuleParam)
     );
     if (!matched) return;
     const current = selectedModule?.slug || selectedModule?.id;
@@ -726,7 +732,7 @@ const NewNavBar = ({ configData }) => {
           query: { ...router.query, module: moduleIdentifier },
         },
         undefined,
-        { shallow: true },
+        { shallow: true, scroll: true }
       );
       return;
     }
@@ -735,14 +741,7 @@ const NewNavBar = ({ configData }) => {
 
   // Keep the active module tab visible (same approach as MobileNavBar)
   useEffect(() => {
-    const el = moduleTabsRef.current?.querySelector("[data-active='true']");
-    if (el && el.scrollIntoView) {
-      el.scrollIntoView({
-        behavior: "smooth",
-        inline: "center",
-        block: "nearest",
-      });
-    }
+    scrollActiveTabIntoView(moduleTabsRef.current);
   }, [selectedModule?.id]);
 
   // ── Module bar ──

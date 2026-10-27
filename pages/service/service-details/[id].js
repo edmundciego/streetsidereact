@@ -43,10 +43,6 @@ const Index = ({ configData, serviceDetailsData }) => {
   }, [serviceDetailsData]);
 
   useEffect(() => {
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  }, []);
-
-  useEffect(() => {
     if (configData) {
       dispatch(setConfigData(configData));
     }

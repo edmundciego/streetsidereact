@@ -1,17 +1,24 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
-import { Box, NoSsr, Stack, Typography, useTheme } from "@mui/material";
+import {
+  Box,
+  ButtonBase,
+  NoSsr,
+  Stack,
+  Typography,
+  useTheme,
+} from "@mui/material";
 import { useRouter } from "next/router";
 import { useSelector } from "react-redux";
 import { t } from "i18next";
 import { getCurrentModuleType } from "helper-functions/getCurrentModuleType";
 import { toast } from "react-hot-toast";
 import { getToken } from "helper-functions/getToken";
-import WishListCardView from "../wishlist";
-import ProfileDrawer from "./ProfileDrawer";
 import NextImage from "components/NextImage";
+import DeferredPanel from "components/common/DeferredPanel";
 
-const AuthModal = dynamic(() => import("components/auth/AuthModal"));
+import AuthModal from "components/auth/DeferredAuthModal";
+const ProfileDrawer = dynamic(() => import("./ProfileDrawer"));
 
 const NAV_ITEMS = [
   {
@@ -49,10 +56,47 @@ const BottomNav = () => {
   const { selectedModule } = useSelector((state) => state.utilsData);
   const currentModuleType =
     selectedModule?.module_type ?? getCurrentModuleType();
-  const [wishListOpen, setWishListOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [authOpen, setAuthOpen] = useState(false);
   const [modalFor, setModalFor] = useState("sign-in");
+  const [pendingKey, setPendingKey] = useState(null);
+
+  useEffect(() => {
+    const clearPending = () => setPendingKey(null);
+    router.events.on("routeChangeComplete", clearPending);
+    router.events.on("routeChangeError", clearPending);
+    return () => {
+      router.events.off("routeChangeComplete", clearPending);
+      router.events.off("routeChangeError", clearPending);
+    };
+  }, [router.events]);
+
+  const getTarget = (item) => {
+    if (item.openProfile) return "/profile";
+    if (item.openWishlist) {
+      const module = router.query.module;
+      return (
+        "/home/wishlist" +
+        (module ? `?module=${encodeURIComponent(String(module))}` : "")
+      );
+    }
+    return item.path;
+  };
+
+  const prefetch = (item) => {
+    if ((item.requireAuth || item.openProfile) && !getToken()) return;
+    const target = getTarget(item);
+    if (target) void router.prefetch(target).catch(() => {});
+  };
+
+  const navigate = (item) => {
+    const target = getTarget(item);
+    if (!target || target === router.asPath) return;
+    setPendingKey(item.key);
+    void router.push(target).catch(() => {
+      setPendingKey((current) => (current === item.key ? null : current));
+    });
+  };
 
   const isActive = (item) => {
     if (item.openWishlist) {
@@ -74,13 +118,14 @@ const BottomNav = () => {
         [...params.entries()].every(([k, v]) => router.query[k] === v)
       );
     }
-    return router.pathname.startsWith(pathname);
+    const currentPath = router.asPath.split("?")[0].split("#")[0];
+    return currentPath === pathname || currentPath.startsWith(`${pathname}/`);
   };
 
   const handleClick = (item) => {
     if (item.openProfile) {
       if (getToken()) {
-        router.push("/profile");
+        navigate(item);
       } else {
         setProfileOpen(true);
       }
@@ -92,18 +137,17 @@ const BottomNav = () => {
       return;
     }
     if (item.openWishlist) {
-      router.push({
-        pathname: "/home/wishlist",
-        query: router.query.module ? { module: router.query.module } : {},
-      });
+      navigate(item);
       return;
     }
-    if (item.path) router.push(item.path);
+    if (item.path) navigate(item);
   };
 
   return (
     <NoSsr>
       <Box
+        component="nav"
+        aria-label={t("Main navigation")}
         sx={{
           position: "fixed",
           bottom: 0,
@@ -130,18 +174,26 @@ const BottomNav = () => {
         >
           {NAV_ITEMS.filter((item) =>
             item.key === "offers"
-              ? !["ride-share", "rental", "parcel"].includes(
-                  currentModuleType
-                )
+              ? !["ride-share", "rental", "parcel"].includes(currentModuleType)
               : true
           ).map((item) => {
-            const active = isActive(item);
+            const active = pendingKey
+              ? pendingKey === item.key
+              : isActive(item);
             const color = active ? theme.palette.primary.main : "#757575";
 
             return (
               <Stack
+                component={ButtonBase}
+                type="button"
                 key={item.key}
+                aria-label={t(item.label)}
+                aria-current={isActive(item) ? "page" : undefined}
+                aria-busy={pendingKey === item.key || undefined}
                 onClick={() => handleClick(item)}
+                onPointerEnter={() => prefetch(item)}
+                onFocus={() => prefetch(item)}
+                onTouchStart={() => prefetch(item)}
                 alignItems="center"
                 justifyContent="flex-end"
                 gap={"4px"}
@@ -154,6 +206,15 @@ const BottomNav = () => {
                   cursor: "pointer",
                   userSelect: "none",
                   position: "relative",
+                  borderRadius: 0,
+                  "&.Mui-focusVisible": {
+                    outline: `2px solid ${theme.palette.primary.main}`,
+                    outlineOffset: "-2px",
+                  },
+                  "@media (prefers-reduced-motion: reduce)": {
+                    "& .MuiTouchRipple-root": { display: "none" },
+                    "& *": { transition: "none" },
+                  },
                 }}
               >
                 {/* Active indicator — downward triangle */}
@@ -234,18 +295,13 @@ const BottomNav = () => {
         </Stack>
       </Box>
 
-      {wishListOpen && (
-        <WishListCardView
-          sideDrawerOpen={wishListOpen}
-          setSideDrawerOpen={setWishListOpen}
+      <DeferredPanel open={profileOpen}>
+        <ProfileDrawer
+          open={profileOpen}
+          onClose={() => setProfileOpen(false)}
+          onSignInClick={() => setAuthOpen(true)}
         />
-      )}
-
-      <ProfileDrawer
-        open={profileOpen}
-        onClose={() => setProfileOpen(false)}
-        onSignInClick={() => setAuthOpen(true)}
-      />
+      </DeferredPanel>
 
       {authOpen && (
         <AuthModal

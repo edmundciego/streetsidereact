@@ -30,7 +30,7 @@ import ProPlanBanner from "components/pro-plan/ProPlanBanner";
 import useGetProActiveOffer from "api-manage/hooks/react-query/pro-plans/useGetProActiveOffer";
 import useSubscribeProPlan from "api-manage/hooks/react-query/pro-plans/useSubscribeProPlan";
 
-const AuthModal = dynamic(() => import("components/auth/AuthModal"));
+import AuthModal from "components/auth/DeferredAuthModal";
 const ProPlanSubscriptionModal = dynamic(() =>
   import("components/pro-plan/ProPlanSubscriptionModal")
 );

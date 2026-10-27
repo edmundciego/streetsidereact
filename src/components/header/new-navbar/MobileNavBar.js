@@ -7,6 +7,7 @@ import {
   useTheme,
 } from "@mui/material";
 import { useRouter } from "next/router";
+import dynamic from "next/dynamic";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useQueryClient } from "react-query";
@@ -26,15 +27,21 @@ import { getEcommerceSections } from "components/home/module-wise-components/eco
 
 import useGetGroupedCart from "../../../api-manage/hooks/react-query/add-cart/useGetGroupedCart";
 import useGetBookingList from "api-manage/hooks/react-query/useGetBookingList";
-import TaxiView from "components/home/module-wise-components/rental/components/home/TaxiView";
 import DirectionsCarOutlinedIcon from "@mui/icons-material/DirectionsCarOutlined";
 import { setCartList, clearCartGroups } from "redux/slices/cart";
 import { getCartListModuleWise } from "helper-functions/getCartListModuleWise";
 import { getModuleIdentifier, saveModuleParam } from "utils/moduleParamManager";
 import { setSelectedModule } from "redux/slices/utils";
 import { useScrollCollapseClass } from "hooks/useScrollDirection";
+import { scrollActiveTabIntoView } from "utils/scrollActiveTabIntoView";
 import useAnimatedSearchPlaceholder from "hooks/useAnimatedSearchPlaceholder";
 import { getServiceSections } from "components/home/module-wise-components/service/serviceSectionsConfig";
+
+const TaxiView = dynamic(() =>
+  import(
+    "components/home/module-wise-components/rental/components/home/TaxiView"
+  )
+);
 
 /**
  * Mobile navbar — three sections (default state):
@@ -149,7 +156,7 @@ const MobileNavBar = ({ configData, location, setLocation, setOpenSignIn }) => {
       localStorage.setItem("zoneid", JSON.stringify(zoneIds));
       const isRental = getModule()?.module_type === "rental";
       toast.success(
-        t(`New ${isRental ? "Pickup" : "Delivery"} address selected.`),
+        t(`New ${isRental ? "Pickup" : "Delivery"} address selected.`)
       );
       setAddressPopoverOpen(false);
       setAddress(null);
@@ -281,20 +288,13 @@ const MobileNavBar = ({ configData, location, setLocation, setOpenSignIn }) => {
     router.push(
       { pathname: "/home", query: { module: moduleIdentifier } },
       undefined,
-      { shallow: isHome },
+      { shallow: isHome, scroll: true }
     );
   };
 
   // Keep the active module tab visible
   useEffect(() => {
-    const el = moduleTabsRef.current?.querySelector("[data-active='true']");
-    if (el && el.scrollIntoView) {
-      el.scrollIntoView({
-        behavior: "smooth",
-        inline: "center",
-        block: "nearest",
-      });
-    }
+    scrollActiveTabIntoView(moduleTabsRef.current);
   }, [selectedModule?.id]);
 
   // ── Render ──
@@ -409,7 +409,7 @@ const MobileNavBar = ({ configData, location, setLocation, setOpenSignIn }) => {
           "html.mobile-nav-collapsed &": {
             boxShadow: `0px 1px 2px ${alpha(
               theme.palette.common.black,
-              0.1,
+              0.1
             )}, 0px 1px 2px ${alpha(theme.palette.common.black, 0.05)}`,
           },
         }}
@@ -612,8 +612,8 @@ const MobileNavBar = ({ configData, location, setLocation, setOpenSignIn }) => {
                         color: isActive
                           ? theme.palette.neutral[1050]
                           : isDark
-                            ? theme.palette.text.secondary
-                            : "#757575",
+                          ? theme.palette.text.secondary
+                          : "#757575",
                         fontWeight: isActive ? 600 : 400,
                         fontSize: "14px",
                         borderRadius: "8px 8px 0 0",

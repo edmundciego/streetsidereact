@@ -15,11 +15,9 @@ import { usePostBusiness } from "api-manage/hooks/react-query/store-registration
 import { useRouter } from "next/router";
 import SuccessStoreRegistration from "components/store-resgistration/SuccessStoreRegistration";
 import { setActiveStep, setAllData, setInZone } from "redux/slices/storeRegistrationData";
-import useScrollToTop from "api-manage/hooks/custom-hooks/useScrollToTop";
 import { useTheme } from "@mui/styles";
 
 const StoreRegistration = () => {
-  useScrollToTop();
   const theme = useTheme();
   const dispatch = useDispatch();
   const router = useRouter();

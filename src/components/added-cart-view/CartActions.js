@@ -8,7 +8,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { setClearCart } from "redux/slices/cart";
 import GuestCheckoutModal from "../cards/GuestCheckoutModal";
 import dynamic from "next/dynamic";
-const AuthModal = dynamic(() => import("components/auth/AuthModal"));
+import AuthModal from "components/auth/DeferredAuthModal";
 const CartActions = (props) => {
   const { setSideDrawerOpen, cartList, text } = props;
   const { configData } = useSelector((state) => state.configData);

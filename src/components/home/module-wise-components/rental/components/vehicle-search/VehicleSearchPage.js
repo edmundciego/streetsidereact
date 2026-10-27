@@ -4,12 +4,10 @@ import { CustomStackFullWidth } from "styled-components/CustomStyles.style";
 import TaxiSearchPanel from "../global/search/TaxiSearchPanel";
 import { Box } from "@mui/system";
 import { search_api } from "components/home/module-wise-components/rental/rental-api-manage/ApiRoutes";
-import useScrollToTop from "api-manage/hooks/custom-hooks/useScrollToTop";
 import ModuleSearchBanner from "components/home/module-wise-components/shared/ModuleSearchBanner";
 import CustomContainer from "components/container";
 
 const VehicleSearchPage = () => {
-  useScrollToTop();
   const searchPanelRef = useRef(null);
   const [pastSearchPanel, setPastSearchPanel] = useState(false);
   const [footerVisible, setFooterVisible] = useState(false);

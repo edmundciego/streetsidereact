@@ -12,12 +12,10 @@ import { useEffect, useState } from "react";
 import { useSelector } from "react-redux";
 import { Stack } from "@mui/system";
 import { useTranslation } from "react-i18next";
-import useScrollToTop from "api-manage/hooks/custom-hooks/useScrollToTop";
 import useGetVehicleReview from "components/home/module-wise-components/rental/rental-api-manage/hooks/react-query/details/useGetVehicleReview";
 import CustomPageBreadCrumb from "components/common/CustomPageBreadCrumb";
 
 const VehicleDetailsPage = ({ vehicleDetailsData }) => {
-  useScrollToTop();
   const { t } = useTranslation();
   const router = useRouter();
   const { id, from } = router.query;

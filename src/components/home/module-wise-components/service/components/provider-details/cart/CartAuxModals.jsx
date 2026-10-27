@@ -10,7 +10,7 @@ const ProPlanSubscriptionModal = dynamic(() =>
 const ProPlanPaymentModal = dynamic(() =>
   import("components/pro-plan/ProPlanPaymentModal")
 );
-const AuthModal = dynamic(() => import("components/auth/AuthModal"));
+import AuthModal from "components/auth/DeferredAuthModal";
 const GuestCheckoutModal = dynamic(() =>
   import("components/cards/GuestCheckoutModal")
 );

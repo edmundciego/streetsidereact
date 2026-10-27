@@ -1,5 +1,4 @@
 import { Box, Grid, Typography, useMediaQuery } from "@mui/material";
-import useScrollToTop from "api-manage/hooks/custom-hooks/useScrollToTop";
 import CustomContainer from "components/container";
 import {
   CustomPaperBigCard,
@@ -41,7 +40,6 @@ import {
 import CheckoutMainContent from "./CheckoutMainContent";
 
 const ServiceCheckoutPage = (props) => {
-  useScrollToTop();
   const theme = useTheme();
   const isSmall = useMediaQuery(theme.breakpoints.down("sm"));
   const [rerender] = useState(false);

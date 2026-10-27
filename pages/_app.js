@@ -1,6 +1,7 @@
 import "../src/styles/globals.css";
 import "../src/styles/nprogress.css";
-import "@flaticon/flaticon-uicons/css/all/all.css";
+import "../src/styles/fonts.css";
+import "../src/styles/uicons.css";
 import { CacheProvider } from "@emotion/react";
 import { Provider as ReduxProvider } from "react-redux";
 import createEmotionCache from "../src/utils/create-emotion-cache";
@@ -17,8 +18,8 @@ import "../src/language/i18n";
 import { QueryClient, QueryClientProvider } from "react-query";
 import nProgress from "nprogress";
 import Router from "next/router";
+import useHistoryScrollRestoration from "../src/api-manage/hooks/custom-hooks/useHistoryScrollRestoration";
 import { persistStore } from "redux-persist";
-import useScrollToTop from "../src/api-manage/hooks/custom-hooks/useScrollToTop";
 import { useEffect, useState } from "react";
 import ModuleChecker from "../src/components/module-select/ModuleChecker";
 import ProSubscriptionExpiredModal from "../src/components/pro-plan/ProSubscriptionExpiredModal";
@@ -51,6 +52,7 @@ function MyApp(props) {
   // A request-scoped server client prevents SSR data from leaking between
   // visitors; the same instance persists across client-side navigation.
   const [queryClient] = useState(createQueryClient);
+  useHistoryScrollRestoration();
   // Initialise redux-persist once for the app lifetime, not on every render.
   useState(() => persistStore(store));
 
@@ -94,7 +96,6 @@ function MyApp(props) {
 
   return (
     <>
-      {useScrollToTop()}
       <CacheProvider value={emotionCache}>
         <QueryClientProvider client={queryClient}>
           <ReduxProvider store={store}>

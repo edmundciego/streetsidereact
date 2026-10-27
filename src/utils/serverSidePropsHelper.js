@@ -1,5 +1,6 @@
 import { getApiContent } from "api-manage/getApiContent";
 import { fetchPageMetadata } from "utils/fetchPageMetaData";
+import { getPublicPageData } from "utils/publicPageCache";
 
 // Maintenance mode is only enforced when the admin has explicitly opted
 // the react website into the maintenance window. The legacy check
@@ -13,16 +14,29 @@ export const checkMaintenanceMode = (configData) => {
   return !!(isMaintenanceMode && configData?.maintenance_mode);
 };
 
-const fetchConfig = (language) =>
-  fetch(`${(process.env.NEXT_PUBLIC_BASE_URL || "").replace(/\/+$/, "")}/api/v1/config`, {
-    method: "GET",
-    headers: {
-      "X-software-id": 33571750,
-      "X-server": "server",
-      "X-localization": language,
-      origin: process.env.NEXT_CLIENT_HOST_URL,
-    },
-  });
+const fetchConfig = (language) => {
+  const url = `${(process.env.NEXT_PUBLIC_BASE_URL || "").replace(
+    /\/+$/,
+    ""
+  )}/api/v1/config`;
+  const origin = process.env.NEXT_CLIENT_HOST_URL;
+  return getPublicPageData(
+    JSON.stringify([url, language, origin]),
+    async () => {
+      const response = await fetch(url, {
+        headers: {
+          "X-software-id": 33571750,
+          "X-server": "server",
+          "X-localization": language,
+          origin,
+        },
+      });
+      if (!response.ok)
+        throw new Error(`Configuration request failed (${response.status})`);
+      return getApiContent(await response.json());
+    }
+  );
+};
 
 export const getCommonServerSideProps = async (
   context,
@@ -30,15 +44,14 @@ export const getCommonServerSideProps = async (
   pageId = null
 ) => {
   const { req, res } = context;
-  const language = req.cookies.languageSetting;
+  const language = req.cookies.languageSetting || "en";
 
   // Config and page metadata are independent documents — start both
   // requests in parallel instead of paying two sequential round-trips.
-  const [configRes, metaData] = await Promise.all([
+  const [config, metaData] = await Promise.all([
     fetchConfig(language),
     fetchPageMetadata(pageName, pageId, language),
   ]);
-  const config = getApiContent(await configRes.json());
 
   if (
     checkMaintenanceMode(config) &&

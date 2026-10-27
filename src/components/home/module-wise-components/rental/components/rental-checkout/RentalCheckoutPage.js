@@ -60,7 +60,6 @@ import { getAmountWithSign } from "helper-functions/CardHelpers";
 import Router from "next/router";
 import { getGuestId, getToken } from "helper-functions/getToken";
 import { resolveContactPerson } from "helper-functions/resolveContactPerson";
-import useScrollToTop from "api-manage/hooks/custom-hooks/useScrollToTop";
 import GuestUserInforForm from "components/address/GuestUserInforForm";
 import { fTime } from "components/home/module-wise-components/rental/components/rentalfilter/RentalCarFilterSection";
 import useGetCashBackAmount from "api-manage/hooks/react-query/cashback/useGetCashBackAmount";
@@ -89,7 +88,6 @@ const ProPlanPaymentModal = dynamic(() =>
   import("components/pro-plan/ProPlanPaymentModal")
 );
 const RentalCheckoutPage = () => {
-  useScrollToTop();
   const theme = useTheme();
   const dispatch = useDispatch();
   const { cartList } = useSelector((state) => state.cart);

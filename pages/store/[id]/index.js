@@ -7,7 +7,6 @@ import { setConfigData } from "redux/slices/configData";
 import { getApiContent } from "api-manage/getApiContent";
 import { config_api, store_details_api } from "api-manage/ApiRoutes";
 import SEO from "../../../src/components/seo";
-import useScrollToTop from "api-manage/hooks/custom-hooks/useScrollToTop";
 import { checkMaintenanceMode } from "../../../src/utils/serverSidePropsHelper";
 import fetchWithTimeoutRetry from "../../../src/utils/fetchWithTimeoutRetry";
 import StoreDetailsSkeleton from "../../../src/components/common/skeletons/StoreDetailsSkeleton";
@@ -19,7 +18,6 @@ const StoreDetails = dynamic(
 
 const StorePage = ({ configData, storeDetails, distance }) => {
   const dispatch = useDispatch();
-  useScrollToTop();
 
   const metaTitle = `${storeDetails?.meta_title || storeDetails?.name} - ${
     configData?.business_name

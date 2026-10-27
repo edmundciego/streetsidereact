@@ -7,7 +7,6 @@ import { getApiContent } from "api-manage/getApiContent";
 import { setSelectedModule } from "redux/slices/utils";
 import { config_api } from "api-manage/ApiRoutes";
 import { provider_details_api } from "components/home/module-wise-components/service/service-api-manage/ApiRoutes";
-import useScrollToTop from "api-manage/hooks/custom-hooks/useScrollToTop";
 import MainLayout from "components/layout/MainLayout";
 import SEO from "components/seo";
 import { checkMaintenanceMode } from "utils/serverSidePropsHelper";
@@ -26,7 +25,6 @@ const ProviderDetails = dynamic(
 
 const StorePage = ({ configData, providerDetails, distance }) => {
   const dispatch = useDispatch();
-  useScrollToTop();
 
   const metaTitle = `${
     providerDetails?.meta_title || providerDetails?.name

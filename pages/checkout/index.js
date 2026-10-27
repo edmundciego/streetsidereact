@@ -16,7 +16,6 @@ import MainLayout from "../../src/components/layout/MainLayout";
 import AuthGuard from "../../src/components/route-guard/AuthGuard";
 import SEO from "../../src/components/seo";
 import { getImageUrl } from "utils/CustomFunctions";
-import useScrollToTop from "api-manage/hooks/custom-hooks/useScrollToTop";
 import { setConfigData } from "redux/slices/configData";
 import { useGetConfigData } from "../../src/api-manage/hooks/useGetConfigData";
 import useGetDistance from "../../src/api-manage/hooks/react-query/google-api/useGetDistance";
@@ -68,7 +67,6 @@ const CheckoutMobileHeader = () => {
 };
 
 const CheckOutPage = () => {
-  useScrollToTop();
   const dispatch = useDispatch();
   const { landingPageData, configData } = useSelector(
     (state) => state.configData

@@ -203,7 +203,7 @@ const MainLayout = ({ children, configData, onHappyHourActiveChange }) => {
             query: { ...router.query, module: identifier },
           },
           undefined,
-          { shallow: true },
+          { shallow: true, scroll: true },
         );
       }
     };

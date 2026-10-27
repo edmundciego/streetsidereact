@@ -10,6 +10,7 @@ import appleLogo from "../../asset/Apple Logo.svg";
 import jwt_decode from "jwt-decode";
 import { getGuestId } from "helper-functions/getToken";
 import { onErrorResponse } from "api-manage/api-error-response/ErrorResponses";
+import Script from "next/script";
 
 const AppleLoginComp = (props) => {
   const {
@@ -32,15 +33,6 @@ const AppleLoginComp = (props) => {
   const { t } = useTranslation();
   const [appleSdkLoaded, setAppleSdkLoaded] = useState(false);
   const [loginValue, setLoginValue] = useState(null);
-  // client_id
-  // Load Apple SDK
-  useEffect(() => {
-    if (typeof AppleID !== "undefined") {
-      setAppleSdkLoaded(true);
-    } else {
-      console.warn("Apple SDK not loaded");
-    }
-  }, []); // Only runs once when the component mounts
 
   const handleToken = (token) => {
     if (token) {
@@ -194,14 +186,19 @@ const AppleLoginComp = (props) => {
   return (
     <div
       style={{
-        width:
-          isLandingVariant
-            ? "100%"
-            : socialLength === 3 && state?.status !== "social"
-            ? "45px"
-            : "100%",
+        width: isLandingVariant
+          ? "100%"
+          : socialLength === 3 && state?.status !== "social"
+          ? "45px"
+          : "100%",
       }}
     >
+      <Script
+        id="apple-login-sdk"
+        src="https://appleid.cdn-apple.com/appleauth/static/jsapi/appleid/1/en_US/appleid.auth.js"
+        strategy="afterInteractive"
+        onReady={() => setAppleSdkLoaded(true)}
+      />
       {appleSdkLoaded ? (
         <AppleLogin
           clientId={configData?.apple_login[0]?.client_id}

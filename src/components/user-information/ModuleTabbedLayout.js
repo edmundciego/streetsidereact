@@ -3,6 +3,7 @@ import { useEffect, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import useGetModule from "api-manage/hooks/react-query/useGetModule";
 import { setModules } from "redux/slices/configData";
+import { scrollActiveTabIntoView } from "utils/scrollActiveTabIntoView";
 
 /**
  * Presentational module-tab layout shared by Orders & Coupons profile pages.
@@ -110,14 +111,7 @@ const ModuleTabbedLayout = ({
 
   // Keep the active module tab visible.
   useEffect(() => {
-    const el = moduleTabsRef.current?.querySelector("[data-active='true']");
-    if (el && el.scrollIntoView) {
-      el.scrollIntoView({
-        behavior: "smooth",
-        inline: "center",
-        block: "nearest",
-      });
-    }
+    scrollActiveTabIntoView(moduleTabsRef.current);
   }, [activeModule?.id]);
 
   if (!modules?.length) return null;

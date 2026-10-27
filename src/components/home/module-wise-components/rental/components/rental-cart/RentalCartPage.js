@@ -20,7 +20,6 @@ import CartPageCartContentCard from "components/home/module-wise-components/rent
 import { FormatedDateWithTime } from "utils/CustomFunctions";
 import BorderColorOutlinedIcon from "@mui/icons-material/BorderColorOutlined";
 import { useRouter } from "next/router";
-import useScrollToTop from "api-manage/hooks/custom-hooks/useScrollToTop";
 import TripVehicleList from "components/home/module-wise-components/rental/components/rental-cart/TripVehicleList";
 import dynamic from "next/dynamic";
 import {
@@ -49,7 +48,6 @@ const ProPlanPaymentModal = dynamic(() =>
   import("components/pro-plan/ProPlanPaymentModal")
 );
 const RentalCartPage = () => {
-  useScrollToTop();
   const router = useRouter();
   const [openModal, setOpenModal] = useState(false);
   const [openTripChange, setOpenTripChange] = React.useState(false);

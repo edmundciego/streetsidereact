@@ -41,7 +41,6 @@ import {
   getRedirectLink,
 } from "helper-functions/paymentRedirect";
 import useMakePayment from "components/home/module-wise-components/rental/rental-api-manage/hooks/react-query/details/useMakePayment";
-import TaxiSearchPanel from "components/home/module-wise-components/rental/components/global/search/TaxiSearchPanel";
 import {
   getDigitalMethodFromZone,
   handleFailedOrderPlace,
@@ -123,6 +122,7 @@ const HomePageComponents = ({
   const router = useRouter();
   const dispatch = useDispatch();
   const token = getToken();
+  const guestId = getGuestId();
   const { welcomeModal } = useSelector((state) => state.utilsData);
   const moduleType = getCurrentModuleType();
   const { refetch: refetchFailedPayment, data: failPayment } =
@@ -170,16 +170,15 @@ const HomePageComponents = ({
     zoneData?.data
   );
   useEffect(() => {
-    refetchFailedPayment();
-    refetchOfflinePaymentOptions();
-  }, []);
-
-  const zoneid =
-    typeof window !== "undefined" ? localStorage.getItem("zoneid") : undefined;
+    // Failed-payment recovery only applies to signed-in or guest sessions.
+    if (token || guestId) refetchFailedPayment();
+  }, [token, guestId, refetchFailedPayment]);
 
   useEffect(() => {
-    window.scrollTo(0, 0);
-  }, [router.query.search]);
+    // Payment methods are only needed after the customer opens the recovery
+    // dialog. Keep this request off the normal home-page load.
+    if (openPaymentModal) refetchOfflinePaymentOptions();
+  }, [openPaymentModal, refetchOfflinePaymentOptions]);
 
   const onSuccessHandler = (response) => {
     setWishListsData(response);
