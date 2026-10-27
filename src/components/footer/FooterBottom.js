@@ -2,7 +2,7 @@ import { IconButton, NoSsr, Typography, useTheme } from "@mui/material";
 import { Box, Stack } from "@mui/system";
 import { t } from "i18next";
 import { useRouter } from "next/router";
-import CustomImageContainer from "../CustomImageContainer";
+import OptimizedImage from "components/OptimizedImage";
 import {
   Facebook,
   Instragram,
@@ -137,12 +137,13 @@ const FooterBottom = ({ configData }) => {
         >
           {socialIcons}
           <Stack gap="12px" alignItems="center">
-            <CustomImageContainer
+            <OptimizedImage
               src={configData?.logo_full_url}
-              alt={configData?.business_name}
-              width="auto"
-              height="16px"
-              objectfit="contain"
+              alt={configData?.business_name || "Streetside"}
+              width={57}
+              height={16}
+              sizes="57px"
+              objectFit="contain"
             />
             <Typography
               sx={{

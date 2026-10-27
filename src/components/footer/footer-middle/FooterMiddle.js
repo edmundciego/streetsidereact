@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next";
 import ractangle from "../../../../public/static/footer/Rectangle.svg";
 import magnifying from "../../../../public/static/footer/magnifying.svg";
 import phone from "../../../../public/static/footer/phone.svg";
-import CustomImageContainer from "../../CustomImageContainer";
+import OptimizedImage from "components/OptimizedImage";
 import LocationViewOnMap from "../../Map/location-view/LocationViewOnMap";
 import AppLinks from "./AppLinks";
 import RouteLinks from "./RouteLinks";
@@ -46,12 +46,13 @@ const FooterMiddle = ({ configData, landingPageData }) => {
       >
         {/* Brand + App */}
         <Stack gap="16px" alignItems="center" sx={{ width: "100%" }}>
-          <CustomImageContainer
+          <OptimizedImage
             src={configData?.logo_full_url}
-            alt={configData?.business_name}
-            width="auto"
-            height="36px"
-            objectfit="contain"
+            alt={configData?.business_name || "Streetside"}
+            width={127}
+            height={36}
+            sizes="127px"
+            objectFit="contain"
           />
           <Typography
             sx={{
@@ -160,12 +161,13 @@ const FooterMiddle = ({ configData, landingPageData }) => {
         <Stack gap="20px" sx={{ width: { md: "240px", lg: "320px" }, flexShrink: 0 }}>
           <Stack gap="16px">
             <Box sx={{ img: { transition: "all ease 0.5s" }, "&:hover img": { transform: "scale(1.04)" } }}>
-              <CustomImageContainer
+              <OptimizedImage
                 src={configData?.logo_full_url}
-                alt={configData?.business_name}
-                width="auto"
-                height="36px"
-                objectfit="contain"
+                alt={configData?.business_name || "Streetside"}
+                width={127}
+                height={36}
+                sizes="127px"
+                objectFit="contain"
               />
             </Box>
             <Typography
